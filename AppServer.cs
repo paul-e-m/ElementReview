@@ -1,0 +1,665 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Net.Http.Headers;
+using System.Diagnostics;
+using System.Net.NetworkInformation;
+using System.Text.Json;
+using ElementReview.Models;
+using ElementReview.Services;
+using ElementReview.Shell;
+
+//AppServer.cs
+namespace ElementReview.Hosting;
+
+public static class AppServer
+{
+    public const string ListenUrl = "http://0.0.0.0:5050";
+    public const string LocalBaseUrl = "http://127.0.0.1:5050";
+    public const string MainPageUrl = LocalBaseUrl + "/index.html";
+    public const string SettingsPageUrl = LocalBaseUrl + "/config.html";
+
+    private static string ResolveContentRoot()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (current != null)
+        {
+            var candidate = current.FullName;
+            var hasProjectFile = File.Exists(Path.Combine(candidate, "ElementReview.csproj"));
+            var hasWwwroot = Directory.Exists(Path.Combine(candidate, "wwwroot"));
+
+            if (hasProjectFile && hasWwwroot)
+                return candidate;
+
+            current = current.Parent;
+        }
+
+        return AppContext.BaseDirectory;
+    }
+
+    public static WebApplication Build(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            Args = args,
+            ContentRootPath = ResolveContentRoot(),
+        });
+        builder.WebHost.UseUrls(ListenUrl);
+
+        builder.Services.AddSingleton<SessionManager>();
+        builder.Services.AddSingleton<MediaMtxManager>();
+        builder.Services.AddSingleton<RecorderManager>();
+
+        var app = builder.Build();
+
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
+        string LocalDataDir() => Path.Combine(app.Environment.ContentRootPath, "data");
+        string LocalConfigPath() => Path.Combine(LocalDataDir(), "appconfig.json");
+        string LocalDemoVideoPath() => Path.Combine(LocalDataDir(), "demovideo.mp4");
+
+        string ExternalElementsDir() => @"C:\ElementReview\data";
+        string ExternalElementsPath() => Path.Combine(ExternalElementsDir(), "SessionInfo.json");
+        string LocalElementsPath() => Path.Combine(LocalDataDir(), "SessionInfo.json");
+
+        Directory.CreateDirectory(LocalDataDir());
+
+        var jsonOpts = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = true
+        };
+
+        static AppConfig NormalizeConfig(AppConfig? cfg)
+        {
+            cfg ??= new AppConfig();
+
+            var cssLink = string.IsNullOrWhiteSpace(cfg.CSSLink) ? "None" : cfg.CSSLink.Trim();
+            cfg.CSSLink =
+                cssLink.Equals("Legacy", StringComparison.OrdinalIgnoreCase) ? "Legacy" :
+                cssLink.Equals("Custom", StringComparison.OrdinalIgnoreCase) ? "Custom" :
+                cssLink.Equals("New", StringComparison.OrdinalIgnoreCase) ||
+                cssLink.Equals("Online CSS", StringComparison.OrdinalIgnoreCase) ||
+                cssLink.Equals("OnlineCSS", StringComparison.OrdinalIgnoreCase) ? "Online CSS" :
+                cssLink.Equals("Offline CSS", StringComparison.OrdinalIgnoreCase) ||
+                cssLink.Equals("OfflineCSS", StringComparison.OrdinalIgnoreCase) ? "Offline CSS" :
+                "None";
+
+            if (cfg.DemoMode)
+            {
+                cfg.SaveVideos = false;
+            }
+
+            return cfg;
+        }
+
+        AppConfig LoadConfig()
+        {
+            var path = LocalConfigPath();
+            if (!File.Exists(path))
+            {
+                var cfg = NormalizeConfig(new AppConfig());
+                SaveConfig(cfg);
+                return cfg;
+            }
+
+            try
+            {
+                var json = File.ReadAllText(path);
+                return NormalizeConfig(JsonSerializer.Deserialize<AppConfig>(json, jsonOpts));
+            }
+            catch
+            {
+                return NormalizeConfig(new AppConfig());
+            }
+        }
+
+        void SaveConfig(AppConfig cfg)
+        {
+            cfg = NormalizeConfig(cfg);
+            var path = LocalConfigPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonSerializer.Serialize(cfg, jsonOpts));
+        }
+
+        static string? GetCssHelperExeName(AppConfig cfg)
+        {
+            return cfg.CSSLink switch
+            {
+                "Legacy" => "GetSessionInfo_LegacyCSS.exe",
+                "Online CSS" => "GetSessionInfo_OnlineCSS.exe",
+                "Offline CSS" => "GetSessionInfo_OfflineCSS.exe",
+                _ => null
+            };
+        }
+
+        static bool IsProcessRunning(string exeName)
+        {
+            var processName = Path.GetFileNameWithoutExtension(exeName);
+
+            try
+            {
+                return Process.GetProcessesByName(processName).Any((proc) =>
+                {
+                    try
+                    {
+                        return !proc.HasExited;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                    finally
+                    {
+                        proc.Dispose();
+                    }
+                });
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        static void EnsureCssHelperRunning(AppConfig cfg)
+        {
+            var exeName = GetCssHelperExeName(cfg);
+            if (string.IsNullOrWhiteSpace(exeName)) return;
+            if (IsProcessRunning(exeName)) return;
+
+            var exePath = Path.Combine(AppContext.BaseDirectory, exeName);
+            if (!File.Exists(exePath)) return;
+
+            using var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    WorkingDirectory = Path.GetDirectoryName(exePath) ?? AppContext.BaseDirectory,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            proc.Start();
+        }
+
+        string ResolveElementsPath()
+        {
+            if (File.Exists(ExternalElementsPath())) return ExternalElementsPath();
+            if (File.Exists(LocalElementsPath())) return LocalElementsPath();
+            return ExternalElementsPath();
+        }
+
+        static async Task<JsonElement?> ReadJsonRootAsync(HttpRequest req)
+        {
+            try
+            {
+                if (req.ContentLength is null || req.ContentLength == 0) return null;
+                using var doc = await JsonDocument.ParseAsync(req.Body);
+                return doc.RootElement.Clone();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        static int? TryGetInt(JsonElement root, params string[] names)
+        {
+            foreach (var n in names)
+            {
+                if (!root.TryGetProperty(n, out var v)) continue;
+
+                if (v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i)) return i;
+                if (v.ValueKind == JsonValueKind.String && int.TryParse(v.GetString(), out var s)) return s;
+            }
+            return null;
+        }
+
+        static double? TryGetDouble(JsonElement root, params string[] names)
+        {
+            foreach (var n in names)
+            {
+                if (!root.TryGetProperty(n, out var v)) continue;
+
+                if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d)) return d;
+                if (v.ValueKind == JsonValueKind.String && double.TryParse(v.GetString(), out var s)) return s;
+            }
+            return null;
+        }
+
+        app.Lifetime.ApplicationStopping.Register(() =>
+        {
+            try
+            {
+                var recorder = app.Services.GetRequiredService<RecorderManager>();
+                recorder.StopIfRunning();
+            }
+            catch
+            {
+            }
+        });
+
+        app.Lifetime.ApplicationStarted.Register(() =>
+        {
+            try
+            {
+                EnsureCssHelperRunning(LoadConfig());
+            }
+            catch
+            {
+            }
+        });
+
+        app.MapGet("/api/liveUrl", (MediaMtxManager mtx, RecorderManager recorder) =>
+        {
+            var cfg = LoadConfig();
+
+            if (cfg.DemoMode)
+            {
+                recorder.Warmup(cfg);
+                return Results.Ok(new
+                {
+                    url = $"/demo-live?ts={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+                    mode = "demo"
+                });
+            }
+
+            mtx.EnsureRunning(cfg);
+            recorder.Warmup(cfg);
+
+            var url = mtx.WebRtcEmbedUrl("mystream");
+            return Results.Ok(new
+            {
+                url,
+                mode = "rtsp"
+            });
+        });
+
+        app.MapGet("/api/status", (SessionManager session) =>
+        {
+            var cfg = LoadConfig();
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapGet("/api/appconfig", () =>
+        {
+            var cfg = LoadConfig();
+            return Results.Ok(cfg);
+        });
+
+        app.MapPost("/api/appconfig", (AppConfig cfg, MediaMtxManager mtx) =>
+        {
+            cfg = NormalizeConfig(cfg);
+            SaveConfig(cfg);
+
+            if (!cfg.DemoMode)
+                mtx.Restart(cfg);
+
+            return Results.Ok(cfg);
+        });
+
+        app.MapGet("/api/elements", (SessionManager session) =>
+        {
+            try
+            {
+                var cfg = LoadConfig();
+                if (string.Equals(cfg.CSSLink, "None", StringComparison.OrdinalIgnoreCase))
+                    return Results.Ok(new { elements = new Dictionary<string, object>() });
+
+                var path = ResolveElementsPath();
+                if (!File.Exists(path))
+                    return Results.Ok(new { elements = new Dictionary<string, object>() });
+
+                var json = File.ReadAllText(path);
+
+                session.UpdateReviewHistory(SessionManager.ExtractReviewFlagsFromElementsJson(json));
+
+                using var doc = JsonDocument.Parse(json);
+                return Results.Json(doc.RootElement.Clone(), jsonOpts);
+            }
+            catch
+            {
+                return Results.Ok(new { elements = new Dictionary<string, object>() });
+            }
+        });
+
+        app.MapGet("/api/demoVideo", () =>
+        {
+            var path = LocalDemoVideoPath();
+            if (!File.Exists(path))
+                return Results.NotFound("Missing data/demovideo.mp4");
+
+            return Results.File(path, contentType: "video/mp4", enableRangeProcessing: true);
+        });
+
+        app.MapGet("/demo-live", () =>
+        {
+            var videoSrc = $"/api/demoVideo?ts={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+
+            var html = $$"""
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+        .wrap {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+        .msg {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font: 600 18px system-ui, Segoe UI, Arial, sans-serif;
+            text-align: center;
+            padding: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <video id="demoVideo" autoplay muted loop playsinline>
+            <source src="{{videoSrc}}" type="video/mp4">
+        </video>
+    </div>
+
+    <div id="msg" class="msg">Missing data/demovideo.mp4</div>
+
+    <script>
+        const video = document.getElementById("demoVideo");
+        const msg = document.getElementById("msg");
+
+        video.addEventListener("error", () => {
+            video.style.display = "none";
+            msg.style.display = "flex";
+        });
+
+        video.play().catch(() => { });
+    </script>
+</body>
+</html>
+""";
+
+            return Results.Content(html, "text/html");
+        });
+
+        app.MapPost("/api/record/start", async (MediaMtxManager mtx, RecorderManager recorder, StartRecordingRequest? req) =>
+        {
+            var cfg = LoadConfig();
+
+            if (!cfg.DemoMode)
+                mtx.EnsureRunning(cfg);
+
+            await recorder.StartRecordingAsync(cfg, cfg.DemoMode ? req?.demoStartSeconds : null);
+
+            var session = app.Services.GetRequiredService<SessionManager>();
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/record/stop", async (RecorderManager recorder, StopRecordingRequest req) =>
+        {
+            var cfg = LoadConfig();
+            await recorder.StopRecordingAndGetDurationSecondsAsync(cfg, req.uiElapsedSeconds);
+
+            var session = app.Services.GetRequiredService<SessionManager>();
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/record/clipToggle", (ClipToggleRequest req, SessionManager session) =>
+        {
+            var nowSeconds = req.nowSeconds;
+
+            if (session.OpenClipStartSeconds is null)
+            {
+                var lastClipEnd = 0.0;
+                foreach (var clip in session.Clips)
+                {
+                    if (clip.EndSeconds > lastClipEnd)
+                        lastClipEnd = clip.EndSeconds;
+                }
+
+                nowSeconds = Math.Max(nowSeconds, lastClipEnd);
+            }
+
+            session.ToggleClipMarker(nowSeconds);
+            var cfg = LoadConfig();
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/record/undo", (SessionManager session) =>
+        {
+            session.UndoLastClipAction();
+            var cfg = LoadConfig();
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/record/redo", (SessionManager session) =>
+        {
+            session.RedoLastClipAction();
+            var cfg = LoadConfig();
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/session/clear", (SessionManager session, RecorderManager recorder) =>
+        {
+            recorder.StopIfRunning();
+
+            try { if (File.Exists(recorder.EncodedOutputFilePath)) File.Delete(recorder.EncodedOutputFilePath); } catch { }
+            try { if (File.Exists(recorder.EncodedTempFilePath)) File.Delete(recorder.EncodedTempFilePath); } catch { }
+            try { if (File.Exists(recorder.CopiedOutputFilePath)) File.Delete(recorder.CopiedOutputFilePath); } catch { }
+            try { if (File.Exists(recorder.CopiedTempFilePath)) File.Delete(recorder.CopiedTempFilePath); } catch { }
+
+            session.ClearAll();
+            var cfg = LoadConfig();
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapGet("/api/recording/file", (HttpContext http, RecorderManager recorder, string? kind) =>
+        {
+            var wantCopied = string.Equals(kind, "copied", StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(kind, "remote", StringComparison.OrdinalIgnoreCase);
+
+            var path = wantCopied && File.Exists(recorder.CopiedOutputFilePath)
+                ? recorder.CopiedOutputFilePath
+                : recorder.EncodedOutputFilePath;
+
+            if (!File.Exists(path)) return Results.NotFound("No recording found.");
+
+            var fileInfo = new FileInfo(path);
+            var lastModified = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero);
+            var entityTag = new EntityTagHeaderValue($"\"{fileInfo.Length:x}-{fileInfo.LastWriteTimeUtc.Ticks:x}\"");
+            http.Response.Headers[HeaderNames.CacheControl] = "public, max-age=0, must-revalidate";
+
+            return Results.File(
+                path,
+                contentType: "video/mp4",
+                lastModified: lastModified,
+                entityTag: entityTag,
+                enableRangeProcessing: true);
+        });
+
+        app.MapPost("/api/replay/delete", async (HttpRequest req, SessionManager session) =>
+        {
+            var cfg = LoadConfig();
+            var root = await ReadJsonRootAsync(req);
+            if (root is null) return Results.BadRequest("Missing JSON body.");
+
+            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
+            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
+
+            session.DeleteClip(clipIndex.Value);
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/replay/split", async (HttpRequest req, SessionManager session) =>
+        {
+            var cfg = LoadConfig();
+            var root = await ReadJsonRootAsync(req);
+            if (root is null) return Results.BadRequest("Missing JSON body.");
+
+            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
+            var splitSeconds = TryGetDouble(root.Value, "splitSeconds", "SplitSeconds", "atSeconds", "AtSeconds", "nowSeconds", "NowSeconds", "timeSeconds", "TimeSeconds");
+
+            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
+            if (splitSeconds is null) return Results.BadRequest("Missing splitSeconds.");
+
+            session.SplitClip(clipIndex.Value, splitSeconds.Value);
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/replay/insert", async (HttpRequest req, SessionManager session) =>
+        {
+            var cfg = LoadConfig();
+            var root = await ReadJsonRootAsync(req);
+            if (root is null) return Results.BadRequest("Missing JSON body.");
+
+            var startSeconds = TryGetDouble(root.Value, "startSeconds", "StartSeconds");
+            var endSeconds = TryGetDouble(root.Value, "endSeconds", "EndSeconds");
+
+            if (startSeconds.HasValue && endSeconds.HasValue)
+            {
+                session.InsertClip(startSeconds.Value, endSeconds.Value);
+                return Results.Ok(session.GetStatus(cfg.SourceFps));
+            }
+
+            var atSeconds = TryGetDouble(root.Value, "atSeconds", "AtSeconds", "nowSeconds", "NowSeconds", "timeSeconds", "TimeSeconds");
+            if (atSeconds is null) return Results.BadRequest("Missing startSeconds/endSeconds or atSeconds.");
+
+            session.InsertClip(atSeconds.Value, atSeconds.Value + 1.0);
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/replay/trimIn", async (HttpRequest req, SessionManager session) =>
+        {
+            var cfg = LoadConfig();
+            var root = await ReadJsonRootAsync(req);
+            if (root is null) return Results.BadRequest("Missing JSON body.");
+
+            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
+            var atSeconds = TryGetDouble(root.Value, "atSeconds", "AtSeconds", "nowSeconds", "NowSeconds", "timeSeconds", "TimeSeconds");
+
+            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
+            if (atSeconds is null) return Results.BadRequest("Missing atSeconds.");
+
+            session.TrimIn(clipIndex.Value, atSeconds.Value);
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/replay/trimOut", async (HttpRequest req, SessionManager session) =>
+        {
+            var cfg = LoadConfig();
+            var root = await ReadJsonRootAsync(req);
+            if (root is null) return Results.BadRequest("Missing JSON body.");
+
+            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
+            var atSeconds = TryGetDouble(root.Value, "atSeconds", "AtSeconds", "nowSeconds", "NowSeconds", "timeSeconds", "TimeSeconds");
+
+            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
+            if (atSeconds is null) return Results.BadRequest("Missing atSeconds.");
+
+            session.TrimOut(clipIndex.Value, atSeconds.Value);
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
+        app.MapPost("/api/app/restart", () =>
+        {
+            if (ShellCommands.RequestRestart())
+                return Results.Ok(new { ok = true });
+
+            return Results.BadRequest("Restart is only available when running the native shell app.");
+        });
+
+        app.MapGet("/api/hostping", async (string? host) =>
+        {
+            host = (host ?? "").Trim();
+
+            if (string.IsNullOrWhiteSpace(host))
+            {
+                return Results.Ok(new
+                {
+                    ok = false,
+                    host = "",
+                    roundTripMs = (long?)null,
+                    color = "red",
+                    error = "Missing host."
+                });
+            }
+
+            var sw = Stopwatch.StartNew();
+
+            try
+            {
+                using var ping = new Ping();
+                var reply = await ping.SendPingAsync(host, 500);
+                sw.Stop();
+
+                if (reply.Status != IPStatus.Success)
+                {
+                    return Results.Ok(new
+                    {
+                        ok = false,
+                        host,
+                        roundTripMs = (long?)null,
+                        color = "red",
+                        error = reply.Status.ToString()
+                    });
+                }
+
+                var roundTripMs = Math.Max(1L, sw.ElapsedMilliseconds);
+                var color = roundTripMs <= 100 ? "green" : "yellow";
+
+                return Results.Ok(new
+                {
+                    ok = true,
+                    host,
+                    roundTripMs,
+                    color
+                });
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+
+                return Results.Ok(new
+                {
+                    ok = false,
+                    host,
+                    roundTripMs = (long?)null,
+                    color = "red",
+                    error = ex.Message
+                });
+            }
+        });
+
+        return app;
+    }
+}
+
+public record StartRecordingRequest(double? demoStartSeconds);
+public record StopRecordingRequest(double? uiElapsedSeconds);

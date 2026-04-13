@@ -1,0 +1,7 @@
+bin/
+obj/
+.vs/
+tools/
+*.mp4
+data/demovideo.mp4
+GetSessionInfo_LegacyCSS.exe

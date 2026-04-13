@@ -1,0 +1,16 @@
+{
+  "RecordingGop": 20,
+  "RtspUrl": "rtsp://192.168.1.123:8554/video",
+  "DemoMode": false,
+  "UseHardwareEncodingWhenAvailable": true,
+  "SourceFps": 60,
+  "ClipMarkerAdvanceMsec": 500,
+  "SaveVideos": false,
+  "CSSLink": "Legacy",
+  "EventId": "",
+  "DatabaseLocation": "localhost",
+  "CSSServerHost": "",
+  "SavedVideosFolder": "C:/ElementReview/videos-test",
+  "Language": "en",
+  "UiZoomPercent": 90
+}

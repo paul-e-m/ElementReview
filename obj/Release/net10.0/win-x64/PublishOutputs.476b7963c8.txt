@@ -1,0 +1,7 @@
+C:\Users\paul\ELementReview - dev\bin\Release\net10.0\win-x64\publish\appsettings.Development.json
+C:\Users\paul\ELementReview - dev\bin\Release\net10.0\win-x64\publish\appsettings.json
+C:\Users\paul\ELementReview - dev\bin\Release\net10.0\win-x64\publish\data\appconfig.json
+C:\Users\paul\ELementReview - dev\bin\Release\net10.0\win-x64\publish\data\elements.json
+C:\Users\paul\ELementReview - dev\bin\Release\net10.0\win-x64\publish\ElementReview.pdb
+C:\Users\paul\ELementReview - dev\bin\Release\net10.0\win-x64\publish\aspnetcorev2_inprocess.dll
+C:\Users\paul\ELementReview - dev\bin\Release\net10.0\win-x64\publish\ElementReview.exe

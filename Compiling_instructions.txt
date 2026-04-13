@@ -1,0 +1,12 @@
+Compiling instructions:
+
+1. Open Powershell
+2. cd into source directory (e.g. cd \Users\paul\ElementReview-dev)
+3. Run this command in Powershell:
+
+cd \Users\paul\ElementReview-dev
+dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true
+
+The executable binary will be located in \bin\release\net10.0\win-x64\publish\
+
+Note: Because this is a WebView2 app, the target PC also needs the WebView2 Runtime installed. Microsoft recommends the Evergreen Runtime for most apps. This shoul dbe pre-installed on all versions of Windows 11. Windows 10 may require the runtime; therefore it should be included in the distribution installer.

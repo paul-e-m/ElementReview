@@ -1,0 +1,1598 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Element Review Settings</title>
+
+    <style>
+        :root {
+            --pageBg: #f3f3f6;
+            --surface: #ffffff;
+            --surfaceAlt: #f5f5f5;
+            --text: #1d1d1f;
+            --muted: #6f6f76;
+            --border: #dddddd;
+            --brand: #4352b8;
+            --brandDark: #1d5a96;
+            --inputBorder: #cfcfd6;
+            --inputBg: #ffffff;
+            --success: #2fa84f;
+            --warning: #d6a316;
+            --danger: #e34b3f;
+            --buttonShadow: 0 1px 0 rgba(0,0,0,0.08);
+            --cardShadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            min-height: 100%;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--pageBg);
+            color: var(--text);
+        }
+
+            body.preload {
+                visibility: hidden;
+            }
+
+        .siteHeader {
+            background: var(--brand);
+            color: #fff;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.12);
+        }
+
+        .siteHeaderInner {
+            min-height: 74px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .brandBlock {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .brand {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        .version {
+            font-size: 16px;
+            font-weight: 700;
+            opacity: 0.95;
+            white-space: nowrap;
+        }
+
+        .siteNav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .languageSelect {
+            min-height: 34px;
+            padding: 0 10px;
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.14);
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+        }
+
+            .languageSelect:focus {
+                outline: 0;
+                box-shadow: 0 0 0 3px rgba(255,255,255,0.18);
+            }
+
+            .languageSelect option {
+                color: #1d1d1f;
+                background: #ffffff;
+            }
+
+        .page {
+            margin: 0;
+            padding: 8px 8px 20px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+            line-height: 1.2;
+            font-weight: 500;
+            color: #000;
+        }
+
+        .subtitle {
+            margin: 0 0 12px;
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        .formShell {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: var(--cardShadow);
+            padding: 8px;
+        }
+
+        form {
+            display: grid;
+            gap: 8px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: visible;
+            padding: 0 10px 10px;
+        }
+
+        .actionsCard {
+            padding-top: 10px;
+        }
+
+        .sectionTitle {
+            margin: 0 -14px 0;
+            padding: 10px;
+            font-size: 18px;
+            line-height: 1.2;
+            font-weight: 700;
+            color: #111;
+            background: var(--surfaceAlt);
+            border-bottom: 1px solid #c9c9c9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: minmax(220px, 320px) minmax(180px, 1fr);
+            gap: 0 10px;
+            align-items: center;
+        }
+
+        .row {
+            display: contents;
+        }
+
+            .row.hiddenRow {
+                display: none;
+            }
+
+            .labelBlock,
+            .row > .toggleRow {
+                border-bottom: 1px solid #ececec;
+                min-height: 58px;
+            }
+
+            .row > input {
+                min-height: 58px;
+            }
+
+        .grid .row:last-child .labelBlock,
+        .grid .row:last-child .toggleRow {
+            border-bottom: 0;
+        }
+
+        .labelBlock {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+            .labelBlock.disabled {
+                opacity: 0.6;
+            }
+
+        .labelLine {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .labelBlock label {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1f1f1f;
+        }
+
+        .help {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.4;
+            max-width: 560px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        .fieldSelect {
+            display: block;
+            width: 100%;
+            max-width: 50%;
+            min-width: 160px;
+            min-height: 31px;
+            margin: 0;
+            padding: 6px 10px;
+            border: 1px solid var(--inputBorder);
+            border-radius: 4px;
+            background: var(--inputBg);
+            color: var(--text);
+            font-size: 14px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+            align-self: center;
+        }
+
+            input[type="text"]:focus,
+            input[type="number"]:focus,
+            .fieldSelect:focus {
+                outline: 0;
+                border-color: #8b93d8;
+                box-shadow: 0 0 0 3px rgba(67, 82, 184, 0.12);
+            }
+
+            input[type="text"]:disabled,
+            input[type="number"]:disabled,
+            .fieldSelect:disabled {
+                background: #f0f0f2;
+                color: #8b8b95;
+                cursor: not-allowed;
+            }
+
+        .toggleRow {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+            .toggleRow.disabled {
+                opacity: 0.6;
+            }
+
+        .toggleText {
+            min-width: 34px;
+            color: var(--brand);
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 41px;
+            height: 22px;
+            flex: 0 0 auto;
+        }
+
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+                position: absolute;
+            }
+
+            .switch input:disabled + .slider {
+                cursor: not-allowed;
+                background: #d8dbe7;
+                border-color: #c8ccd9;
+            }
+
+            .switch input:disabled + .slider::before {
+                box-shadow: none;
+            }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            background: #c4c8dc;
+            border: 1px solid #b6bacf;
+            border-radius: 999px;
+            transition: 0.2s ease;
+        }
+
+        .slider::before {
+            content: "";
+            position: absolute;
+            left: 3px;
+            top: 3px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            transition: 0.2s ease;
+        }
+
+        .switch input:checked + .slider {
+            background: var(--brand);
+            border-color: var(--brand);
+        }
+
+            .switch input:checked + .slider::before {
+                transform: translateX(18px);
+            }
+
+        .pingStatus {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 18px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .pingDot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: #8d93a6;
+            border: 1px solid rgba(0,0,0,0.12);
+            flex: 0 0 auto;
+        }
+
+            .pingDot.green {
+                background: var(--success);
+                box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 0 8px rgba(47,168,79,0.25);
+            }
+
+            .pingDot.yellow {
+                background: var(--warning);
+                box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 0 8px rgba(214,163,22,0.25);
+            }
+
+            .pingDot.red {
+                background: var(--danger);
+                box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 0 8px rgba(227,75,63,0.25);
+            }
+
+            .pingDot.idle {
+                background: #9097ad;
+            }
+
+        .pingText {
+            color: var(--muted);
+        }
+
+            .pingText.green {
+                color: #246f37;
+            }
+
+            .pingText.yellow {
+                color: #8a6710;
+            }
+
+            .pingText.red {
+                color: #a02d24;
+            }
+
+            .pingText.idle {
+                color: var(--muted);
+            }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 2px;
+        }
+
+        button {
+            min-height: 40px;
+            padding: 0 18px;
+            border: 0;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--buttonShadow);
+        }
+
+            button:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+
+        .saveBtn,
+        .restartBtn,
+        .closeBtn {
+            background: var(--brand);
+            color: #fff;
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 14px;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+            .status.ok {
+                color: #2d7d44;
+            }
+
+            .status.err {
+                color: #b03228;
+            }
+
+        .modalOverlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.35);
+            z-index: 9999;
+            padding: 20px;
+        }
+
+            .modalOverlay.show {
+                display: flex;
+            }
+
+        .modalBox {
+            width: min(520px, 100%);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 28px 24px;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.16);
+            text-align: center;
+        }
+
+        .modalMessage {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--text);
+        }
+
+        @media (max-width: 980px) {
+            .siteHeaderInner {
+                align-items: flex-start;
+                padding-top: 12px;
+                padding-bottom: 12px;
+            }
+
+            .siteNav {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .labelBlock,
+            .row > input,
+            .row > .toggleRow {
+                min-height: auto;
+            }
+
+            .page {
+                padding-left: 6px;
+                padding-right: 6px;
+            }
+
+            .siteHeaderInner {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+
+            .brand {
+                font-size: 20px;
+            }
+
+            .version {
+                font-size: 14px;
+            }
+
+            .modalMessage {
+                font-size: 21px;
+            }
+
+            input[type="text"],
+            input[type="number"],
+            .fieldSelect {
+                max-width: 100%;
+                min-width: 0;
+            }
+        }
+    </style>
+</head>
+<body class="preload">
+    <header class="siteHeader">
+        <div class="siteHeaderInner">
+            <div class="brandBlock">
+                <div class="brand">Element Review</div>
+                <div class="version">( 0.1.0 alpha )</div>
+            </div>
+
+            <div class="siteNav">
+                <select id="languageSelect" class="languageSelect" aria-label="Language">
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <div class="page">
+        <h1 data-i18n="settings">Settings</h1>
+        <p class="subtitle" data-i18n="restartNote">NOTE: Application must be restarted for changes to take effect.</p>
+
+        <div class="formShell">
+            <form id="configForm" novalidate>
+                <div class="card">
+                    <h2 class="sectionTitle" data-i18n="general">General</h2>
+
+                    <div class="grid">
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="UiZoomPercent" data-i18n="uiZoom">UI Zoom (%)</label>
+                                <div class="help" data-i18n="uiZoomHelp">
+                                    Default zoom level for the main app window. 100 = normal size.
+                                </div>
+                            </div>
+
+                            <input id="UiZoomPercent" name="UiZoomPercent" type="number" min="50" max="250" step="5" />
+                        </div>
+
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="ClipMarkerAdvanceMsec" data-i18n="clipMarkerAdvance">Clip Marker Advance (msec)</label>
+                                <div class="help" data-i18n="clipMarkerAdvanceHelp">How far back to place the clip start when marking a clip.</div>
+                            </div>
+
+                            <input id="ClipMarkerAdvanceMsec" name="ClipMarkerAdvanceMsec" type="number" min="0" step="100" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="sectionTitle" data-i18n="cssIntegration">CSS Integration</h2>
+
+                    <div class="grid">
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="CSSLink" data-i18n="cssLinkType">CSS Link Type</label>
+                                <div class="help" data-i18n="cssLinkTypeHelp">Choose how Element Review links to CSS data.</div>
+                            </div>
+
+                            <select id="CSSLink" name="CSSLink" class="fieldSelect">
+                                <option value="None" data-i18n="cssLinkNone">None</option>
+                                <option value="Legacy" data-i18n="cssLinkLegacy">Legacy</option>
+                                <option value="Custom" data-i18n="cssLinkCustom">Custom</option>
+                                <option value="Online CSS" data-i18n="cssLinkOnline">Online CSS</option>
+                                <option value="Offline CSS" data-i18n="cssLinkOffline">Offline CSS</option>
+                            </select>
+                        </div>
+
+                        <div class="row" id="DatabaseLocationRow">
+                            <div id="DatabaseLocationLabelBlock" class="labelBlock">
+                                <div class="labelLine">
+                                    <label for="DatabaseLocation" data-i18n="mssqlDatabaseHost">MSSQL Database Host</label>
+                                    <div class="pingStatus">
+                                        <span id="dbPingDot" class="pingDot idle"></span>
+                                        <span id="dbPingText" class="pingText idle">Waiting...</span>
+                                    </div>
+                                </div>
+
+                                <div class="help" data-i18n="dbHelp">
+                                    Host IP address where CSS MSSQL database is located (EC computer).
+                                </div>
+                            </div>
+
+                            <input id="DatabaseLocation" name="DatabaseLocation" type="text" spellcheck="false" />
+                        </div>
+
+                        <div class="row" id="EventIdRow">
+                            <div id="EventIdLabelBlock" class="labelBlock">
+                                <label for="EventId" data-i18n="eventId">Event ID</label>
+                                <div class="help" data-i18n="eventIdHelp">Event identifier used by the new CSS link mode.</div>
+                            </div>
+
+                            <input id="EventId" name="EventId" type="text" spellcheck="false" />
+                        </div>
+
+                        <div class="row" id="CSSServerHostRow">
+                            <div id="CSSServerHostLabelBlock" class="labelBlock">
+                                <div class="labelLine">
+                                    <label for="CSSServerHost" data-i18n="cssServerHost">CSS Server Host</label>
+                                    <div class="pingStatus">
+                                        <span id="cssServerPingDot" class="pingDot idle"></span>
+                                        <span id="cssServerPingText" class="pingText idle">Waiting...</span>
+                                    </div>
+                                </div>
+                                <div class="help" data-i18n="cssServerHostHelp">Host name or IP address for the offline CSS server.</div>
+                            </div>
+
+                            <input id="CSSServerHost" name="CSSServerHost" type="text" spellcheck="false" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="sectionTitle" data-i18n="videoSource">Video Source</h2>
+
+                    <div class="grid">
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="DemoMode" data-i18n="demoMode">Demo Mode</label>
+                                <div class="help" data-i18n="demoModeHelp">Use the local demo video instead of the RTSP source (for VRO training).</div>
+                            </div>
+
+                            <div class="toggleRow">
+                                <label class="switch">
+                                    <input id="DemoMode" name="DemoMode" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                                <div id="DemoModeText" class="toggleText">Off</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div id="RtspUrlLabelBlock" class="labelBlock">
+                                <div class="labelLine">
+                                    <label for="RtspUrl" data-i18n="rtspUrl">RTSP URL</label>
+                                    <div class="pingStatus">
+                                        <span id="rtspPingDot" class="pingDot idle"></span>
+                                        <span id="rtspPingText" class="pingText idle">Waiting...</span>
+                                    </div>
+                                </div>
+
+                                <div class="help" data-i18n="rtspHelp">
+                                    Video encoder RTSP stream URL.
+                                </div>
+                            </div>
+
+                            <input id="RtspUrl" name="RtspUrl" type="text" spellcheck="false" />
+                        </div>
+
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="SourceFps" data-i18n="fps">FPS</label>
+                                <div class="help" data-i18n="fpsHelp">Video source frame rate (typically 30 or 60).</div>
+                            </div>
+
+                            <input id="SourceFps" name="SourceFps" type="number" min="0" step="5" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="sectionTitle" data-i18n="advancedVideoSettings">Advanced Video Settings</h2>
+
+                    <div class="grid">
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="RecordingGop" data-i18n="gop">GOP</label>
+                                <div class="help" data-i18n="gopHelp">Keyframe interval used while recording.</div>
+                            </div>
+
+                            <input id="RecordingGop" name="RecordingGop" type="number" min="1" step="1" />
+                        </div>
+
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="UseHardwareEncodingWhenAvailable" data-i18n="useHardwareEncoding">Use Hardware Encoding</label>
+                                <div class="help" data-i18n="useHardwareEncodingHelp">Prefer hardware encoding when it is available.</div>
+                            </div>
+
+                            <div class="toggleRow">
+                                <label class="switch">
+                                    <input id="UseHardwareEncodingWhenAvailable" name="UseHardwareEncodingWhenAvailable" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                                <div id="UseHardwareEncodingWhenAvailableText" class="toggleText">Off</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="sectionTitle" data-i18n="savedVideos">Saved Videos</h2>
+
+                    <div class="grid">
+                        <div class="row">
+                            <div id="SaveVideosLabelBlock" class="labelBlock">
+                                <label for="SaveVideos" data-i18n="saveVideos">Save Videos</label>
+                                <div class="help" data-i18n="saveVideosHelp">Copy completed recordings into the saved videos folder. CAUTION: Requires considerable storage space.</div>
+                            </div>
+
+                            <div id="SaveVideosToggleRow" class="toggleRow">
+                                <label class="switch">
+                                    <input id="SaveVideos" name="SaveVideos" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                                <div id="SaveVideosText" class="toggleText">Off</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div id="SavedVideosFolderLabelBlock" class="labelBlock">
+                                <label for="SavedVideosFolder" data-i18n="savedVideoLocation">Saved Video Location</label>
+                                <div class="help" data-i18n="savedVideoLocationHelp">Folder where videos are saved.</div>
+                            </div>
+
+                            <input id="SavedVideosFolder" name="SavedVideosFolder" type="text" spellcheck="false" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card actionsCard">
+                    <div class="actions">
+                        <button type="submit" class="saveBtn" data-i18n="saveSettings">Save Settings</button>
+                        <button type="button" id="restartBtn" class="restartBtn" data-i18n="restartApp">Restart App</button>
+                        <button type="button" id="closeBtn" class="closeBtn" data-i18n="close">Close</button>
+                    </div>
+
+                    <div id="status" class="status"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="config-i18n.js"></script>
+    <script>
+        const fields = [
+            "CSSLink",
+            "EventId",
+            "CSSServerHost",
+            "DemoMode",
+            "RtspUrl",
+            "SourceFps",
+            "UseHardwareEncodingWhenAvailable",
+            "RecordingGop",
+            "ClipMarkerAdvanceMsec",
+            "UiZoomPercent",
+            "DatabaseLocation",
+            "SaveVideos",
+            "SavedVideosFolder"
+        ];
+
+        const booleanFields = [
+            "DemoMode",
+            "UseHardwareEncodingWhenAvailable",
+            "SaveVideos"
+        ];
+
+        const numberFields = [
+            "SourceFps",
+            "RecordingGop",
+            "ClipMarkerAdvanceMsec",
+            "UiZoomPercent"
+        ];
+
+        const form = document.getElementById("configForm");
+        const statusEl = document.getElementById("status");
+        const saveBtn = form.querySelector(".saveBtn");
+        const restartBtn = document.getElementById("restartBtn");
+        const closeBtn = document.getElementById("closeBtn");
+        const languageSelect = document.getElementById("languageSelect");
+        const cssLinkInput = document.getElementById("CSSLink");
+
+        const demoModeInput = document.getElementById("DemoMode");
+        const rtspUrlInput = document.getElementById("RtspUrl");
+        const rtspUrlLabelBlock = document.getElementById("RtspUrlLabelBlock");
+        const saveVideosInput = document.getElementById("SaveVideos");
+        const saveVideosLabelBlock = document.getElementById("SaveVideosLabelBlock");
+        const saveVideosToggleRow = document.getElementById("SaveVideosToggleRow");
+        const savedVideosFolderLabelBlock = document.getElementById("SavedVideosFolderLabelBlock");
+        const databaseLocationRow = document.getElementById("DatabaseLocationRow");
+        const eventIdRow = document.getElementById("EventIdRow");
+        const cssServerHostRow = document.getElementById("CSSServerHostRow");
+        const databaseLocationLabelBlock = document.getElementById("DatabaseLocationLabelBlock");
+        const eventIdLabelBlock = document.getElementById("EventIdLabelBlock");
+        const cssServerHostLabelBlock = document.getElementById("CSSServerHostLabelBlock");
+        const databaseLocationInput = document.getElementById("DatabaseLocation");
+        const eventIdInput = document.getElementById("EventId");
+        const cssServerHostInput = document.getElementById("CSSServerHost");
+        const savedVideosFolderInput = document.getElementById("SavedVideosFolder");
+        const uiZoomPercentInput = document.getElementById("UiZoomPercent");
+
+        const dbPingDot = document.getElementById("dbPingDot");
+        const dbPingText = document.getElementById("dbPingText");
+        const cssServerPingDot = document.getElementById("cssServerPingDot");
+        const cssServerPingText = document.getElementById("cssServerPingText");
+        const rtspPingDot = document.getElementById("rtspPingDot");
+        const rtspPingText = document.getElementById("rtspPingText");
+
+        const translations = window.CONFIG_I18N || {};
+        let currentLanguage = "en";
+        let serverConfig = {};
+
+        let hostPingIntervalId = null;
+        let dbPingInFlight = false;
+        let cssServerPingInFlight = false;
+        let rtspPingInFlight = false;
+
+        function normalizeLanguage(value) {
+            const lang = String(value ?? "").trim().toLowerCase();
+            return translations[lang] ? lang : "en";
+        }
+
+        function t(key) {
+            return translations[currentLanguage]?.[key] ?? translations.en?.[key] ?? key;
+        }
+
+        if ("scrollRestoration" in history) {
+            history.scrollRestoration = "manual";
+        }
+
+        function showPage() {
+            document.body.classList.remove("preload");
+            window.scrollTo(0, 0);
+            window.requestAnimationFrame(() => window.scrollTo(0, 0));
+        }
+
+        function applyTranslations() {
+            document.documentElement.lang = currentLanguage;
+            document.title = t("pageTitle");
+
+            languageSelect.value = currentLanguage;
+            languageSelect.setAttribute("aria-label", t("languageSelectorAria"));
+
+            const englishOption = languageSelect.querySelector('option[value="en"]');
+            const frenchOption = languageSelect.querySelector('option[value="fr"]');
+
+            if (englishOption) englishOption.textContent = t("languageEnglish");
+            if (frenchOption) frenchOption.textContent = t("languageFrench");
+
+            if (cssLinkInput) {
+                const noneOption = cssLinkInput.querySelector('option[value="None"]');
+                const legacyOption = cssLinkInput.querySelector('option[value="Legacy"]');
+                const customOption = cssLinkInput.querySelector('option[value="Custom"]');
+                const onlineOption = cssLinkInput.querySelector('option[value="Online CSS"]');
+                const offlineOption = cssLinkInput.querySelector('option[value="Offline CSS"]');
+
+                if (noneOption) noneOption.textContent = t("cssLinkNone");
+                if (legacyOption) legacyOption.textContent = t("cssLinkLegacy");
+                if (customOption) customOption.textContent = t("cssLinkCustom");
+                if (onlineOption) onlineOption.textContent = t("cssLinkOnline");
+                if (offlineOption) offlineOption.textContent = t("cssLinkOffline");
+            }
+
+            document.querySelectorAll("[data-i18n]").forEach((el) => {
+                const key = el.getAttribute("data-i18n");
+                el.textContent = t(key);
+            });
+
+            if (dbPingText.dataset.i18nKey) {
+                dbPingText.textContent = t(dbPingText.dataset.i18nKey);
+            }
+
+            if (cssServerPingText.dataset.i18nKey) {
+                cssServerPingText.textContent = t(cssServerPingText.dataset.i18nKey);
+            }
+
+            if (rtspPingText.dataset.i18nKey) {
+                rtspPingText.textContent = t(rtspPingText.dataset.i18nKey);
+            }
+
+            if (statusEl.dataset.i18nKey) {
+                const detail = statusEl.dataset.i18nDetail || "";
+                statusEl.textContent = detail ? `${t(statusEl.dataset.i18nKey)}: ${detail}` : t(statusEl.dataset.i18nKey);
+            }
+
+            for (const fieldName of booleanFields) {
+                updateToggleText(fieldName);
+            }
+        }
+
+        function setStatus(message = "", kind = "", useKey = false, detail = "") {
+            statusEl.className = `status ${kind}`.trim();
+
+            if (!message) {
+                statusEl.textContent = "";
+                delete statusEl.dataset.i18nKey;
+                delete statusEl.dataset.i18nDetail;
+                return;
+            }
+
+            if (useKey) {
+                statusEl.dataset.i18nKey = message;
+                statusEl.dataset.i18nDetail = detail;
+                statusEl.textContent = detail ? `${t(message)}: ${detail}` : t(message);
+                return;
+            }
+
+            delete statusEl.dataset.i18nKey;
+            delete statusEl.dataset.i18nDetail;
+            statusEl.textContent = message;
+        }
+
+        function updateToggleText(fieldName) {
+            const input = document.getElementById(fieldName);
+            const text = document.getElementById(fieldName + "Text");
+
+            if (!input || !text) return;
+
+            text.textContent = input.checked ? t("on") : t("off");
+        }
+
+        function setPingIndicator(dotEl, textEl, state, textOrKey, useKey = true) {
+            dotEl.className = `pingDot ${state}`;
+            textEl.className = `pingText ${state}`;
+
+            if (useKey) {
+                textEl.dataset.i18nKey = textOrKey;
+                textEl.textContent = t(textOrKey);
+                return;
+            }
+
+            delete textEl.dataset.i18nKey;
+            textEl.textContent = textOrKey;
+        }
+
+        function normalizeFolderPath(value) {
+            let s = String(value ?? "").trim();
+            if (!s) return "";
+
+            s = s.replace(/\\/g, "/");
+            s = s.replace(/\/{2,}/g, "/");
+
+            if (/^[A-Za-z]:$/.test(s)) {
+                s += "/";
+            }
+
+            return s;
+        }
+
+        function normalizeUiZoomPercent(value) {
+            const numeric = Number(value);
+
+            if (!Number.isFinite(numeric)) return 90;
+
+            let zoom = Math.round(numeric);
+
+            if (zoom < 50) zoom = 50;
+            if (zoom > 250) zoom = 250;
+
+            return zoom;
+        }
+
+        function normalizeCssLinkValue(value) {
+            const normalized = String(value ?? "").trim().toLowerCase();
+            if (normalized === "legacy") return "Legacy";
+            if (normalized === "custom") return "Custom";
+            if (normalized === "new" || normalized === "online css" || normalized === "onlinecss") return "Online CSS";
+            if (normalized === "offline css" || normalized === "offlinecss") return "Offline CSS";
+            return "None";
+        }
+
+        function setCssLinkSelection(value) {
+            const normalizedValue = normalizeCssLinkValue(value);
+            let matchingIndex = -1;
+
+            Array.from(cssLinkInput.options).forEach((option, index) => {
+                const isMatch = option.value === normalizedValue;
+                option.selected = isMatch;
+
+                if (isMatch) {
+                    matchingIndex = index;
+                }
+            });
+
+            if (matchingIndex < 0) {
+                matchingIndex = 0;
+            }
+
+            cssLinkInput.selectedIndex = matchingIndex;
+            cssLinkInput.value = cssLinkInput.options[matchingIndex]?.value ?? "None";
+        }
+
+        function updateCssIntegrationState() {
+            const cssLink = normalizeCssLinkValue(cssLinkInput?.value);
+            const isLegacy = cssLink === "Legacy";
+            const isOnline = cssLink === "Online CSS";
+            const isOffline = cssLink === "Offline CSS";
+
+            databaseLocationInput.disabled = !isLegacy;
+            databaseLocationLabelBlock.classList.toggle("disabled", !isLegacy);
+            databaseLocationRow.classList.toggle("hiddenRow", !isLegacy);
+
+            eventIdInput.disabled = !isOnline;
+            eventIdLabelBlock.classList.toggle("disabled", !isOnline);
+            eventIdRow.classList.toggle("hiddenRow", !isOnline);
+
+            cssServerHostInput.disabled = !isOffline;
+            cssServerHostLabelBlock.classList.toggle("disabled", !isOffline);
+            cssServerHostRow.classList.toggle("hiddenRow", !isOffline);
+
+            if (!isLegacy) {
+                setPingIndicator(dbPingDot, dbPingText, "idle", "unavailable");
+            } else {
+                setPingIndicator(dbPingDot, dbPingText, "idle", "waiting");
+            }
+
+            if (!isOffline) {
+                setPingIndicator(cssServerPingDot, cssServerPingText, "idle", "unavailable");
+            } else {
+                setPingIndicator(cssServerPingDot, cssServerPingText, "idle", "waiting");
+            }
+        }
+
+        function removeOrphanedSettings(config) {
+            delete config.PlaybackSpeeds;
+            delete config.playbackSpeeds;
+            return config;
+        }
+
+        function updateVideoSourceState() {
+            const demoModeOn = !!demoModeInput.checked;
+            rtspUrlInput.disabled = demoModeOn;
+
+            if (demoModeOn) {
+                rtspUrlLabelBlock.classList.add("disabled");
+                setPingIndicator(rtspPingDot, rtspPingText, "idle", "demoModeStatus");
+            } else {
+                rtspUrlLabelBlock.classList.remove("disabled");
+            }
+
+            if (demoModeOn && saveVideosInput.checked) {
+                saveVideosInput.checked = false;
+                updateToggleText("SaveVideos");
+            }
+
+            saveVideosInput.disabled = demoModeOn;
+            saveVideosLabelBlock.classList.toggle("disabled", demoModeOn);
+            saveVideosToggleRow.classList.toggle("disabled", demoModeOn);
+
+            savedVideosFolderInput.disabled = demoModeOn;
+            savedVideosFolderLabelBlock.classList.toggle("disabled", demoModeOn);
+            updateCssIntegrationState();
+        }
+
+        function writeForm(config) {
+            serverConfig = removeOrphanedSettings({ ...config });
+
+            currentLanguage = normalizeLanguage(config.Language ?? config.language ?? "en");
+            applyTranslations();
+
+            setPingIndicator(dbPingDot, dbPingText, "idle", "waiting");
+            setPingIndicator(cssServerPingDot, cssServerPingText, "idle", "waiting");
+            setPingIndicator(rtspPingDot, rtspPingText, "idle", "waiting");
+
+            for (const fieldName of fields) {
+                const input = document.getElementById(fieldName);
+                if (!input) continue;
+
+                const camelName = fieldName.charAt(0).toLowerCase() + fieldName.slice(1);
+
+                let value =
+                    config[fieldName] !== undefined
+                        ? config[fieldName]
+                        : config[camelName] !== undefined
+                            ? config[camelName]
+                            : (booleanFields.includes(fieldName) ? false : "");
+
+                if (fieldName === "SavedVideosFolder") {
+                    value = normalizeFolderPath(value);
+                }
+
+                if (fieldName === "UiZoomPercent") {
+                    value = normalizeUiZoomPercent(value);
+                }
+
+                if (fieldName === "CSSLink") {
+                    value = normalizeCssLinkValue(value);
+                }
+
+                if (booleanFields.includes(fieldName)) {
+                    input.checked = !!value;
+                    updateToggleText(fieldName);
+                } else if (numberFields.includes(fieldName)) {
+                    input.value = value ?? 0;
+                } else if (fieldName === "CSSLink") {
+                    setCssLinkSelection(value);
+                } else {
+                    input.value = value ?? "";
+                }
+            }
+
+            setCssLinkSelection(config.CSSLink ?? config.cssLink);
+            updateVideoSourceState();
+        }
+
+        function readForm() {
+            const config = removeOrphanedSettings({ ...serverConfig });
+
+            for (const fieldName of fields) {
+                const input = document.getElementById(fieldName);
+                if (!input) continue;
+
+                if (booleanFields.includes(fieldName)) {
+                    config[fieldName] = !!input.checked;
+                    continue;
+                }
+
+                if (fieldName === "UiZoomPercent") {
+                    const value = normalizeUiZoomPercent(input.value);
+                    input.value = value;
+                    config[fieldName] = value;
+                    continue;
+                }
+
+                if (fieldName === "CSSLink") {
+                    const value = normalizeCssLinkValue(input.value);
+                    input.value = value;
+                    config[fieldName] = value;
+                    continue;
+                }
+
+                if (numberFields.includes(fieldName)) {
+                    const value = Number(input.value);
+                    config[fieldName] = Number.isFinite(value) ? value : 0;
+                    continue;
+                }
+
+                let value = input.value.trim();
+
+                if (fieldName === "SavedVideosFolder") {
+                    value = normalizeFolderPath(value);
+                    input.value = value;
+                }
+
+                config[fieldName] = value;
+            }
+
+            if (config.DemoMode) {
+                config.SaveVideos = false;
+            }
+
+            config.Language = currentLanguage;
+            return removeOrphanedSettings(config);
+        }
+
+        function getHostFromDatabaseLocation(value) {
+            value = String(value || "").trim();
+            if (!value) return "";
+
+            if (/^[A-Za-z]:[\\/]/.test(value)) {
+                return "";
+            }
+
+            if (/^[a-z]+:\/\//i.test(value)) {
+                try {
+                    return new URL(value).hostname.trim();
+                } catch {
+                }
+            }
+
+            value = value.replace(/^\\\\/, "");
+
+            if (value.includes("\\")) {
+                value = value.split("\\")[0];
+            }
+
+            if (value.includes("/")) {
+                value = value.split("/")[0];
+            }
+
+            if (value.includes(",")) {
+                value = value.split(",")[0];
+            }
+
+            if (value.includes(":")) {
+                value = value.split(":")[0];
+            }
+
+            return value.trim();
+        }
+
+        function getHostFromRtspUrl(value) {
+            value = String(value || "").trim();
+            if (!value) return "";
+
+            try {
+                const url = new URL(value);
+                return (url.hostname || "").trim();
+            } catch {
+            }
+
+            value = value.replace(/^rtsp:\/\//i, "");
+            value = value.replace(/^rtsps:\/\//i, "");
+
+            const atIndex = value.lastIndexOf("@");
+            if (atIndex >= 0) {
+                value = value.substring(atIndex + 1);
+            }
+
+            if (value.includes("/")) {
+                value = value.split("/")[0];
+            }
+
+            if (value.startsWith("[")) {
+                const endBracket = value.indexOf("]");
+                if (endBracket > 0) {
+                    return value.substring(1, endBracket).trim();
+                }
+            }
+
+            if (value.includes(":")) {
+                value = value.split(":")[0];
+            }
+
+            return value.trim();
+        }
+
+        async function pingHost(host) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 900);
+
+            try {
+                const response = await fetch(`/api/hostping?host=${encodeURIComponent(host)}`, {
+                    cache: "no-store",
+                    signal: controller.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                return await response.json();
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        function applyPingResult(dotEl, textEl, result) {
+            if (!result?.ok || typeof result.roundTripMs !== "number") {
+                setPingIndicator(dotEl, textEl, "red", "noResponse");
+                return;
+            }
+
+            const ms = Math.max(1, Math.round(result.roundTripMs));
+
+            if (ms <= 100) {
+                setPingIndicator(dotEl, textEl, "green", `${ms} ms`, false);
+            } else if (ms <= 500) {
+                setPingIndicator(dotEl, textEl, "yellow", `${ms} ms`, false);
+            } else {
+                setPingIndicator(dotEl, textEl, "red", `${ms} ms`, false);
+            }
+        }
+
+        async function pollDatabaseHostPing() {
+            if (dbPingInFlight) return;
+            if (normalizeCssLinkValue(cssLinkInput?.value) !== "Legacy") {
+                setPingIndicator(dbPingDot, dbPingText, "idle", "unavailable");
+                return;
+            }
+
+            const host = getHostFromDatabaseLocation(databaseLocationInput.value);
+
+            if (!host) {
+                setPingIndicator(dbPingDot, dbPingText, "idle", "noHost");
+                return;
+            }
+
+            dbPingInFlight = true;
+
+            try {
+                const result = await pingHost(host);
+                applyPingResult(dbPingDot, dbPingText, result);
+            } catch {
+                setPingIndicator(dbPingDot, dbPingText, "red", "noResponse");
+            } finally {
+                dbPingInFlight = false;
+            }
+        }
+
+        async function pollCssServerHostPing() {
+            if (cssServerPingInFlight) return;
+            if (normalizeCssLinkValue(cssLinkInput?.value) !== "Offline CSS") {
+                setPingIndicator(cssServerPingDot, cssServerPingText, "idle", "unavailable");
+                return;
+            }
+
+            const host = getHostFromDatabaseLocation(cssServerHostInput.value);
+
+            if (!host) {
+                setPingIndicator(cssServerPingDot, cssServerPingText, "idle", "noHost");
+                return;
+            }
+
+            cssServerPingInFlight = true;
+
+            try {
+                const result = await pingHost(host);
+                applyPingResult(cssServerPingDot, cssServerPingText, result);
+            } catch {
+                setPingIndicator(cssServerPingDot, cssServerPingText, "red", "noResponse");
+            } finally {
+                cssServerPingInFlight = false;
+            }
+        }
+
+        async function pollRtspHostPing() {
+            if (rtspPingInFlight) return;
+
+            if (demoModeInput.checked) {
+                setPingIndicator(rtspPingDot, rtspPingText, "idle", "demoModeStatus");
+                return;
+            }
+
+            const host = getHostFromRtspUrl(rtspUrlInput.value);
+
+            if (!host) {
+                setPingIndicator(rtspPingDot, rtspPingText, "idle", "noHost");
+                return;
+            }
+
+            rtspPingInFlight = true;
+
+            try {
+                const result = await pingHost(host);
+                applyPingResult(rtspPingDot, rtspPingText, result);
+            } catch {
+                setPingIndicator(rtspPingDot, rtspPingText, "red", "noResponse");
+            } finally {
+                rtspPingInFlight = false;
+            }
+        }
+
+        async function pollAllHostPings() {
+            await pollDatabaseHostPing();
+            await pollCssServerHostPing();
+            await pollRtspHostPing();
+        }
+
+        function startHostPingPolling() {
+            stopHostPingPolling();
+            pollAllHostPings();
+            hostPingIntervalId = window.setInterval(pollAllHostPings, 3000);
+        }
+
+        function stopHostPingPolling() {
+            if (hostPingIntervalId !== null) {
+                clearInterval(hostPingIntervalId);
+                hostPingIntervalId = null;
+            }
+        }
+
+        async function loadConfig() {
+            setStatus("loadingSettings", "", true);
+            let lastError = null;
+
+            for (let attempt = 0; attempt < 10; attempt++) {
+                try {
+                    const response = await fetch("/api/appconfig", { cache: "no-store" });
+                    if (!response.ok) {
+                        throw new Error(await response.text());
+                    }
+
+                    const config = await response.json();
+                    writeForm(config);
+                    setStatus("settingsLoaded", "ok", true);
+                    return;
+                } catch (err) {
+                    lastError = err;
+
+                    if (attempt === 9) {
+                        throw lastError;
+                    }
+
+                    await new Promise((resolve) => window.setTimeout(resolve, 1000));
+                }
+            }
+        }
+
+        async function saveConfig(event) {
+            event.preventDefault();
+            setStatus("savingSettings", "", true);
+
+            const config = readForm();
+
+            const response = await fetch("/api/appconfig", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(config)
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const saved = await response.json();
+            writeForm(saved);
+
+            setStatus("settingsSaved", "ok", true);
+            pollAllHostPings();
+        }
+
+        async function saveLanguagePreference() {
+            const response = await fetch("/api/appconfig", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(removeOrphanedSettings({
+                    ...serverConfig,
+                    Language: currentLanguage
+                }))
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const saved = await response.json();
+            serverConfig = { ...saved };
+        }
+
+        async function restartApp() {
+            restartBtn.disabled = true;
+            saveBtn.disabled = true;
+
+            stopHostPingPolling();
+            setStatus();
+
+            try {
+                const response = await fetch("/api/app/restart", {
+                    method: "POST"
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 5000);
+            } catch (err) {
+                restartBtn.disabled = false;
+                saveBtn.disabled = false;
+                startHostPingPolling();
+                throw err;
+            }
+        }
+
+        for (const fieldName of booleanFields) {
+            const input = document.getElementById(fieldName);
+            if (!input) continue;
+
+            input.addEventListener("change", () => {
+                updateToggleText(fieldName);
+
+                if (fieldName === "DemoMode") {
+                    updateVideoSourceState();
+                    pollRtspHostPing();
+                } else if (fieldName === "SaveVideos") {
+                    updateVideoSourceState();
+                }
+            });
+        }
+
+        cssLinkInput.addEventListener("change", () => {
+            updateCssIntegrationState();
+            pollDatabaseHostPing();
+            pollCssServerHostPing();
+        });
+
+        languageSelect.addEventListener("change", async () => {
+            const previousLanguage = currentLanguage;
+
+            currentLanguage = normalizeLanguage(languageSelect.value);
+            applyTranslations();
+            updateVideoSourceState();
+
+            try {
+                await saveLanguagePreference();
+            } catch (err) {
+                currentLanguage = previousLanguage;
+                applyTranslations();
+                updateVideoSourceState();
+                setStatus("saveFailed", "err", true, err.message || String(err));
+            }
+        });
+
+        savedVideosFolderInput.addEventListener("blur", () => {
+            savedVideosFolderInput.value = normalizeFolderPath(savedVideosFolderInput.value);
+        });
+
+        uiZoomPercentInput.addEventListener("blur", () => {
+            uiZoomPercentInput.value = normalizeUiZoomPercent(uiZoomPercentInput.value);
+        });
+
+        databaseLocationInput.addEventListener("input", () => {
+            if (normalizeCssLinkValue(cssLinkInput?.value) === "Legacy") {
+                setPingIndicator(dbPingDot, dbPingText, "idle", "waiting");
+            }
+        });
+
+        databaseLocationInput.addEventListener("blur", () => {
+            pollDatabaseHostPing();
+        });
+
+        cssServerHostInput.addEventListener("input", () => {
+            if (normalizeCssLinkValue(cssLinkInput?.value) === "Offline CSS") {
+                setPingIndicator(cssServerPingDot, cssServerPingText, "idle", "waiting");
+            }
+        });
+
+        cssServerHostInput.addEventListener("blur", () => {
+            pollCssServerHostPing();
+        });
+
+        rtspUrlInput.addEventListener("input", () => {
+            if (!demoModeInput.checked) {
+                setPingIndicator(rtspPingDot, rtspPingText, "idle", "waiting");
+            }
+        });
+
+        rtspUrlInput.addEventListener("blur", () => {
+            pollRtspHostPing();
+        });
+
+        form.addEventListener("submit", (event) => {
+            saveConfig(event).catch((err) => {
+                console.error(err);
+                setStatus("saveFailed", "err", true, err.message || String(err));
+            });
+        });
+
+        restartBtn.addEventListener("click", () => {
+            restartApp().catch((err) => {
+                console.error(err);
+                setStatus("restartFailed", "err", true, err.message || String(err));
+            });
+        });
+
+        closeBtn.addEventListener("click", () => {
+            window.close();
+        });
+
+        window.addEventListener("keydown", (event) => {
+            if (event.key !== "Tab") return;
+            event.preventDefault();
+        }, true);
+
+        window.addEventListener("beforeunload", () => {
+            stopHostPingPolling();
+        });
+
+        loadConfig()
+            .then(() => {
+                showPage();
+                startHostPingPolling();
+            })
+            .catch((err) => {
+                console.error(err);
+                currentLanguage = "en";
+                applyTranslations();
+                setStatus("loadFailed", "err", true, err.message || String(err));
+                setPingIndicator(dbPingDot, dbPingText, "red", "unavailable");
+                setPingIndicator(rtspPingDot, rtspPingText, "red", "unavailable");
+                showPage();
+            });
+    </script>
+</body>
+</html>

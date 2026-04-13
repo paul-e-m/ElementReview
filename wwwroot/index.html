@@ -1,0 +1,242 @@
+<!doctype html>
+<!-- index.html -->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Element Review</title>
+    <link rel="stylesheet" href="styles.css?v=20260411-scrubcenter4" />
+</head>
+<body>
+
+    <!--
+      Main operator UI for Element Review.
+      The page contains both record-mode and replay-mode DOM at once; app.js
+      switches visibility, reuses shared widgets, and moves a few controls
+      between host containers depending on the active mode.
+    -->
+    <main class="container">
+
+        <!-- Primary two-column workspace: element list on the left, media area on the right. -->
+        <div class="topRow">
+
+            <!--
+              Left rail: fixed 1-15 element slots.
+              In replay mode each populated slot becomes a selectable clip
+              button; in record mode empty slots still preserve the layout.
+            -->
+            <div class="leftControls">
+                <div id="clipList" class="clipList" aria-label="Elements"></div>
+            </div>
+
+            <!-- Right side hosts the live iframe or replay video plus side controls. -->
+            <div class="rightContent">
+
+                <!--
+                  Record mode keeps the live source on screen and pins the
+                  operator actions (record, clip, undo, settings) in the side panel.
+                -->
+                <section id="recordMode">
+                    <div class="modeRow" id="recordTopRow">
+                        <div class="videoCol">
+                            <div class="liveWrap" id="liveWrap">
+                                <div class="videoStage">
+                                    <!-- Live source is either RTSP-backed content or the demo player page. -->
+                                    <iframe id="liveFrame"
+                                            title="Live"
+                                            scrolling="no"
+                                            allow="autoplay"
+                                            ></iframe>
+
+                                    <!-- Reserved for future/session overlays if record mode ever needs them. -->
+                                    <div id="recordSessionInfo" class="sessionInfoOverlay hidden"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sidePanel">
+    <div id="mainBtnHostRecord">
+        <button id="mainBtn" class="mainBtn btnGreen btnImg">START<br>RECORDING</button>
+    </div>
+
+    <table id="recordTimersTable" class="recordTimersTable" aria-hidden="true">
+        <tr>
+            <td id="recordTimerPrefix" class="timerPrefixCell">REC:</td>
+            <td id="recordTimerValue" class="timerValueCell">00:00:00</td>
+            <td class="timerLampCell"><span class="recLamp" id="recLamp">&#9679;</span></td>
+        </tr>
+        <tr>
+            <td id="programTimerPrefix" class="timerPrefixCell">PROG:</td>
+            <td id="programTimerDisplay" class="timerValueCell">00:00.00</td>
+            <td class="timerLampCell"></td>
+        </tr>
+    </table>
+
+    <!-- Bottom-pinned stack keeps clip controls in a stable place near the operator's cursor. -->
+    <div class="recordBottomStack">
+        <div class="recordClipBtns recordClipBtnsRight">
+            <!-- Shows the duration of the currently open clip while recording. -->
+            <div id="clipTimerRow" class="timerRow hidden" aria-hidden="true">
+                <div class="recTime" id="clipTime">00:00:00</div>
+            </div>
+
+            <button id="clipToggleBtn" class="clipActionBtn clipStart btnImg" type="button">START CLIP</button>
+            <div class="recordClipHistoryRow">
+                <button id="undoClipBtn" class="clipActionBtn undoBtn btnImg" type="button">UNDO</button>
+                <button id="redoClipBtn" class="clipActionBtn redoBtn" type="button">REDO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="recordShortcutHint" class="shortcutHint shortcutHintBottom">Hold TAB key to view shortcuts</div>
+</div>
+                    </div>
+                </section>
+
+                <!--
+                  Replay mode replaces the live iframe with the encoded replay
+                  video while keeping the overall page shell unchanged.
+                -->
+                <section id="replayMode" class="hidden">
+                    <div class="modeRow" id="replayTopRow">
+                        <div class="videoCol">
+                            <!-- app-replay.js wraps and controls this video for transport, zoom, and clip playback. -->
+                            <div id="replayVideoWrap" class="replayVideoWrap">
+                                <video id="replayVideo"
+                                       class="replayVideo"
+                                       playsinline
+                                       preload="auto"
+                                       disablepictureinpicture
+                                      
+                                       disableremoteplayback></video>
+                                <div id="replayZoomHint" class="replayZoomHint hidden">Double click video again to exit zoom</div>
+                            </div>
+                        </div>
+
+                        <div class="sidePanel">
+                            <!-- mainBtn is reused; app.js moves the same DOM node here for "Next competitor". -->
+                            <div id="mainBtnHostReplay"></div>
+
+                            <!-- Shared timer row is physically moved here by app.js while in replay mode. -->
+                            <div id="timerHostSideReplay" class="timerHostSide"></div>
+
+                            <!-- Replay-only review stopwatch stays pinned to the bottom of the side rail. -->
+                            <div id="reviewTimer" class="reviewTimer">REVIEW: 00:00</div>
+
+                            <div id="replayShortcutHint" class="shortcutHint shortcutHintBottom">Hold TAB key to view shortcuts</div>
+
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+
+        <!-- Shared full-width timeline used in both modes. -->
+        <div class="recordScrubRow" id="timelineRow">
+            <div class="scrubOverlay" id="timelineOverlay">
+                <canvas id="recordCanvas"></canvas>
+                <!-- The range input is replay-only, but sits over the shared timeline canvas. -->
+                <input id="replayScrub" class="scrubRange hidden" type="range" min="0" max="10000" value="0" />
+            </div>
+        </div>
+
+        <!-- Replay transport row: edit tools, centered playback controls, and manual loop controls. -->
+        <div class="replayControlsRow hidden" id="replayControlsRow">
+            <div class="replayControlsInner">
+                <!-- Left group holds the current replay timer plus optional clip-edit controls. -->
+                <div class="replayLeftGroup">
+                    <div id="replayVideoTimerHost" class="replayVideoTimerHost"></div>
+
+                    <!-- Visual spacer between timer and edit tools. -->
+                    <div class="speedDivider" aria-hidden="true"></div>
+
+                    <!-- These actions are enabled only when replay edit mode is turned on. -->
+                    <div class="editButtons" id="editButtons" aria-label="Edit controls">
+                        <button id="trimInBtn" class="editBtn" type="button" title="Trim In" aria-label="Trim In">
+                            <img src="/img/buttons/trim_in.png" width="52" height="52" alt="" draggable="false">
+                        </button>
+
+                        <button id="trimOutBtn" class="editBtn" type="button" title="Trim Out" aria-label="Trim Out">
+                            <img src="/img/buttons/trim_out.png" width="52" height="52" alt="" draggable="false">
+                        </button>
+
+                        <!-- Visual spacer between trim and structural clip edits. -->
+                        <div class="speedDivider" aria-hidden="true"></div>
+
+                        <button id="splitBtn" class="editBtn" type="button" title="Split" aria-label="Split">
+                            <img src="/img/buttons/split.png" width="52" height="52" alt="" draggable="false">
+                        </button>
+
+                        <button id="insertBtn" class="editBtn" type="button" title="Insert" aria-label="Insert">
+                            <img src="/img/buttons/insert.png" width="52" height="52" alt="" draggable="false">
+                        </button>
+
+                        <button id="deleteBtn" class="editBtn" type="button" title="Delete" aria-label="Delete">
+                            <img src="/img/buttons/delete.png" width="52" height="52" alt="" draggable="false">
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Center group is kept visually centered even when left/right groups change width. -->
+                <div class="replayButtons" id="replayButtons">
+                </div>
+
+                <!-- Right group contains the custom loop in/out controls. -->
+                <div class="replayRightGroup">
+                    <div class="loopButtons" aria-label="Loop controls">
+                        <button id="loopInBtn" class="loopBtn" type="button" title="Loop In"></button>
+                        <button id="loopOutBtn" class="loopBtn" type="button" title="Loop Out"></button>
+                        <button id="loopClearBtn" class="loopBtn" type="button" title="Clear Loop"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--
+          Replay timer widget.
+          app.js moves this node into the replay timer host when replay mode is active.
+        -->
+        <div id="timerRow" class="timerRow hidden" aria-hidden="true">
+            <div class="timerStack">
+                <div class="recTime" id="recTime">00:00:00</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Generic confirmation modal used for destructive or session-reset actions. -->
+    <div id="confirmModal" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modalCard">
+            <div id="confirmText" class="modalText">Are you sure?</div>
+            <div class="modalButtons">
+                <button id="confirmYes" class="modalBtn modalBtnConfirm">✓ Yes</button>
+                <button id="confirmCancel" class="modalBtn modalBtnCancel">✕ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hold Tab to show the active-mode keyboard shortcuts without moving focus. -->
+    <div id="shortcutOverlay" class="shortcutOverlay hidden" aria-hidden="true">
+        <div class="shortcutCard">
+            <div id="shortcutTitle" class="shortcutTitle">Keyboard Shortcuts</div>
+            <div id="shortcutModeLabel" class="shortcutModeLabel">Recording Mode</div>
+            <div id="shortcutList" class="shortcutList"></div>
+            <div class="shortcutFooter">
+                <button id="settingsBtn"
+                        class="settingsBtn btnImg"
+                        type="button"
+                        title="Settings"
+                        aria-label="Settings"
+                        onclick="window.open('config.html', '_blank')"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Replay-only overlay shown on top of the replay video, outside the main layout flow. -->
+    <div id="replaySessionInfo" class="sessionInfoOverlay hidden"></div>
+
+    <script src="index-i18n.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
