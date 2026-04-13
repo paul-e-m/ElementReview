@@ -91,3 +91,5 @@ C:\Users\paul\ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-button
 C:\Users\paul\ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\timer_fr.png
 C:\Users\paul\ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\undo_en.png
 C:\Users\paul\ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\undo_fr.png
+C:\Users\paul\ElementReview-dev\bin\Debug\net10.0-windows\data\current-copied.mp4
+C:\Users\paul\ElementReview-dev\bin\Debug\net10.0-windows\data\current-encoded.mp4

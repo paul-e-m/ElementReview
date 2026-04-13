@@ -43,13 +43,13 @@ public class RecorderManager
     {
         _contentRoot = env.ContentRootPath;
         _toolsDir = Path.Combine(_contentRoot, "tools");
-        _dataDir = Path.Combine(_contentRoot, "data");
+        _dataDir = AppPaths.LocalDataDir;
         Directory.CreateDirectory(_dataDir);
 
-        _encodedFile = Path.Combine(_dataDir, "current-encoded.mp4");
-        _encodedTempFile = Path.Combine(_dataDir, "current-encoded-recording.mp4");
-        _copiedFile = Path.Combine(_dataDir, "current-copied.mp4");
-        _copiedTempFile = Path.Combine(_dataDir, "current-copied-recording.mp4");
+        _encodedFile = AppPaths.LocalEncodedVideoPath;
+        _encodedTempFile = AppPaths.LocalEncodedTempVideoPath;
+        _copiedFile = AppPaths.LocalCopiedVideoPath;
+        _copiedTempFile = AppPaths.LocalCopiedTempVideoPath;
 
         _session = session;
     }
@@ -434,9 +434,9 @@ public class RecorderManager
 
     private string BuildDemoInputArgs(double? demoStartSeconds)
     {
-        var demoFile = Path.Combine(_dataDir, "demovideo.mp4");
+        var demoFile = AppPaths.ResolveDemoVideoPath(_contentRoot);
         if (!File.Exists(demoFile))
-            throw new FileNotFoundException("Missing data/demovideo.mp4", demoFile);
+            throw new FileNotFoundException("Missing demo video", demoFile);
 
         var seek = Math.Max(0, demoStartSeconds ?? 0);
 
@@ -721,7 +721,7 @@ public class RecorderManager
             var exportInfo = ReadExportInfoFromElementsJson();
 
             var videosRoot = string.IsNullOrWhiteSpace(cfg.SavedVideosFolder)
-                ? Path.Combine(_contentRoot, "videos")
+                ? AppPaths.DefaultSavedVideosFolder
                 : cfg.SavedVideosFolder.Trim();
 
             var targetFolder = videosRoot;
@@ -755,12 +755,7 @@ public class RecorderManager
 
     private ExportInfo ReadExportInfoFromElementsJson()
     {
-        var externalPath = @"C:\ElementReview\data\SessionInfo.json";
-        var localPath = Path.Combine(_dataDir, "SessionInfo.json");
-
-        var path = File.Exists(externalPath)
-            ? externalPath
-            : localPath;
+        var path = AppPaths.ResolveElementsPath(_contentRoot);
 
         if (!File.Exists(path)) return new ExportInfo();
 

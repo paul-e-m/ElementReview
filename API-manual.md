@@ -72,24 +72,21 @@ Exceptions:
 
 ## Files And Data Sources
 
-The app uses these local content-root files:
+The app uses these writable per-user files:
 
-- `data/appconfig.json`
+- `%LocalAppData%\ElementReview\data\appconfig.json`
+- `%LocalAppData%\ElementReview\data\demovideo.mp4`
+- `%LocalAppData%\ElementReview\data\SessionInfo.json`
+- `%LocalAppData%\ElementReview\data\current-encoded.mp4`
+- `%LocalAppData%\ElementReview\data\current-copied.mp4`
+
+It can also fall back to bundled content-root files when needed for development or packaging scenarios:
+
 - `data/demovideo.mp4`
 - `data/SessionInfo.json`
-- `data/current-encoded.mp4`
-- `data/current-copied.mp4`
-
-It also checks for this external SessionInfo file first:
-
-```text
-C:\ElementReview\data\SessionInfo.json
-```
-
-If that external file exists, it is preferred over local `data/SessionInfo.json`.
 
 When Legacy CSS integration is enabled, the separately deployed helper
-`GetSessionInfo_LegacyCSS.exe` is expected to keep that SessionInfo JSON updated.
+`GetSessionInfo_LegacyCSS.exe` is expected to keep `%LocalAppData%\ElementReview\data\SessionInfo.json` updated.
 The helper must live beside the running `ElementReview.exe`.
 
 ## Endpoint Summary
@@ -159,7 +156,12 @@ Returns a small HTML page that plays the local demo video in a fullscreen `<vide
 
 ### GET `/api/demoVideo`
 
-Returns `data/demovideo.mp4` with byte-range support.
+Returns the active demo video with byte-range support.
+
+Resolution order:
+
+1. `%LocalAppData%\ElementReview\data\demovideo.mp4`
+2. bundled `data/demovideo.mp4`
 
 #### Example
 
@@ -236,7 +238,7 @@ curl http://localhost:5050/api/appconfig
 
 ### POST `/api/appconfig`
 
-Saves a full configuration object to `data/appconfig.json`.
+Saves a full configuration object to `%LocalAppData%\ElementReview\data\appconfig.json`.
 
 #### Behavior
 
@@ -648,10 +650,10 @@ External clients must compute these values consistently.
 
 Metadata is read from:
 
-1. `C:\ElementReview\data\SessionInfo.json`
-2. local `data/SessionInfo.json`
+1. `%LocalAppData%\ElementReview\data\SessionInfo.json`
+2. bundled `data/SessionInfo.json`
 
-If values look stale or unexpected, inspect the external file first.
+If values look stale or unexpected, inspect the LocalAppData file first.
 
 In Legacy CSS mode, that file is typically maintained by `GetSessionInfo_LegacyCSS.exe`.
 

@@ -22,7 +22,7 @@ The app is built around a fast event workflow:
 The current app supports:
 
 - live preview from RTSP through MediaMTX
-- demo mode using `data/demovideo.mp4`
+- demo mode using `data/demovideo.mp4` or `%LocalAppData%\ElementReview\data\demovideo.mp4`
 - local recording to encoded and copied MP4 outputs
 - record mode clip marking with undo and redo before recording ends
 - automatic transition from record mode to replay mode
@@ -104,7 +104,7 @@ ElementReview/
 To use demo mode, place a local sample file at:
 
 ```text
-data/demovideo.mp4
+%LocalAppData%\ElementReview\data\demovideo.mp4
 ```
 
 Recommended source format:
@@ -117,13 +117,13 @@ Recommended source format:
 
 ElementReview reads competition/session metadata from `SessionInfo.json`.
 
-It prefers:
+The runtime location is:
 
 ```text
-C:\ElementReview\data\SessionInfo.json
+%LocalAppData%\ElementReview\data\SessionInfo.json
 ```
 
-If that file does not exist, it falls back to:
+For development or bundled/demo scenarios, it can also fall back to:
 
 ```text
 data\SessionInfo.json
@@ -147,17 +147,19 @@ At runtime, helper auto-launch is currently tied to these modes:
 - `Online CSS` -> `GetSessionInfo_OnlineCSS.exe`
 - `Offline CSS` -> `GetSessionInfo_OfflineCSS.exe`
 
-The helper executable must sit beside the running `ElementReview.exe`. When enabled, the helper is expected to keep `SessionInfo.json` up to date.
+The helper executable must sit beside the running `ElementReview.exe`. When enabled, the helper is expected to keep `%LocalAppData%\ElementReview\data\SessionInfo.json` up to date.
 
 ## Configuration And Data Files
 
-The app creates and uses the following local files under `data/`:
+The app creates and uses writable per-user files under `%LocalAppData%\ElementReview\data\`:
 
 - `appconfig.json`
 - `demovideo.mp4` (optional)
 - `SessionInfo.json` (optional/local fallback)
 - `current-encoded.mp4`
 - `current-copied.mp4`
+
+Bundled `data/` content in the app folder is treated as read-only fallback content for development and packaging scenarios.
 
 Important `AppConfig` fields include:
 
@@ -178,7 +180,7 @@ Important `AppConfig` fields include:
 Notes:
 
 - `SaveVideos` is forced off in demo mode.
-- UI zoom is persisted in `data/appconfig.json` and is also updated when the user changes WebView zoom.
+- UI zoom is persisted in `%LocalAppData%\ElementReview\data\appconfig.json` and is also updated when the user changes WebView zoom.
 - Language selection controls the localized button assets used by the main operator UI.
 
 ## Running The App
@@ -228,7 +230,7 @@ Deploy the helper executables next to the published `ElementReview.exe` if you i
 - `Services/` - recorder, MediaMTX, and session-state services
 - `shell/` - Windows Forms shell and startup behavior
 - `wwwroot/` - operator UI, settings UI, judge UI, scripts, styles, and assets
-- `data/` - local config and optional media/metadata files
+- `data/` - bundled fallback config/media/metadata files for development and packaging
 - `tools/` - external recording/streaming binaries
 - `API-manual.md` - local API reference
 

@@ -21,7 +21,7 @@ public class MediaMtxManager
     {
         _contentRoot = env.ContentRootPath;
         _toolsDir = Path.Combine(_contentRoot, "tools");
-        _dataDir = Path.Combine(_contentRoot, "data");
+        _dataDir = AppPaths.LocalDataDir;
         Directory.CreateDirectory(_dataDir);
     }
 
@@ -52,7 +52,7 @@ public class MediaMtxManager
 
     private void WriteConfig(AppConfig cfg)
     {
-        var ymlPath = Path.Combine(_dataDir, "mediamtx.yml");
+        var ymlPath = AppPaths.LocalMediaMtxConfigPath;
 
         var sb = new StringBuilder();
         sb.AppendLine("logLevel: info");
@@ -92,7 +92,7 @@ public class MediaMtxManager
     private void Start_NoLock()
     {
         var exe = Path.Combine(_toolsDir, "mediamtx.exe");
-        var cfg = Path.Combine(_dataDir, "mediamtx.yml");
+        var cfg = AppPaths.LocalMediaMtxConfigPath;
 
         if (!File.Exists(exe))
             throw new FileNotFoundException("Missing tools/mediamtx.exe", exe);

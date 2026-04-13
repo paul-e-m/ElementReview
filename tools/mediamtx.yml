@@ -1,0 +1,19 @@
+﻿logLevel: info
+logDestinations: [stdout]
+
+readBufferCount: 1024
+
+api: yes
+apiAddress: 127.0.0.1:9997
+
+webrtc: yes
+webrtcAddress: 127.0.0.1:8889
+
+rtsp: yes
+rtspAddress: 127.0.0.1:8554
+
+paths:
+  mystream:
+    source: "rtsp://192.168.6.200/0"
+    sourceOnDemand: yes
+    sourceProtocol: tcp

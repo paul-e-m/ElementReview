@@ -47,6 +47,8 @@ public static class AppServer
             ContentRootPath = ResolveContentRoot(),
         });
         builder.WebHost.UseUrls(ListenUrl);
+        AppPaths.EnsureLocalDataDirectory();
+        AppPaths.TryMigrateLegacyConfig(builder.Environment.ContentRootPath);
 
         builder.Services.AddSingleton<SessionManager>();
         builder.Services.AddSingleton<MediaMtxManager>();
@@ -56,16 +58,6 @@ public static class AppServer
 
         app.UseDefaultFiles();
         app.UseStaticFiles();
-
-        string LocalDataDir() => Path.Combine(app.Environment.ContentRootPath, "data");
-        string LocalConfigPath() => Path.Combine(LocalDataDir(), "appconfig.json");
-        string LocalDemoVideoPath() => Path.Combine(LocalDataDir(), "demovideo.mp4");
-
-        string ExternalElementsDir() => @"C:\ElementReview\data";
-        string ExternalElementsPath() => Path.Combine(ExternalElementsDir(), "SessionInfo.json");
-        string LocalElementsPath() => Path.Combine(LocalDataDir(), "SessionInfo.json");
-
-        Directory.CreateDirectory(LocalDataDir());
 
         var jsonOpts = new JsonSerializerOptions
         {
@@ -93,12 +85,17 @@ public static class AppServer
                 cfg.SaveVideos = false;
             }
 
+            if (string.IsNullOrWhiteSpace(cfg.SavedVideosFolder))
+            {
+                cfg.SavedVideosFolder = AppPaths.DefaultSavedVideosFolder;
+            }
+
             return cfg;
         }
 
         AppConfig LoadConfig()
         {
-            var path = LocalConfigPath();
+            var path = AppPaths.LocalConfigPath;
             if (!File.Exists(path))
             {
                 var cfg = NormalizeConfig(new AppConfig());
@@ -120,7 +117,7 @@ public static class AppServer
         void SaveConfig(AppConfig cfg)
         {
             cfg = NormalizeConfig(cfg);
-            var path = LocalConfigPath();
+            var path = AppPaths.LocalConfigPath;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(cfg, jsonOpts));
         }
@@ -189,9 +186,7 @@ public static class AppServer
 
         string ResolveElementsPath()
         {
-            if (File.Exists(ExternalElementsPath())) return ExternalElementsPath();
-            if (File.Exists(LocalElementsPath())) return LocalElementsPath();
-            return ExternalElementsPath();
+            return AppPaths.ResolveElementsPath(app.Environment.ContentRootPath);
         }
 
         static async Task<JsonElement?> ReadJsonRootAsync(HttpRequest req)
@@ -330,9 +325,9 @@ public static class AppServer
 
         app.MapGet("/api/demoVideo", () =>
         {
-            var path = LocalDemoVideoPath();
+            var path = AppPaths.ResolveDemoVideoPath(app.Environment.ContentRootPath);
             if (!File.Exists(path))
-                return Results.NotFound("Missing data/demovideo.mp4");
+                return Results.NotFound("Missing demo video");
 
             return Results.File(path, contentType: "video/mp4", enableRangeProcessing: true);
         });
@@ -389,7 +384,7 @@ public static class AppServer
         </video>
     </div>
 
-    <div id="msg" class="msg">Missing data/demovideo.mp4</div>
+    <div id="msg" class="msg">Missing demo video</div>
 
     <script>
         const video = document.getElementById("demoVideo");

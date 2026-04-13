@@ -27,7 +27,7 @@ public sealed class MainForm : Form
     //   1.0 = 100%
     //   0.9 =  90%
     //
-    // We store the setting in data\appconfig.json as UiZoomPercent
+    // We store the setting in LocalAppData\ElementReview\data\appconfig.json
     // so the shell and config.html both read/write the same value.
     //
     // Ctrl+ / Ctrl- continue to work because WebView2 zoom controls
@@ -38,8 +38,7 @@ public sealed class MainForm : Form
     private const int MinUiZoomPercent = 50;
     private const int MaxUiZoomPercent = 250;
 
-    private static readonly string AppConfigPath =
-        Path.Combine(AppContext.BaseDirectory, "data", "appconfig.json");
+    private static readonly string AppConfigPath = AppPaths.LocalConfigPath;
 
     public MainForm(IHost app)
     {
@@ -69,7 +68,8 @@ public sealed class MainForm : Form
     {
         try
         {
-            await _webView.EnsureCoreWebView2Async();
+            var webViewEnvironment = await WebViewEnvironmentProvider.GetAsync();
+            await _webView.EnsureCoreWebView2Async(webViewEnvironment);
 
             _webView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
 

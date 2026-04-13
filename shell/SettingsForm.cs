@@ -42,10 +42,23 @@ public sealed class SettingsForm : Form
 
     private async Task InitializeWebViewAsync()
     {
-        await _webView.EnsureCoreWebView2Async();
-        _webView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
-        _webView.CoreWebView2.WindowCloseRequested += (_, _) => BeginInvoke(new Action(Close));
-        _webView.CoreWebView2.Navigate(_pendingUrl);
+        try
+        {
+            var webViewEnvironment = await WebViewEnvironmentProvider.GetAsync();
+            await _webView.EnsureCoreWebView2Async(webViewEnvironment);
+            _webView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
+            _webView.CoreWebView2.WindowCloseRequested += (_, _) => BeginInvoke(new Action(Close));
+            _webView.CoreWebView2.Navigate(_pendingUrl);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                "WebView2 could not be initialized.\r\n\r\n" + ex.Message,
+                "Element Review",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
     }
 
     private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)

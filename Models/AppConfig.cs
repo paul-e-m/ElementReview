@@ -14,7 +14,7 @@ public class AppConfig
     public string EventId { get; set; } = "";
     public string DatabaseLocation { get; set; } = "192.168.6.50";
     public string CSSServerHost { get; set; } = "";
-    public string SavedVideosFolder { get; set; } = @"C:\ElementReview\videos";
+    public string SavedVideosFolder { get; set; } = global::ElementReview.AppPaths.DefaultSavedVideosFolder;
     public string Language { get; set; } = "en";
     public int UiZoomPercent { get; set; } = 90;
 }
