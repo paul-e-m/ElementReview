@@ -596,6 +596,7 @@ export class ReplayController {
     // can mark a custom in/out range without changing the selected clip.
     clearElementLoop() {
         this.elementLoop = null;
+        this.app.renderClipList();
     }
 
     resetManualLoop() {
@@ -893,6 +894,7 @@ export class ReplayController {
         this.app.setSelectedClipIdx(idx);
         this.app.selectedClipSeg = { startSeconds: start, endSeconds: end };
         this.elementLoop = { startSeconds: start, endSeconds: end };
+        this.app.renderClipList();
 
         replayVideo.playbackRate = Number(this.playbackSpeeds[3] ?? 1);
         const playPromise = replayVideo.play();

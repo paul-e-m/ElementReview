@@ -1,20 +1,49 @@
+using System.Text.Json.Serialization;
+
 //AppConfig.cs
 namespace ElementReview.Models;
 
 public class AppConfig
 {
-    public int RecordingGop { get; set; } = 1;
-    public string RtspUrl { get; set; } = "rtsp://192.168.6.200:8554/0";
-    public bool DemoMode { get; set; } = false;
-    public bool UseHardwareEncodingWhenAvailable { get; set; } = false;
-    public int SourceFps { get; set; } = 60; // 30 or 60 typically
-    public int ClipMarkerAdvanceMsec { get; set; } = 0;
-    public bool SaveVideos { get; set; } = false;
-    public string CSSLink { get; set; } = "None";
-    public string EventId { get; set; } = "";
-    public string DatabaseLocation { get; set; } = "192.168.6.50";
-    public string CSSServerHost { get; set; } = "";
-    public string SavedVideosFolder { get; set; } = global::ElementReview.AppPaths.DefaultSavedVideosFolder;
+    [JsonPropertyOrder(0)]
     public string Language { get; set; } = "en";
+
+    [JsonPropertyOrder(1)]
     public int UiZoomPercent { get; set; } = 90;
+
+    [JsonPropertyOrder(2)]
+    public int ClipMarkerAdvanceMsec { get; set; } = 500;
+
+    [JsonPropertyOrder(3)]
+    public bool DemoMode { get; set; } = true;
+
+    [JsonPropertyOrder(4)]
+    public string RtspUrl { get; set; } = "rtsp://192.168.6.200:8554/0";
+
+    [JsonPropertyOrder(5)]
+    public int SourceFps { get; set; } = 30;
+
+    [JsonPropertyOrder(6)]
+    public bool UseHardwareEncodingWhenAvailable { get; set; } = true;
+
+    [JsonPropertyOrder(7)]
+    public int RecordingGop { get; set; } = 10;
+
+    [JsonPropertyOrder(8)]
+    public string CSSLink { get; set; } = "Legacy";
+
+    [JsonPropertyOrder(9)]
+    public string DatabaseLocation { get; set; } = "localhost";
+
+    [JsonPropertyOrder(10)]
+    public string EventId { get; set; } = "";
+
+    [JsonPropertyOrder(11)]
+    public string CSSServerHost { get; set; } = "";
+
+    [JsonPropertyOrder(12)]
+    public bool SaveVideos { get; set; } = false;
+
+    [JsonPropertyOrder(13)]
+    public string SavedVideosFolder { get; set; } = "C:/Event_Videos";
 }

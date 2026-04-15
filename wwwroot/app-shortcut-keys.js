@@ -110,11 +110,11 @@ export class ShortcutKeysController {
             }
         }
 
-        if (event.code === "Space") {
+        if (this.isSpaceShortcut(event)) {
             event.preventDefault();
 
-            if (this.app.state?.mode === "record" && this.app.state?.isRecording) {
-                this.app.toggleClip().catch(console.error);
+            if (this.app.state?.mode === "record") {
+                this.app.handleRecordSpaceShortcut();
                 return;
             }
 
@@ -143,12 +143,10 @@ export class ShortcutKeysController {
         }
 
         if (event.key === "t" || event.key === "T") {
-            if (this.app.state?.mode === "record" && this.app.state?.isRecording) {
+            if (this.app.state?.mode === "record") {
                 event.preventDefault();
                 if (event.repeat) return;
-
-                if (this.app.hasProgramTimerStarted()) this.app.stopRecording().catch(console.error);
-                else this.app.startProgramTimer();
+                this.app.handleProgramTimerShortcut();
             }
             return;
         }
@@ -204,6 +202,10 @@ export class ShortcutKeysController {
         } else {
             this.replay.clearArrowHoldTimer();
         }
+    }
+
+    isSpaceShortcut(event) {
+        return event.code === "Space" || event.key === " " || event.key === "Spacebar";
     }
 
     jumpToHalfway() {

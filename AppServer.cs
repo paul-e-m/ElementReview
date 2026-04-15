@@ -48,8 +48,6 @@ public static class AppServer
         });
         builder.WebHost.UseUrls(ListenUrl);
         AppPaths.EnsureLocalDataDirectory();
-        AppPaths.TryMigrateLegacyConfig(builder.Environment.ContentRootPath);
-
         builder.Services.AddSingleton<SessionManager>();
         builder.Services.AddSingleton<MediaMtxManager>();
         builder.Services.AddSingleton<RecorderManager>();
@@ -267,7 +265,7 @@ public static class AppServer
             mtx.EnsureRunning(cfg);
             recorder.Warmup(cfg);
 
-            var url = mtx.WebRtcEmbedUrl("mystream");
+            var url = $"/rtsp-live?ts={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
             return Results.Ok(new
             {
                 url,
@@ -354,7 +352,7 @@ public static class AppServer
             position: fixed;
             inset: 0;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             background: #000;
         }
@@ -362,6 +360,7 @@ public static class AppServer
             width: 100%;
             height: 100%;
             object-fit: contain;
+            object-position: top center;
             background: #000;
         }
         .msg {
@@ -396,6 +395,105 @@ public static class AppServer
         });
 
         video.play().catch(() => { });
+    </script>
+</body>
+</html>
+""";
+
+            return Results.Content(html, "text/html");
+        });
+
+        app.MapGet("/rtsp-live", () =>
+        {
+            var whepUrl = "http://127.0.0.1:8889/mystream/whep";
+
+            var html = $$"""
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+        .wrap {
+            position: fixed;
+            inset: 0;
+            background: #000;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: top center;
+            background: #000;
+            display: block;
+        }
+        .msg {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font: 600 18px system-ui, Segoe UI, Arial, sans-serif;
+            text-align: center;
+            padding: 24px;
+        }
+    </style>
+    <script defer src="/mediamtx-reader.js"></script>
+</head>
+<body>
+    <div class="wrap">
+        <video id="liveVideo" autoplay muted playsinline disablepictureinpicture></video>
+    </div>
+
+    <div id="msg" class="msg">Live stream unavailable</div>
+
+    <script>
+        const video = document.getElementById("liveVideo");
+        const msg = document.getElementById("msg");
+        let reader = null;
+
+        function showError(message) {
+            msg.textContent = message || "Live stream unavailable";
+            msg.style.display = "flex";
+        }
+
+        function hideError() {
+            msg.style.display = "none";
+        }
+
+        window.addEventListener("load", () => {
+            if (!window.MediaMTXWebRTCReader) {
+                showError("Live stream client failed to load");
+                return;
+            }
+
+            reader = new MediaMTXWebRTCReader({
+                url: "{{whepUrl}}",
+                onError: (err) => {
+                    showError(String(err || "Live stream unavailable"));
+                },
+                onTrack: (evt) => {
+                    video.srcObject = evt.streams[0];
+                    hideError();
+                    video.play().catch(() => { });
+                },
+            });
+        });
+
+        window.addEventListener("beforeunload", () => {
+            if (reader !== null) {
+                reader.close();
+                reader = null;
+            }
+        });
     </script>
 </body>
 </html>

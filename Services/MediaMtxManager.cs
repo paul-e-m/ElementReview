@@ -71,6 +71,9 @@ public class MediaMtxManager
         sb.AppendLine("webrtc: yes");
         sb.AppendLine("webrtcAddress: :8889");
         sb.AppendLine("webrtcLocalUDPAddress: :8189");
+        sb.AppendLine("webrtcAllowOrigins:");
+        sb.AppendLine("  - http://127.0.0.1:5050");
+        sb.AppendLine("  - http://localhost:5050");
         sb.AppendLine();
 
         sb.AppendLine("rtsp: yes");

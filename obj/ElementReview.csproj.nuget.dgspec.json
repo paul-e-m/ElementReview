@@ -1,24 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\paul\\ElementReview-dev\\ElementReview.csproj": {}
+    "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\ElementReview.csproj": {}
   },
   "projects": {
-    "C:\\Users\\paul\\ElementReview-dev\\ElementReview.csproj": {
+    "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\ElementReview.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\paul\\ElementReview-dev\\ElementReview.csproj",
+        "projectUniqueName": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\ElementReview.csproj",
         "projectName": "ElementReview",
-        "projectPath": "C:\\Users\\paul\\ElementReview-dev\\ElementReview.csproj",
+        "projectPath": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\ElementReview.csproj",
         "packagesPath": "C:\\Users\\paul\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\paul\\ElementReview-dev\\obj\\",
+        "outputPath": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
           "C:\\Users\\paul\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -50,6 +46,12 @@
         "net10.0-windows7.0": {
           "targetAlias": "net10.0-windows",
           "dependencies": {
+            "Microsoft.NET.ILLink.Tasks": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.0.5, )",
+              "autoReferenced": true
+            },
             "Microsoft.Web.WebView2": {
               "target": "Package",
               "version": "[1.0.3856.49, )"
@@ -66,6 +68,20 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[10.0.5, 10.0.5]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[10.0.5, 10.0.5]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[10.0.5, 10.0.5]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.AspNetCore.App": {
               "privateAssets": "none"
@@ -506,6 +522,11 @@
             "System.Xml.XPath": "(,4.3.32767]",
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
+        }
+      },
+      "runtimes": {
+        "win-x64": {
+          "#import": []
         }
       }
     }

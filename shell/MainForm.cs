@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using ElementReview.Hosting;
+using ElementReview.Models;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
@@ -39,6 +40,11 @@ public sealed class MainForm : Form
     private const int MaxUiZoomPercent = 250;
 
     private static readonly string AppConfigPath = AppPaths.LocalConfigPath;
+    private static readonly JsonSerializerOptions AppConfigJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = true
+    };
 
     public MainForm(IHost app)
     {
@@ -263,27 +269,21 @@ public sealed class MainForm : Form
             percent = ClampUiZoomPercent(percent);
 
             Directory.CreateDirectory(Path.GetDirectoryName(AppConfigPath)!);
-
-            JsonObject root;
+            AppConfig config;
 
             if (File.Exists(AppConfigPath))
             {
                 var json = File.ReadAllText(AppConfigPath);
-                root = JsonNode.Parse(json) as JsonObject ?? new JsonObject();
+                config = JsonSerializer.Deserialize<AppConfig>(json, AppConfigJsonOptions) ?? new AppConfig();
             }
             else
             {
-                root = new JsonObject();
+                config = new AppConfig();
             }
 
-            root["UiZoomPercent"] = percent;
+            config.UiZoomPercent = percent;
 
-            File.WriteAllText(
-                AppConfigPath,
-                root.ToJsonString(new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                }));
+            File.WriteAllText(AppConfigPath, JsonSerializer.Serialize(config, AppConfigJsonOptions));
         }
         catch
         {

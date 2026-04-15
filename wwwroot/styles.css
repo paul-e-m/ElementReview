@@ -26,6 +26,8 @@
     --timerTextColor: var(--muted);
     --recordPanelW: 168px;
     --recordClipBtnsGap: 8px;
+    --sessionInfoH: 34px;
+    --topInset: 4px;
 }
 
 * {
@@ -75,30 +77,25 @@ iframe:focus-visible,
 
 .sessionInfoOverlay {
     position: absolute;
-    top: 1px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 25;
-    max-width: calc(100% - 12px);
-    padding: 5px 10px;
+    width: 100%;
+    height: var(--sessionInfoH);
+    max-width: none;
+    padding: 6px 10px;
     background: #314784;
     color: #FFFFFF;
-    border: 1px solid rgba(0,0,0,0.35);
+    border: 0;
     border-radius: 0;
     font: 450 15px/1.1 system-ui, Segoe UI, Arial, sans-serif;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     pointer-events: none;
-}
-
-#replaySessionInfo {
-    position: fixed;
-    top: 1px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2000;
-    max-width: calc(100vw - 12px);
+    display: flex;
+    align-items: center;
 }
 
 /* Replay mode: flush to top (no top padding) */
@@ -108,7 +105,7 @@ body.replayActive .container {
 
 .topRow {
     display: flex;
-    gap: 12px;
+    gap: 0;
     align-items: flex-start;
     flex: 1 1 auto;
     min-height: 0;
@@ -179,7 +176,7 @@ body.replayActive .container {
 
 #mainBtnHostRecord,
 #mainBtnHostReplay {
-    padding-top: 20px;
+    padding-top: var(--topInset);
 }
 
 /* Buttons (base) */
@@ -236,7 +233,7 @@ button {
     display: grid;
     grid-template-rows: repeat(12, 1fr);
     gap: 0px;
-    padding-top: 4px;
+    padding-top: var(--topInset);
     box-sizing: border-box;
     height: 0px; /* JS will override */
 }
@@ -252,6 +249,7 @@ button {
     width: 38px !important;
     height: 38px !important;
     align-self: center;
+    background-color: var(--solidBlue) !important;
     background-image: url("img/buttons/settings.png");
 }
 
@@ -262,7 +260,7 @@ button {
     min-height: 0;
     border-radius: 4px;
     border: 1px solid rgba(0,0,0,0.35);
-    background: #000080;
+    background: linear-gradient(180deg, #3555ad 0%, #274694 100%);
     color: #F0F0F0;
     font-weight: 900;
     font-size: 13px;
@@ -274,6 +272,25 @@ button {
     gap: 6px;
     overflow: visible;
     position: relative;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.14),
+        0 1px 2px rgba(0,0,0,0.16);
+    transform: translateY(0);
+    transition:
+        transform 120ms ease,
+        box-shadow 120ms ease,
+        background 120ms ease,
+        border-color 120ms ease;
+}
+
+.clipBtn.isLooping {
+    background: linear-gradient(180deg, #3150a3 0%, #244189 100%);
+    border-color: rgba(255,255,255,0.18);
+    box-shadow:
+        inset 0 1px 2px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        0 1px 1px rgba(0,0,0,0.12);
+    transform: translateY(2px);
 }
 
 .clipBtn.hasHalfwayMarkerAfter::after,
@@ -349,10 +366,19 @@ button {
     height: 100%;
     min-height: 0;
     border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: #314784;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: linear-gradient(180deg, #415899 0%, #344a85 100%);
     position: relative;
     overflow: visible;
+}
+
+.clipSlotPending {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 6px 8px 6px 4px;
+    gap: 6px;
 }
 
 /* Video boxes */
@@ -361,27 +387,29 @@ button {
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
-    border-radius: 14px;
+    margin-top: var(--topInset);
+    border-radius: 0;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,.08);
     background: black;
-    display: grid;
-    place-items: center;
-    container-type: size;
+    display: block;
 }
 
     .liveWrap .videoStage {
         position: relative;
-        width: min(100cqw, calc(100cqh * 16 / 9));
-        height: min(100cqh, calc(100cqw * 9 / 16));
+        width: 100%;
+        height: 100%;
         background: black;
     }
 
         .liveWrap .videoStage > iframe {
             position: absolute;
-            inset: 0;
+            left: 0;
+            right: 0;
+            top: var(--sessionInfoH);
+            bottom: 0;
             width: 100%;
-            height: 100%;
+            height: calc(100% - var(--sessionInfoH));
             border: 0;
             background: black;
             display: block;
@@ -399,27 +427,27 @@ button {
 .replayVideoWrap {
     position: relative;
     width: 100%;
+    margin-top: var(--topInset);
     background: black;
     border: 1px solid rgba(255,255,255,.08);
-    border-radius: 14px;
+    border-radius: 0;
     overflow: hidden;
     aspect-ratio: 16/9;
-    display: grid;
-    place-items: center;
-    container-type: size;
+    display: block;
 }
 
     .replayVideoWrap > video.replayVideo {
         position: absolute;
         left: 0;
-        top: 0;
+        top: var(--sessionInfoH);
         width: 100%;
-        height: 100%;
+        height: calc(100% - var(--sessionInfoH));
         border: 0;
         border-radius: 0;
         background: black;
         display: block;
         object-fit: contain;
+        object-position: top center;
         transform-origin: 0 0;
     }
 
@@ -656,6 +684,11 @@ button {
     color: #fff;
 }
 
+#clipToggleBtn {
+    width: 100%;
+    height: auto;
+}
+
 /* Bottom-pinned clip stack on right panel (record mode) */
 .recordBottomStack {
     margin-top: auto;
@@ -670,11 +703,6 @@ button {
     align-items: flex-start;
     gap: var(--recordClipBtnsGap);
     width: 100%;
-}
-
-#clipToggleBtn {
-    width: 100%;
-    height: auto;
 }
 
 .recordClipHistoryRow {
@@ -926,9 +954,29 @@ button {
 }
 
 .shortcutFooter .settingsBtn.btnImg {
-    background-color: #5e7fbe !important;
+    position: relative;
+    background-color: #f5f5f5 !important;
+    background-image: none !important;
+    border: 1px solid #c9c9c9 !important;
     border-radius: 6px !important;
     padding: 4px !important;
+}
+
+.shortcutFooter .settingsBtn.btnImg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: #1a61a8;
+    -webkit-mask-image: url("img/buttons/settings.png");
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    mask-image: url("img/buttons/settings.png");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+    transform: scale(1.5);
+    transform-origin: center;
 }
 
 .shortcutRow {
@@ -1004,7 +1052,7 @@ button {
     text-align: center;
     font-family: "Segoe UI", Arial, sans-serif;
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 400;
     letter-spacing: 0.2px;
     font-variant-numeric: tabular-nums;
     text-transform: uppercase;
@@ -1014,6 +1062,124 @@ button {
     border-radius: 0;
     padding: 8px 10px;
     white-space: nowrap;
+}
+
+.replayStatusPanel {
+    width: 100%;
+    margin-top: 18px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 0;
+    display: grid;
+    grid-template-columns: 1fr 120px;
+    column-gap: 10px;
+    row-gap: 8px;
+}
+
+.replayCountsPanel {
+    margin-top: 12px;
+}
+
+.replayStatusRow {
+    display: contents;
+}
+
+.replayStatusLabel,
+.replayStatusValue,
+.replayPingText {
+    font-family: system-ui, Segoe UI, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.05;
+    letter-spacing: 0;
+    font-weight: 400;
+}
+
+.replayStatusLabel {
+    color: var(--timerTextColor);
+    grid-column: 1;
+    align-self: center;
+}
+
+.replayStatusValue {
+    display: inline-block;
+    width: 120px;
+    font-variant-numeric: tabular-nums;
+    color: var(--timerTealLight);
+    text-align: left;
+    grid-column: 2;
+    justify-self: start;
+    align-self: center;
+}
+
+.replayPingStatus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 120px;
+    width: 120px;
+    grid-column: 2;
+    justify-self: start;
+    align-self: center;
+}
+
+.replayPingDot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: #7a8698;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.14);
+}
+
+.replayPingDot.green {
+    background: #2fa84f;
+}
+
+.replayPingDot.yellow {
+    background: #d6a316;
+}
+
+.replayPingDot.red {
+    background: #e34b3f;
+}
+
+.replayPingDot.idle {
+    background: #7a8698;
+}
+
+.replayPingDot.disabled {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);
+}
+
+.replayPingText {
+    display: inline-block;
+    width: 92px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.replayPingText.green {
+    color: #75dd92;
+}
+
+.replayPingText.yellow {
+    color: #f0d167;
+}
+
+.replayPingText.red {
+    color: #ff9186;
+}
+
+.replayPingText.idle {
+    color: var(--muted);
+}
+
+.replayPingText.disabled {
+    color: transparent;
 }
 
 .shortcutHint {
