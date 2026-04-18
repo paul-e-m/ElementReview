@@ -562,6 +562,11 @@ body.replayActive .clipList {
     justify-content: center;
 }
 
+.recordActionColHalfway {
+    align-items: flex-start;
+    justify-content: center;
+}
+
 #mainBtnHostRecord,
 #mainBtnHostReplay {
     width: var(--recordActionButtonColW);
@@ -703,6 +708,71 @@ body.replayActive .clipList {
 
 .recordTimerCard.stateRunning {
     color: #2ecb70;
+}
+
+.halfwayToggleWrap {
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    color: #b7becb;
+    font: 450 14px/1 system-ui, Segoe UI, Arial, sans-serif;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.halfwayToggleInput {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-grid;
+    place-content: center;
+    border: 1px solid rgba(183,190,203,0.55);
+    border-radius: 3px;
+    background: rgba(183,190,203,0.2);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.18);
+    cursor: pointer;
+}
+
+.halfwayToggleInput::after {
+    content: "";
+    width: 4px;
+    height: 8px;
+    border: solid #f4f7fb;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0);
+    transition: transform 100ms ease;
+}
+
+.halfwayToggleInput:checked {
+    background: #6ea765;
+    border-color: #6ea765;
+}
+
+.halfwayToggleInput:checked::after {
+    transform: translateY(-1px) rotate(45deg) scale(1);
+}
+
+.halfwayToggleInput:focus-visible {
+    outline: 2px solid rgba(255,255,255,0.55);
+    outline-offset: 2px;
+}
+
+.halfwayToggleWrap.isDisabled {
+    opacity: 0.55;
+}
+
+.halfwayToggleWrap.isDisabled .halfwayToggleInput {
+    cursor: not-allowed;
+}
+
+.halfwayTimeValue {
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
 }
 
 /* Full-width timeline row */

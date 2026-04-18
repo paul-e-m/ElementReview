@@ -95,6 +95,7 @@ export class TimelineRenderer {
     }
 
     getHalfwayTimelineSeconds() {
+        if (!this.app.isHalfwayTrackingEnabled?.()) return null;
         if (!this.app.hasProgramTimerStarted?.()) return null;
 
         const halfwaySeconds = Number(this.app.getHalfwaySeconds?.() ?? null);
@@ -253,7 +254,7 @@ export class TimelineRenderer {
                 this.drawHalfwayMarker(ctx, xFor(halfwayTimelineSeconds), barTop, barH, h);
             }
 
-            if (useShiftedTimeline) {
+            if (useShiftedTimeline && this.app.isHalfwayTrackingEnabled?.()) {
                 this.drawProgramTimerStartMarker(ctx, xFor(displayOriginSec), rectY, rectH);
             }
 
@@ -298,7 +299,7 @@ export class TimelineRenderer {
             this.drawHalfwayMarker(ctx, xFor(halfwayTimelineSeconds), barTop, barH, h);
         }
 
-        if (useShiftedTimeline) {
+        if (useShiftedTimeline && this.app.isHalfwayTrackingEnabled?.()) {
             this.drawProgramTimerStartMarker(ctx, xFor(displayOriginSec), rectY, rectH);
         }
 

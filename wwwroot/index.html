@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Element Review</title>
-    <link rel="stylesheet" href="styles.css?v=20260418-cliplisttimes1" />
+    <link rel="stylesheet" href="styles.css?v=20260418-optionalht1" />
 </head>
 <body>
 
@@ -84,6 +84,14 @@
                                                     <span id="programTimerPrefix" class="recordTimerLabel">PROG:</span>
                                                     <span id="programTimerDisplay" class="recordTimerValue">00:00.00</span>
                                                 </div>
+                                            </div>
+
+                                            <div class="recordActionCol recordActionColHalfway">
+                                                <label id="halfwayToggleWrap" class="halfwayToggleWrap" for="halfwayToggle">
+                                                    <span id="halfwayToggleLabel" class="halfwayToggleLabel">HALFWAY:</span>
+                                                    <input id="halfwayToggle" class="halfwayToggleInput" type="checkbox" checked />
+                                                    <span id="halfwayTimeValue" class="halfwayTimeValue hidden" aria-hidden="true"></span>
+                                                </label>
                                             </div>
 
                                         </div>
@@ -234,8 +242,8 @@
         <div class="modalCard">
             <div id="confirmText" class="modalText">Are you sure?</div>
             <div class="modalButtons">
-                <button id="confirmYes" class="modalBtn modalBtnConfirm">ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Yes</button>
-                <button id="confirmCancel" class="modalBtn modalBtnCancel">ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Cancel</button>
+                <button id="confirmYes" class="modalBtn modalBtnConfirm">ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ Yes</button>
+                <button id="confirmCancel" class="modalBtn modalBtnCancel">ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Cancel</button>
             </div>
         </div>
     </div>
@@ -258,6 +266,6 @@
     </div>
 
     <script src="index-i18n.js?v=20260417-statusdots1"></script>
-    <script type="module" src="app.js?v=20260418-demostartpausefix1"></script>
+    <script type="module" src="app.js?v=20260418-optionalht1"></script>
 </body>
 </html>

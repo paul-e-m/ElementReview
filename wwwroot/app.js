@@ -41,6 +41,10 @@ export class ElementReviewApp {
             clipToggleBtn: el("clipToggleBtn"),
             undoClipBtn: el("undoClipBtn"),
             redoClipBtn: el("redoClipBtn"),
+            halfwayToggleWrap: el("halfwayToggleWrap"),
+            halfwayToggle: el("halfwayToggle"),
+            halfwayToggleLabel: el("halfwayToggleLabel"),
+            halfwayTimeValue: el("halfwayTimeValue"),
             recordTimerCard: el("recordTimerCard"),
             programTimerCard: el("programTimerCard"),
             clipTimerCard: el("clipTimerCard"),
@@ -106,6 +110,7 @@ export class ElementReviewApp {
         this.isStartPending = false;
         this.isStopPending = false;
         this.isClipPending = false;
+        this.isSavingHalfwaySetting = false;
         this.lastRecordStartRequestPerf = 0;
         this.pendingOpenClipSlotIndex = null;
         this.suppressOpenClipPlaceholder = false;
@@ -173,6 +178,15 @@ export class ElementReviewApp {
         this.replay.bindEvents();
         this.shortcuts.bindEvents();
 
+        if (this.refs.halfwayToggle) {
+            this.refs.halfwayToggle.checked = this.isHalfwayTrackingEnabled();
+            this.refs.halfwayToggle.addEventListener("change", () => {
+                this.setHalfwayTrackingEnabled(!!this.refs.halfwayToggle.checked).catch((err) => {
+                    alert(err?.message || "Unable to save halfway setting.");
+                });
+            });
+        }
+
         this.applyEditModeUI();
         this.updateEditButtonsUI();
 
@@ -224,11 +238,53 @@ export class ElementReviewApp {
             this.appConfig?.Language ?? this.appConfig?.language ?? this.currentLanguage
         );
         this.applyTranslations();
+        this.syncHalfwayToggleFromConfig(this.appConfig);
         this.preloadButtonImages();
     }
 
     normalizeLanguage(language) {
         return String(language || "").trim().toLowerCase() === "fr" ? "fr" : "en";
+    }
+
+    getHalfwayEnabledValue(config = this.appConfig) {
+        const value = config?.HalfwayEnabled ?? config?.halfwayEnabled;
+        return typeof value === "boolean" ? value : true;
+    }
+
+    hasHalfwayTimeAvailable() {
+        const seconds = this.getSessionInfoTimeSeconds(this.sessionInfoPayload, "segmentProgHalfTime");
+        return Number.isFinite(seconds) && seconds > 0;
+    }
+
+    isHalfwayTrackingEnabled() {
+        return this.hasHalfwayTimeAvailable() && this.getHalfwayEnabledValue(this.appConfig);
+    }
+
+    syncHalfwayToggleFromConfig(config = this.appConfig) {
+        const enabled = this.hasHalfwayTimeAvailable() && this.getHalfwayEnabledValue(config);
+        if (this.refs.halfwayToggle) this.refs.halfwayToggle.checked = enabled;
+        this.setText(this.refs.halfwayToggleLabel, this.t("halfwayToggleLabel"));
+        this.setAriaLabel(this.refs.halfwayToggle, this.t("halfwayToggleAria"));
+        this.updateHalfwayTimeValue();
+    }
+
+    formatHalfwayTimeValue(seconds) {
+        const totalWhole = Math.max(0, Math.floor(Number(seconds) || 0));
+        const minutes = Math.floor(totalWhole / 60);
+        const secondsWhole = totalWhole - minutes * 60;
+        return `HT: ${minutes}:${String(secondsWhole).padStart(2, "0")}`;
+    }
+
+    updateHalfwayTimeValue() {
+        const ref = this.refs.halfwayTimeValue;
+        if (!ref) return;
+
+        const halfwaySeconds = this.getHalfwaySeconds();
+        const show = Number.isFinite(halfwaySeconds) && halfwaySeconds > 0;
+
+        ref.textContent = show ? this.formatHalfwayTimeValue(halfwaySeconds) : "";
+        ref.classList.toggle("hidden", !show);
+        ref.setAttribute("aria-hidden", show ? "false" : "true");
     }
 
     t(key) {
@@ -411,6 +467,8 @@ export class ElementReviewApp {
         this.setText(this.refs.programTimerPrefix, this.t("programTimerPrefix"));
         this.setText(this.refs.recordTimerValue, this.formatRecordingTimerDisplay(this.currentRecordSeconds()));
         this.setText(this.refs.programTimerDisplay, this.formatProgramTimerDisplay(this.currentProgramTimerElapsedSeconds?.() ?? 0));
+        this.setText(this.refs.halfwayToggleLabel, this.t("halfwayToggleLabel"));
+        this.setAriaLabel(this.refs.halfwayToggle, this.t("halfwayToggleAria"));
 
         if (this.editToggleWrap) {
             this.setText(this.editToggleWrap.querySelector(".editToggleLabel"), this.t("editToggleLabel"));
@@ -514,14 +572,18 @@ export class ElementReviewApp {
             if (this.state.mode === "record") {
                 // The record-side main button advances through:
                 // 1. start recording
-                // 2. start program timer
+                // 2. optionally start the program timer
                 // 3. stop recording
                 if (!this.state.isRecording) {
                     if (this.isStartPending || this.state.isArming) {
-                        this.pendingRecordShortcut = "timer";
+                        if (this.isHalfwayTrackingEnabled()) {
+                            this.pendingRecordShortcut = "timer";
+                        }
                         return;
                     }
                     this.startRecording().catch(alert);
+                } else if (!this.isHalfwayTrackingEnabled()) {
+                    this.stopRecording().catch(alert);
                 } else if (this.hasProgramTimerStarted()) {
                     this.stopRecording().catch(alert);
                 } else {
@@ -1042,15 +1104,19 @@ export class ElementReviewApp {
             const payload = await apiGet(`/api/elements?ts=${Date.now()}`);
             const nextMap = this.normalizeElementsPayload(payload);
             const nextSessionInfoText = this.buildSessionInfoText(payload);
+            const nextHalfwaySeconds = this.getSessionInfoTimeSeconds(payload, "segmentProgHalfTime");
 
             // Use a lightweight signature so we only rerender the clip list and
             // overlays when the visible element metadata actually changed.
             const signature = JSON.stringify({
                 elements: nextMap,
                 sessionInfoText: nextSessionInfoText,
+                halfwaySeconds: Number.isFinite(nextHalfwaySeconds) && nextHalfwaySeconds > 0 ? nextHalfwaySeconds : null,
             });
 
             this.sessionInfoPayload = payload;
+            this.syncHalfwayToggleFromConfig(this.appConfig);
+            this.updateUI();
 
             if (signature === this.elementMetaSig) {
                 return;
@@ -1147,18 +1213,19 @@ export class ElementReviewApp {
         if (!this.pendingRecordShortcut) return;
 
         const pending = this.pendingRecordShortcut;
-        if (!this.hasProgramTimerStarted()) {
+        if (this.isHalfwayTrackingEnabled() && !this.hasProgramTimerStarted()) {
             this.startProgramTimer();
         }
 
         this.clearPendingRecordShortcut();
 
-        if (pending === "clip" && this.hasProgramTimerStarted()) {
+        if (pending === "clip" && (this.hasProgramTimerStarted() || !this.isHalfwayTrackingEnabled())) {
             await this.toggleClip();
         }
     }
 
     handleProgramTimerShortcut() {
+        if (!this.isHalfwayTrackingEnabled()) return;
         if (this.state?.mode !== "record" || this.isStopPending) return;
 
         this.clearPendingRecordShortcut();
@@ -1186,6 +1253,11 @@ export class ElementReviewApp {
         if (this.state?.isRecording && this.hasProgramTimerStarted()) {
             this.clearPendingRecordShortcut();
             this.toggleClip().catch(console.error);
+            return;
+        }
+
+        if (!this.isHalfwayTrackingEnabled() && (this.isStartPending || this.state?.isArming)) {
+            this.pendingRecordShortcut = "clip";
             return;
         }
 
@@ -1227,6 +1299,7 @@ export class ElementReviewApp {
     }
 
     getHalfwaySeconds() {
+        if (!this.isHalfwayTrackingEnabled()) return null;
         const seconds = this.getSessionInfoTimeSeconds(this.sessionInfoPayload, "segmentProgHalfTime");
         return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
     }
@@ -1375,6 +1448,7 @@ export class ElementReviewApp {
             const config = await apiGet(`/api/appconfig?ts=${Date.now()}`);
             this.appConfig = config;
             this.syncLanguageFromConfig(config);
+            this.syncHalfwayToggleFromConfig(config);
 
             if (config?.DemoMode) {
                 this.setReplayPingStatus("encoder", "disabled");
@@ -1442,6 +1516,7 @@ export class ElementReviewApp {
     }
 
     hasHalfwayMarker() {
+        if (!this.isHalfwayTrackingEnabled()) return false;
         const halfwaySeconds = this.getHalfwaySeconds();
         if (!Number.isFinite(halfwaySeconds) || halfwaySeconds <= 0) return false;
 
@@ -1536,6 +1611,44 @@ export class ElementReviewApp {
             this.state?.mode === "record" && !!this.state?.isRecording && !this.hasProgramTimerStarted()
         );
         programTimerCard?.classList.toggle("stateRunning", this.hasProgramTimerStarted());
+    }
+
+    async setHalfwayTrackingEnabled(on) {
+        const nextValue = !!on;
+        const canChange =
+            this.state?.mode !== "record" ||
+            (!this.state?.isRecording && !this.isStartPending && !this.state?.isArming);
+
+        if (!canChange) {
+            this.syncHalfwayToggleFromConfig(this.appConfig);
+            return;
+        }
+
+        const baseConfig = this.appConfig ?? await apiGet(`/api/appconfig?ts=${Date.now()}`);
+        const previousValue = this.getHalfwayEnabledValue(baseConfig);
+        if (previousValue === nextValue) {
+            this.syncHalfwayToggleFromConfig(baseConfig);
+            return;
+        }
+
+        this.isSavingHalfwaySetting = true;
+        this.appConfig = { ...baseConfig, HalfwayEnabled: nextValue };
+        this.syncHalfwayToggleFromConfig(this.appConfig);
+        this.updateUI();
+
+        try {
+            const saved = await apiPost("/api/appconfig", this.appConfig);
+            this.appConfig = saved;
+            this.syncLanguageFromConfig(saved);
+            this.syncHalfwayToggleFromConfig(saved);
+        } catch (err) {
+            this.appConfig = { ...baseConfig, HalfwayEnabled: previousValue };
+            this.syncHalfwayToggleFromConfig(this.appConfig);
+            throw err;
+        } finally {
+            this.isSavingHalfwaySetting = false;
+            this.updateUI();
+        }
     }
 
     elementOuterHeight(node) {
@@ -1936,7 +2049,7 @@ export class ElementReviewApp {
         const inRecord = this.state?.mode === "record";
         const recording = !!this.state?.isRecording;
         const open = recording && this.state?.openClipStartSeconds != null;
-        const canStartClip = recording && (open || this.hasProgramTimerStarted());
+        const canStartClip = recording && (open || !this.isHalfwayTrackingEnabled() || this.hasProgramTimerStarted());
         const canUndo = recording && !!this.state?.canUndoClipAction;
         const canRedo = recording && !!this.state?.canRedoClipAction;
 
@@ -2033,7 +2146,13 @@ export class ElementReviewApp {
             } else if (!recording && (this.isStartPending || arming)) {
                 this.setMainButtonVisual("starting");
             } else {
-                this.setMainButtonVisual(recording ? (this.hasProgramTimerStarted() ? "stop" : "timer") : "start");
+                this.setMainButtonVisual(
+                    recording
+                        ? (this.isHalfwayTrackingEnabled()
+                            ? (this.hasProgramTimerStarted() ? "stop" : "timer")
+                            : "stop")
+                        : "start"
+                );
             }
 
             if (recording) {
@@ -2066,6 +2185,20 @@ export class ElementReviewApp {
         }
 
         this.updateRecordClipButtonsUI();
+        const halfwayCanChange =
+            uiMode === "record" &&
+            !recording &&
+            !this.isStartPending &&
+            !arming &&
+            !this.isSavingHalfwaySetting &&
+            this.hasHalfwayTimeAvailable();
+        if (this.refs.halfwayToggleWrap) {
+            this.refs.halfwayToggleWrap.classList.toggle("isDisabled", !halfwayCanChange);
+        }
+        if (this.refs.halfwayToggle) {
+            this.refs.halfwayToggle.disabled = !halfwayCanChange;
+        }
+        this.updateHalfwayTimeValue();
         this.updateProgramTimerUI();
         this.renderClipList();
         this.updateSessionInfoOverlay();
@@ -2102,6 +2235,11 @@ export class ElementReviewApp {
 
         if (!prevRecording && this.state.isRecording) {
             this.resetProgramTimerState();
+            if (!this.isHalfwayTrackingEnabled()) {
+                this.programTimerStartOffsetSeconds = 0;
+                this.programTimerStopOffsetSeconds = null;
+                this.programTimerRunning = true;
+            }
         }
 
         if (prevRecording && !this.state.isRecording && this.programTimerRunning) {

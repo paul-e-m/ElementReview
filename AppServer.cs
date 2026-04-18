@@ -66,6 +66,7 @@ public static class AppServer
         static AppConfig NormalizeConfig(AppConfig? cfg)
         {
             cfg ??= new AppConfig();
+            cfg.HalfwayEnabled ??= true;
 
             var cssLink = string.IsNullOrWhiteSpace(cfg.CSSLink) ? "None" : cfg.CSSLink.Trim();
             cfg.CSSLink =
@@ -118,6 +119,12 @@ public static class AppServer
             var path = AppPaths.LocalConfigPath;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(cfg, jsonOpts));
+        }
+
+        static AppConfig MergeConfig(AppConfig existing, AppConfig incoming)
+        {
+            incoming.HalfwayEnabled ??= existing.HalfwayEnabled;
+            return incoming;
         }
 
         static string? GetCssHelperExeName(AppConfig cfg)
@@ -287,7 +294,7 @@ public static class AppServer
 
         app.MapPost("/api/appconfig", (AppConfig cfg, MediaMtxManager mtx) =>
         {
-            cfg = NormalizeConfig(cfg);
+            cfg = NormalizeConfig(MergeConfig(LoadConfig(), cfg));
             SaveConfig(cfg);
 
             if (!cfg.DemoMode)

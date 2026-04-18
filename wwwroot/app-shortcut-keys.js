@@ -146,6 +146,7 @@ export class ShortcutKeysController {
             if (this.app.state?.mode === "record") {
                 event.preventDefault();
                 if (event.repeat) return;
+                if (!this.app.isHalfwayTrackingEnabled?.()) return;
                 this.app.handleProgramTimerShortcut();
             }
             return;
@@ -249,29 +250,36 @@ export class ShortcutKeysController {
             { key: this.app.t("shortcutKeyCtrlPlus"), action: this.app.t("shortcutActionCtrlPlus") },
             { key: this.app.t("shortcutKeyCtrlMinus"), action: this.app.t("shortcutActionCtrlMinus") },
         ];
+        const halfwayEnabled = !!this.app.isHalfwayTrackingEnabled?.();
 
         if (mode === "replay") {
-            return [
+            const items = [
                 { key: this.app.t("shortcutKeyReplaySpace"), action: this.app.t("shortcutActionReplaySpace") },
                 { key: this.app.t("shortcutKeyArrowLeft"), action: this.app.t("shortcutActionArrowLeft") },
                 { key: this.app.t("shortcutKeyArrowRight"), action: this.app.t("shortcutActionArrowRight") },
                 { key: this.app.t("shortcutKeyArrowUp"), action: this.app.t("shortcutActionArrowUp") },
                 { key: this.app.t("shortcutKeyArrowDown"), action: this.app.t("shortcutActionArrowDown") },
-                { key: this.app.t("shortcutKeyH"), action: this.app.t("shortcutActionH") },
                 { key: this.app.t("shortcutKeyL"), action: this.app.t("shortcutActionL") },
                 { key: this.app.t("shortcutKeyN"), action: this.app.t("shortcutActionN") },
                 { key: this.app.t("shortcutKeyEscape"), action: this.app.t("shortcutActionEscape") },
                 ...shared,
             ];
+            if (halfwayEnabled) {
+                items.splice(5, 0, { key: this.app.t("shortcutKeyH"), action: this.app.t("shortcutActionH") });
+            }
+            return items;
         }
 
-        return [
-            { key: this.app.t("shortcutKeyS"), action: this.app.t("shortcutActionS") },
-            { key: this.app.t("shortcutKeyT"), action: this.app.t("shortcutActionT") },
+        const items = [
+            { key: this.app.t("shortcutKeyS"), action: this.app.t(halfwayEnabled ? "shortcutActionS" : "shortcutActionSNoHalfway") },
             { key: this.app.t("shortcutKeySpace"), action: this.app.t("shortcutActionRecordSpace") },
             { key: this.app.t("shortcutKeyBackspace"), action: this.app.t("shortcutActionBackspace") },
             ...shared,
         ];
+        if (halfwayEnabled) {
+            items.splice(1, 0, { key: this.app.t("shortcutKeyT"), action: this.app.t("shortcutActionT") });
+        }
+        return items;
     }
 
     renderShortcutOverlay() {
