@@ -3,12 +3,12 @@
   "WorkspaceRootPath": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}|ElementReview.csproj|p:\\pcloud sync\\data specialist\\current elementreview-dev\\wwwroot\\index-i18n.js||{3B902123-F8A7-4915-9F01-361F908088D0}",
-      "RelativeMoniker": "D:0:0:{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}|ElementReview.csproj|solutionrelative:wwwroot\\index-i18n.js||{3B902123-F8A7-4915-9F01-361F908088D0}"
+      "AbsoluteMoniker": "D:0:0:{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}|ElementReview.csproj|p:\\pcloud sync\\data specialist\\current elementreview-dev\\wwwroot\\styles.css||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}|ElementReview.csproj|solutionrelative:wwwroot\\styles.css||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}|ElementReview.csproj|p:\\pcloud sync\\data specialist\\current elementreview-dev\\wwwroot\\judge.html||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}|ElementReview.csproj|solutionrelative:wwwroot\\judge.html||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}|ElementReview.csproj|p:\\pcloud sync\\data specialist\\current elementreview-dev\\wwwroot\\index-i18n.js||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}|ElementReview.csproj|solutionrelative:wwwroot\\index-i18n.js||{3B902123-F8A7-4915-9F01-361F908088D0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -23,27 +23,27 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "index-i18n.js",
-              "DocumentMoniker": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\wwwroot\\index-i18n.js",
-              "RelativeDocumentMoniker": "wwwroot\\index-i18n.js",
-              "ToolTip": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\wwwroot\\index-i18n.js",
-              "RelativeToolTip": "wwwroot\\index-i18n.js",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAgAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2026-04-14T17:13:21.569Z",
+              "Title": "styles.css",
+              "DocumentMoniker": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\wwwroot\\styles.css",
+              "RelativeDocumentMoniker": "wwwroot\\styles.css",
+              "ToolTip": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\wwwroot\\styles.css",
+              "RelativeToolTip": "wwwroot\\styles.css",
+              "ViewState": "AgIAAN4EAAAAAAAAAAAAAMAEAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-04-17T19:21:34.005Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "judge.html",
-              "DocumentMoniker": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\wwwroot\\judge.html",
-              "RelativeDocumentMoniker": "wwwroot\\judge.html",
-              "ToolTip": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\wwwroot\\judge.html",
-              "RelativeToolTip": "wwwroot\\judge.html",
-              "ViewState": "AgIAAKsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2026-04-14T17:13:14.019Z"
+              "Title": "index-i18n.js",
+              "DocumentMoniker": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\wwwroot\\index-i18n.js",
+              "RelativeDocumentMoniker": "wwwroot\\index-i18n.js",
+              "ToolTip": "P:\\pCloud Sync\\Data Specialist\\Current ElementReview-dev\\wwwroot\\index-i18n.js",
+              "RelativeToolTip": "wwwroot\\index-i18n.js",
+              "ViewState": "AgIAABUAAAAAAAAAAAAAAJ0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-04-14T17:13:21.569Z"
             }
           ]
         }

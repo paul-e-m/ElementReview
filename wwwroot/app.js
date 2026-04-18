@@ -1,6 +1,6 @@
 import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js";
 import { TimelineRenderer } from "./app-timeline.js";
-import { ReplayController } from "./app-replay.js";
+import { ReplayController } from "./app-replay.js?v=20260417-replayindicator2";
 import { ShortcutKeysController } from "./app-shortcut-keys.js";
 
 // ElementReviewApp is the main browser-side coordinator for index.html.
@@ -27,40 +27,23 @@ export class ElementReviewApp {
             mainBtn: el("mainBtn"),
             mainBtnHostRecord: el("mainBtnHostRecord"),
             mainBtnHostReplay: el("mainBtnHostReplay"),
-            replayVideoTimerHost: el("replayVideoTimerHost"),
-            timerRow: el("timerRow"),
-            timerHostSideReplay: el("timerHostSideReplay"),
-            recordStatusPanel: el("recordStatusPanel"),
-            recordCountsPanel: el("recordCountsPanel"),
-            recordEncoderLabel: el("recordEncoderLabel"),
-            recordEncoderDot: el("recordEncoderDot"),
-            recordEncoderText: el("recordEncoderText"),
-            recordCssDot: el("recordCssDot"),
-            recordCssText: el("recordCssText"),
-            recordClipsLabel: el("recordClipsLabel"),
-            recordClipsValue: el("recordClipsValue"),
-            recordElementsLabel: el("recordElementsLabel"),
-            recordElementsValue: el("recordElementsValue"),
-            recordReviewsLabel: el("recordReviewsLabel"),
-            recordReviewsValue: el("recordReviewsValue"),
-            replayStatusPanel: el("replayStatusPanel"),
-            replayCountsPanel: el("replayCountsPanel"),
-            replayEncoderLabel: el("replayEncoderLabel"),
-            replayEncoderDot: el("replayEncoderDot"),
-            replayEncoderText: el("replayEncoderText"),
-            replayCssDot: el("replayCssDot"),
-            replayCssText: el("replayCssText"),
-            replayClipsLabel: el("replayClipsLabel"),
-            replayClipsValue: el("replayClipsValue"),
+            recordSessionEncoderDot: el("recordSessionEncoderDot"),
+            recordSessionCssDot: el("recordSessionCssDot"),
+            replaySessionEncoderDot: el("replaySessionEncoderDot"),
+            replaySessionCssDot: el("replaySessionCssDot"),
+            leftControls: el("leftControls"),
             replayElementsLabel: el("replayElementsLabel"),
             replayElementsValue: el("replayElementsValue"),
             replayReviewsLabel: el("replayReviewsLabel"),
             replayReviewsValue: el("replayReviewsValue"),
             clipList: el("clipList"),
+            clipToggleRailHost: el("clipToggleRailHost"),
             clipToggleBtn: el("clipToggleBtn"),
             undoClipBtn: el("undoClipBtn"),
             redoClipBtn: el("redoClipBtn"),
-            clipTimerRow: el("clipTimerRow"),
+            recordTimerCard: el("recordTimerCard"),
+            programTimerCard: el("programTimerCard"),
+            clipTimerCard: el("clipTimerCard"),
             clipTime: el("clipTime"),
             recordTimerPrefix: el("recordTimerPrefix"),
             recordTimerValue: el("recordTimerValue"),
@@ -70,13 +53,12 @@ export class ElementReviewApp {
             recordShortcutHint: el("recordShortcutHint"),
             replayShortcutHint: el("replayShortcutHint"),
             settingsBtn: el("settingsBtn"),
-            recordTimersTable: el("recordTimersTable"),
             recLamp: el("recLamp"),
-            recTime: el("recTime"),
             liveFrame: el("liveFrame"),
             liveWrap: el("liveWrap"),
             timelineRow: el("timelineRow"),
             timelineOverlay: el("timelineOverlay"),
+            replayProgramTimeIndicator: el("replayProgramTimeIndicator"),
             recordCanvas: el("recordCanvas"),
             replayVideo: el("replayVideo"),
             replayScrub: el("replayScrub"),
@@ -105,7 +87,9 @@ export class ElementReviewApp {
             shortcutModeLabel: el("shortcutModeLabel"),
             shortcutList: el("shortcutList"),
             recordSessionInfo: el("recordSessionInfo"),
+            recordSessionInfoText: el("recordSessionInfoText"),
             replaySessionInfo: el("replaySessionInfo"),
+            replaySessionInfoText: el("replaySessionInfoText"),
         };
 
         this.refs.recordCtx = this.refs.recordCanvas?.getContext("2d") || null;
@@ -122,6 +106,8 @@ export class ElementReviewApp {
         this.isStartPending = false;
         this.isStopPending = false;
         this.isClipPending = false;
+        this.lastRecordStartRequestPerf = 0;
+        this.pendingDemoResume = null;
         this.pendingOpenClipSlotIndex = null;
         this.suppressOpenClipPlaceholder = false;
 
@@ -156,8 +142,8 @@ export class ElementReviewApp {
         this.replayHostPollTimerId = null;
         this.replayHostPollInFlight = false;
         this.replayPingStatus = {
-            encoder: { state: "idle", i18nKey: "replayStatusWaiting", text: "" },
-            css: { state: "idle", i18nKey: "replayStatusWaiting", text: "" },
+            encoder: { state: "idle" },
+            css: { state: "idle" },
         };
 
         this.confirmResolve = null;
@@ -181,6 +167,7 @@ export class ElementReviewApp {
         if (this.refs.clipTime) this.refs.clipTime.textContent = this.formatClipTimerDisplay(0);
         if (this.refs.programTimerDisplay) this.refs.programTimerDisplay.textContent = this.formatProgramTimerDisplay(0);
         this.applyTranslations();
+        this.preloadButtonImages();
 
         this.bindAppEvents();
         this.replay.init();
@@ -238,6 +225,7 @@ export class ElementReviewApp {
             this.appConfig?.Language ?? this.appConfig?.language ?? this.currentLanguage
         );
         this.applyTranslations();
+        this.preloadButtonImages();
     }
 
     normalizeLanguage(language) {
@@ -256,6 +244,48 @@ export class ElementReviewApp {
 
     setAriaLabel(ref, value) {
         if (ref) ref.setAttribute("aria-label", value);
+    }
+
+    getDemoLiveVideoElement() {
+        try {
+            return this.refs.liveFrame?.contentWindow?.document?.getElementById("demoVideo") ?? null;
+        } catch {
+            return null;
+        }
+    }
+
+    pauseDemoLiveAt(seconds) {
+        const video = this.getDemoLiveVideoElement();
+        if (!video) return;
+
+        const anchor = Math.max(0, Number(seconds) || 0);
+
+        try {
+            video.pause();
+            video.currentTime = anchor;
+            this.pendingDemoResume = anchor;
+        } catch {
+            this.pendingDemoResume = null;
+        }
+    }
+
+    resumeDemoLiveAfterStart() {
+        const video = this.getDemoLiveVideoElement();
+        if (!video) {
+            this.pendingDemoResume = null;
+            return;
+        }
+
+        try {
+            if (this.pendingDemoResume != null) {
+                video.currentTime = Math.max(0, Number(this.pendingDemoResume) || 0);
+            }
+            video.play().catch(() => { });
+        } catch {
+            // ignore
+        } finally {
+            this.pendingDemoResume = null;
+        }
     }
 
     setTitleAndAria(ref, value) {
@@ -342,16 +372,17 @@ export class ElementReviewApp {
         return await this.buttonImageUrlCache.get(cacheKey);
     }
 
+    preloadButtonImages() {
+        for (const kind of ["start", "starting", "timer", "stop", "stopping", "next", "clipStart", "clipStop", "undo", "redo"]) {
+            this.resolveButtonImageAsset(kind).catch(() => { });
+        }
+    }
+
     applyButtonImage(button, kind) {
         if (!button) return;
 
         const requestKey = `${kind}:${this.getButtonLanguageSuffix()}`;
         button.dataset.buttonSkinKey = requestKey;
-
-        if (kind === "redo") {
-            button.classList.remove("btnImg");
-            button.style.removeProperty("background-image");
-        }
 
         this.resolveButtonImageAsset(kind).then((asset) => {
             if (!button || button.dataset.buttonSkinKey !== requestKey) return;
@@ -372,20 +403,12 @@ export class ElementReviewApp {
             button.dataset.imageReady = "false";
             button.style.removeProperty("background-image");
             button.style.removeProperty("--button-ratio");
-
-            if (kind === "redo") {
-                button.classList.remove("btnImg");
-            }
         }).catch(() => {
             if (button.dataset.buttonSkinKey !== requestKey) return;
 
             button.dataset.imageReady = "false";
             button.style.removeProperty("background-image");
             button.style.removeProperty("--button-ratio");
-
-            if (kind === "redo") {
-                button.classList.remove("btnImg");
-            }
         });
     }
 
@@ -394,7 +417,7 @@ export class ElementReviewApp {
     }
 
     formatClipTimerDisplay(seconds) {
-        return `CLIP: ${this.fmtTimeFrames(seconds)}`;
+        return this.fmtProgramTimer(seconds);
     }
 
     formatRecordingTimerDisplay(seconds) {
@@ -448,13 +471,7 @@ export class ElementReviewApp {
         }
 
         for (const [ref, key] of [
-            [this.refs.recordEncoderLabel, "statusEncoderLabel"],
-            [this.refs.replayEncoderLabel, "statusEncoderLabel"],
-            [this.refs.recordClipsLabel, "replayClipsLabel"],
-            [this.refs.replayClipsLabel, "replayClipsLabel"],
-            [this.refs.recordElementsLabel, "statusElementsLabel"],
             [this.refs.replayElementsLabel, "statusElementsLabel"],
-            [this.refs.recordReviewsLabel, "statusReviewsLabel"],
             [this.refs.replayReviewsLabel, "statusReviewsLabel"],
         ]) {
             this.setText(ref, `${this.t(key)}:`);
@@ -535,6 +552,10 @@ export class ElementReviewApp {
                 // 2. start program timer
                 // 3. stop recording
                 if (!this.state.isRecording) {
+                    if (this.isStartPending || this.state.isArming) {
+                        this.pendingRecordShortcut = "timer";
+                        return;
+                    }
                     this.startRecording().catch(alert);
                 } else if (this.hasProgramTimerStarted()) {
                     this.stopRecording().catch(alert);
@@ -1034,24 +1055,21 @@ export class ElementReviewApp {
 
     updateSessionInfoOverlay() {
         const text = this.sessionInfoText;
-        const hasSessionInfo = !!text;
 
+        if (this.refs.replaySessionInfoText) {
+            this.refs.replaySessionInfoText.textContent = text;
+        }
         if (this.refs.replaySessionInfo) {
-            this.refs.replaySessionInfo.textContent = text;
             this.refs.replaySessionInfo.classList.remove("hidden");
         }
 
+        if (this.refs.recordSessionInfoText) {
+            this.refs.recordSessionInfoText.textContent = text;
+        }
         if (this.refs.recordSessionInfo) {
-            this.refs.recordSessionInfo.textContent = text;
             this.refs.recordSessionInfo.classList.remove("hidden");
         }
 
-        if (this.refs.recordCountsPanel) {
-            this.refs.recordCountsPanel.classList.toggle("hidden", !hasSessionInfo);
-        }
-        if (this.refs.replayCountsPanel) {
-            this.refs.replayCountsPanel.classList.toggle("hidden", !hasSessionInfo);
-        }
     }
 
     async pollElementNames() {
@@ -1248,42 +1266,14 @@ export class ElementReviewApp {
         return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
     }
 
-    setReplayPingStatus(kind, state, text = "", i18nKey = "") {
+    setReplayPingStatus(kind, state) {
         if (!this.replayPingStatus[kind]) return;
 
         this.replayPingStatus[kind] = {
             state,
-            text,
-            i18nKey,
         };
         this.updateReplayStatusPanel();
     }
-
-    applyReplayPingDisplay(dotEl, textEl, status) {
-        if (!dotEl || !textEl || !status) return;
-
-        dotEl.className = `replayPingDot ${status.state || "idle"}`;
-        textEl.className = `replayPingText ${status.state || "idle"}`;
-        const suppressText =
-            status.i18nKey === "replayStatusNoResponse" ||
-            (status.state === "red" && !status.text && !status.i18nKey);
-        textEl.textContent = suppressText ? "" : (status.i18nKey ? this.t(status.i18nKey) : (status.text || ""));
-    }
-
-    getValidClipCount() {
-        let count = 0;
-
-        for (const clip of this.getClips()) {
-            const start = this.clipStart(clip);
-            const end = this.clipEnd(clip);
-            if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
     getElementCount() {
         return Object.values(this.elementMeta || {}).filter((meta) => {
             const code = (meta?.code ?? "").toString().trim();
@@ -1299,16 +1289,11 @@ export class ElementReviewApp {
     }
 
     updateReplayStatusPanel() {
-        const clipCount = String(this.getValidClipCount());
         const elementCount = String(this.getElementCount());
         const reviewCount = String(this.getReviewCount());
 
         const countPairs = [
-            [this.refs.recordClipsValue, clipCount],
-            [this.refs.replayClipsValue, clipCount],
-            [this.refs.recordElementsValue, elementCount],
             [this.refs.replayElementsValue, elementCount],
-            [this.refs.recordReviewsValue, reviewCount],
             [this.refs.replayReviewsValue, reviewCount],
         ];
 
@@ -1316,15 +1301,16 @@ export class ElementReviewApp {
             if (el) el.textContent = value;
         }
 
-        const pingPairs = [
-            [this.refs.recordEncoderDot, this.refs.recordEncoderText, this.replayPingStatus.encoder],
-            [this.refs.replayEncoderDot, this.refs.replayEncoderText, this.replayPingStatus.encoder],
-            [this.refs.recordCssDot, this.refs.recordCssText, this.replayPingStatus.css],
-            [this.refs.replayCssDot, this.refs.replayCssText, this.replayPingStatus.css],
+        const dotPairs = [
+            [this.refs.recordSessionEncoderDot, this.replayPingStatus.encoder],
+            [this.refs.replaySessionEncoderDot, this.replayPingStatus.encoder],
+            [this.refs.recordSessionCssDot, this.replayPingStatus.css],
+            [this.refs.replaySessionCssDot, this.replayPingStatus.css],
         ];
 
-        for (const [dotEl, textEl, status] of pingPairs) {
-            this.applyReplayPingDisplay(dotEl, textEl, status);
+        for (const [dotEl, status] of dotPairs) {
+            if (!dotEl || !status) continue;
+            dotEl.className = `replayPingDot ${status.state || "idle"}`;
         }
     }
 
@@ -1398,13 +1384,13 @@ export class ElementReviewApp {
 
     applyReplayPingResult(kind, result) {
         if (!result?.ok || typeof result.roundTripMs !== "number") {
-            this.setReplayPingStatus(kind, "red", "", "replayStatusNoResponse");
+            this.setReplayPingStatus(kind, "red");
             return;
         }
 
         const ms = Math.max(1, Math.round(result.roundTripMs));
         const state = ms < 100 ? "green" : (ms <= 500 ? "yellow" : "red");
-        this.setReplayPingStatus(kind, state, `${ms} ms`);
+        this.setReplayPingStatus(kind, state);
     }
 
     syncLanguageFromConfig(config) {
@@ -1426,17 +1412,17 @@ export class ElementReviewApp {
             this.syncLanguageFromConfig(config);
 
             if (config?.DemoMode) {
-                this.setReplayPingStatus("encoder", "idle", "", "replayStatusDemoMode");
+                this.setReplayPingStatus("encoder", "disabled");
             } else {
                 const encoderHost = this.getHostFromRtspUrl(config?.RtspUrl ?? config?.rtspUrl);
                 if (!encoderHost) {
-                    this.setReplayPingStatus("encoder", "idle", "", "replayStatusNoHost");
+                    this.setReplayPingStatus("encoder", "red");
                 } else {
                     try {
                         const result = await this.pingHost(encoderHost);
                         this.applyReplayPingResult("encoder", result);
                     } catch {
-                        this.setReplayPingStatus("encoder", "red", "", "replayStatusNoResponse");
+                        this.setReplayPingStatus("encoder", "red");
                     }
                 }
             }
@@ -1456,20 +1442,20 @@ export class ElementReviewApp {
             }
 
             if (cssDisabled) {
-                this.setReplayPingStatus("css", "disabled", "");
+                this.setReplayPingStatus("css", "disabled");
             } else if (!cssHost) {
-                this.setReplayPingStatus("css", "idle", "", "replayStatusNoHost");
+                this.setReplayPingStatus("css", "red");
             } else {
                 try {
                     const result = await this.pingHost(cssHost);
                     this.applyReplayPingResult("css", result);
                 } catch {
-                    this.setReplayPingStatus("css", "red", "", "replayStatusNoResponse");
+                    this.setReplayPingStatus("css", "red");
                 }
             }
         } catch {
-            this.setReplayPingStatus("encoder", "red", "", "replayStatusNoResponse");
-            this.setReplayPingStatus("css", "red", "", "replayStatusNoResponse");
+            this.setReplayPingStatus("encoder", "red");
+            this.setReplayPingStatus("css", "red");
         } finally {
             this.replayHostPollInFlight = false;
         }
@@ -1576,15 +1562,15 @@ export class ElementReviewApp {
     }
 
     updateProgramTimerUI() {
-        const { programTimerDisplay } = this.refs;
+        const { programTimerDisplay, programTimerCard } = this.refs;
         if (!programTimerDisplay) return;
 
         programTimerDisplay.textContent = this.formatProgramTimerDisplay(this.currentProgramTimerElapsedSeconds());
-        programTimerDisplay.classList.toggle(
+        programTimerCard?.classList.toggle(
             "stateArmed",
             this.state?.mode === "record" && !!this.state?.isRecording && !this.hasProgramTimerStarted()
         );
-        programTimerDisplay.classList.toggle("stateRunning", this.hasProgramTimerStarted());
+        programTimerCard?.classList.toggle("stateRunning", this.hasProgramTimerStarted());
     }
 
     elementOuterHeight(node) {
@@ -1639,20 +1625,25 @@ export class ElementReviewApp {
     }
 
     syncClipListHeightToVideo() {
-        if (!this.refs.clipList) return;
+        if (!this.refs.leftControls || !this.refs.clipList) return;
 
-        let videoHeight = 0;
+        let availableHeight = 0;
         if (this.state?.mode === "record") {
-            videoHeight = this.refs.liveWrap?.getBoundingClientRect().height || 0;
+            availableHeight =
+                this.refs.recordTopRow?.getBoundingClientRect().height ||
+                this.refs.liveWrap?.getBoundingClientRect().height ||
+                0;
         } else {
-            const wrap = this.replay.ensureReplayVideoWrap();
-            videoHeight = wrap?.getBoundingClientRect().height || 0;
+            availableHeight =
+                this.refs.replayTopRow?.getBoundingClientRect().height ||
+                this.replay.ensureReplayVideoWrap()?.getBoundingClientRect().height ||
+                0;
         }
 
-        if (!videoHeight || videoHeight < 50) return;
+        if (!availableHeight || availableHeight < 50) return;
 
-        const target = Math.max(120, Math.floor(videoHeight));
-        this.refs.clipList.style.height = `${target}px`;
+        const target = Math.max(120, Math.floor(availableHeight));
+        this.refs.leftControls.style.height = `${target}px`;
     }
 
     updateReplayButtonOffset() {
@@ -1717,11 +1708,14 @@ export class ElementReviewApp {
             this.scheduleLayout();
 
             // WebView/iframe composition can occasionally leave stale pixels
-            // behind after switching back from replay. Briefly toggling display
-            // forces the live surface to repaint without changing app state.
+            // behind after switching back from replay. Briefly toggling the
+            // live container and iframe forces a repaint without changing app state.
+            const previousWrapDisplay = liveWrap.style.display;
             const previousDisplay = liveFrame.style.display;
+            liveWrap.style.display = "none";
             liveFrame.style.display = "none";
             void liveWrap.offsetHeight;
+            liveWrap.style.display = previousWrapDisplay;
             liveFrame.style.display = previousDisplay;
 
             requestAnimationFrame(() => this.scheduleLayout());
@@ -1755,6 +1749,7 @@ export class ElementReviewApp {
                 this.refs.recordMode.classList.remove("hidden");
                 this.refs.replayMode.classList.add("hidden");
                 this.replay.resetZoom();
+                this.refreshLiveSurfaceAfterModeChange();
             } else {
                 this.refs.recordMode.classList.add("hidden");
                 this.refs.replayMode.classList.remove("hidden");
@@ -1762,12 +1757,6 @@ export class ElementReviewApp {
                 this.replay.applyZoom();
             }
             this.currentDomMode = mode;
-        }
-
-        const timerHost = this.refs.replayVideoTimerHost || this.refs.timerHostSideReplay;
-
-        if (mode !== "record" && timerHost && this.refs.timerRow && this.refs.timerRow.parentElement !== timerHost) {
-            timerHost.appendChild(this.refs.timerRow);
         }
 
         if (mode === "record") {
@@ -1943,7 +1932,7 @@ export class ElementReviewApp {
     }
 
     updateRecordClipButtonsUI() {
-        const { clipToggleBtn, undoClipBtn, redoClipBtn } = this.refs;
+        const { clipToggleBtn, clipToggleRailHost, undoClipBtn, redoClipBtn } = this.refs;
         if (!clipToggleBtn || !undoClipBtn || !redoClipBtn) return;
 
         const inRecord = this.state?.mode === "record";
@@ -1954,6 +1943,7 @@ export class ElementReviewApp {
         const canRedo = recording && !!this.state?.canRedoClipAction;
 
         clipToggleBtn.classList.toggle("hidden", !inRecord);
+        clipToggleRailHost?.classList.toggle("hidden", !inRecord);
         undoClipBtn.classList.toggle("hidden", !inRecord);
         redoClipBtn.classList.toggle("hidden", !inRecord);
 
@@ -1999,19 +1989,15 @@ export class ElementReviewApp {
     }
 
     updateClipTimerUI() {
-        const { clipTimerRow, clipTime } = this.refs;
-        if (!clipTimerRow || !clipTime) return;
+        const { clipTimerCard, clipTime } = this.refs;
+        if (!clipTimerCard || !clipTime) return;
 
-        const inRecord = this.state?.mode === "record";
         const recording = !!this.state?.isRecording;
         const openStart = this.state?.openClipStartSeconds;
 
-        const show = inRecord && recording && openStart != null && Number.isFinite(Number(openStart));
+        const running = recording && openStart != null && Number.isFinite(Number(openStart));
 
-        clipTimerRow.classList.toggle("hidden", !show);
-        clipTimerRow.setAttribute("aria-hidden", show ? "false" : "true");
-
-        if (!show) {
+        if (!running) {
             clipTime.textContent = this.formatClipTimerDisplay(0);
             return;
         }
@@ -2033,8 +2019,12 @@ export class ElementReviewApp {
         const inRecord = uiMode === "record";
         const recording = !!this.state.isRecording;
 
-        if (this.refs.timerRow) this.refs.timerRow.classList.toggle("hidden", uiMode !== "replay");
-        if (this.refs.recordTimersTable) this.refs.recordTimersTable.setAttribute("aria-hidden", uiMode === "record" ? "false" : "true");
+        if (this.refs.replayProgramTimeIndicator) {
+            this.refs.replayProgramTimeIndicator.classList.toggle("hidden", uiMode !== "replay");
+        }
+        if (this.refs.recordTimerCard) this.refs.recordTimerCard.setAttribute("aria-hidden", uiMode === "record" ? "false" : "true");
+        if (this.refs.programTimerCard) this.refs.programTimerCard.setAttribute("aria-hidden", uiMode === "record" ? "false" : "true");
+        if (this.refs.clipTimerCard) this.refs.clipTimerCard.setAttribute("aria-hidden", uiMode === "record" ? "false" : "true");
         if (this.refs.recLamp) this.refs.recLamp.classList.toggle("on", inRecord && recording);
 
         if (uiMode === "record") {
@@ -2072,7 +2062,7 @@ export class ElementReviewApp {
         }
 
         if (this.refs.mainBtn) {
-            this.refs.mainBtn.disabled = this.isStartPending || this.isStopPending || arming;
+            this.refs.mainBtn.disabled = this.isStopPending;
         }
 
         this.updateRecordClipButtonsUI();
@@ -2094,8 +2084,7 @@ export class ElementReviewApp {
         if (this.refs.liveFrame) this.refs.liveFrame.src = response.url;
     }
 
-    async pollStatus() {
-        const nextState = await apiGet("/api/status");
+    applyStatusUpdate(nextState) {
         const previousRecordSeconds = this.currentRecordSeconds();
         const prevMode = this.state?.mode;
         const prevArming = this.state?.isArming;
@@ -2134,16 +2123,10 @@ export class ElementReviewApp {
 
         if (this.isStartPending && this.state.isRecording) {
             this.isStartPending = false;
-        }
-
-        if (
-            this.isStartPending &&
-            this.state.mode === "record" &&
-            !this.state.isArming &&
-            !this.state.isRecording
-        ) {
-            this.isStartPending = false;
-            this.clearPendingRecordShortcut();
+            this.lastRecordStartRequestPerf = 0;
+            if (this.currentLiveMode === "demo") {
+                this.resumeDemoLiveAfterStart();
+            }
         }
 
         if (this.isStopPending && !this.state.isRecording) {
@@ -2167,10 +2150,17 @@ export class ElementReviewApp {
         }
     }
 
+    async pollStatus() {
+        const nextState = await apiGet("/api/status");
+        this.applyStatusUpdate(nextState);
+    }
+
     async startRecording() {
         if (this.isStartPending || this.isStopPending) return;
 
         this.clearPendingRecordShortcut();
+        this.lastRecordStartRequestPerf = performance.now();
+        this.setMainButtonVisual("starting");
         this.isStartPending = true;
         this.syncPendingUi();
 
@@ -2186,13 +2176,18 @@ export class ElementReviewApp {
                 } catch {
                     demoStartSeconds = 0;
                 }
+                this.pauseDemoLiveAt(demoStartSeconds);
             }
 
-            await apiPost("/api/record/start", { demoStartSeconds });
+            const nextState = await apiPost("/api/record/start", { demoStartSeconds });
             this.resetProgramTimerState();
-            await this.pollStatus();
+            this.applyStatusUpdate(nextState);
         } catch (err) {
             this.isStartPending = false;
+            this.lastRecordStartRequestPerf = 0;
+            if (this.currentLiveMode === "demo") {
+                this.resumeDemoLiveAfterStart();
+            }
             throw err;
         } finally {
             this.syncPendingUi();
@@ -2215,7 +2210,7 @@ export class ElementReviewApp {
                 this.stopProgramTimer(uiElapsedSeconds);
             }
 
-            await apiPost("/api/record/stop", { uiElapsedSeconds });
+            const nextState = await apiPost("/api/record/stop", { uiElapsedSeconds });
 
             this.localRecStartPerf = null;
             this.replay.stopReverse();
@@ -2224,7 +2219,7 @@ export class ElementReviewApp {
             this.replay.setActiveSpeedIdx(null);
             this.setSelectedClipIdx(null);
 
-            await this.pollStatus();
+            this.applyStatusUpdate(nextState);
 
             // Re-arm the replay startup loop for the final replay-file load
             // triggered here. Entering replay mode already arms this once, but
@@ -2271,8 +2266,8 @@ export class ElementReviewApp {
                 now = Math.max(now, lastClosedClipEnd);
             }
 
-            await apiPost("/api/record/clipToggle", { nowSeconds: now });
-            await this.pollStatus();
+            const nextState = await apiPost("/api/record/clipToggle", { nowSeconds: now });
+            this.applyStatusUpdate(nextState);
         } finally {
             this.isClipPending = false;
             this.pendingOpenClipSlotIndex = null;
@@ -2292,8 +2287,8 @@ export class ElementReviewApp {
         }
 
         try {
-            await apiPost("/api/record/undo");
-            await this.pollStatus();
+            const nextState = await apiPost("/api/record/undo");
+            this.applyStatusUpdate(nextState);
         } finally {
             if (hidOpenClipPlaceholder) {
                 this.suppressOpenClipPlaceholder = false;
@@ -2304,8 +2299,16 @@ export class ElementReviewApp {
 
     async redoClipAction() {
         if (this.isClipPending || this.isStartPending || this.isStopPending) return;
-        await apiPost("/api/record/redo");
-        await this.pollStatus();
+
+        this.isClipPending = true;
+        this.syncPendingUi();
+        try {
+            const nextState = await apiPost("/api/record/redo");
+            this.applyStatusUpdate(nextState);
+        } finally {
+            this.isClipPending = false;
+            this.syncPendingUi();
+        }
     }
 
     async clearSession() {

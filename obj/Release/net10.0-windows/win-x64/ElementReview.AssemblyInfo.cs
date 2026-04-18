@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ElementReview")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c184a7208faf487a061e55e5cde41bf2973f4122")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9916e71379d600aac451128e7005b5164e956280")]
 [assembly: System.Reflection.AssemblyProductAttribute("ElementReview")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ElementReview")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -66,8 +66,40 @@ public sealed class MainForm : Form
         Controls.Add(_webView);
 
         Load += async (_, _) => await InitializeWebViewAsync();
+        HandleCreated += (_, _) => UpdateWindowBoundsForCurrentScreen(applyCurrentState: false);
+        Shown += (_, _) => BeginInvoke(new Action(() => UpdateWindowBoundsForCurrentScreen(applyCurrentState: true)));
+        LocationChanged += (_, _) => UpdateWindowBoundsForCurrentScreen(applyCurrentState: false);
         FormClosing += OnFormClosing;
         ShellCommands.RestartRequested += OnRestartRequested;
+    }
+
+    private void UpdateWindowBoundsForCurrentScreen(bool applyCurrentState)
+    {
+        if (!IsHandleCreated)
+            return;
+
+        var workingArea = Screen.FromHandle(Handle).WorkingArea;
+        if (MaximizedBounds != workingArea)
+            MaximizedBounds = workingArea;
+
+        if (!applyCurrentState || WindowState != FormWindowState.Maximized)
+            return;
+
+        var bounds = Bounds;
+        var alreadyFits =
+            bounds.Left >= workingArea.Left &&
+            bounds.Top >= workingArea.Top &&
+            bounds.Right <= workingArea.Right &&
+            bounds.Bottom <= workingArea.Bottom;
+
+        if (alreadyFits)
+            return;
+
+        // Some Windows/WebView2 setups report a maximized form that still dips
+        // under the taskbar. Re-applying the working area keeps the replay bar visible.
+        WindowState = FormWindowState.Normal;
+        Bounds = workingArea;
+        WindowState = FormWindowState.Maximized;
     }
 
     private async Task InitializeWebViewAsync()

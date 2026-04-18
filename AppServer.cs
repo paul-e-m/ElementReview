@@ -353,14 +353,14 @@ public static class AppServer
             inset: 0;
             display: flex;
             align-items: flex-start;
-            justify-content: center;
+            justify-content: flex-start;
             background: #000;
         }
         video {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            object-position: top center;
+            object-position: top left;
             background: #000;
         }
         .msg {
@@ -430,7 +430,7 @@ public static class AppServer
             width: 100%;
             height: 100%;
             object-fit: contain;
-            object-position: top center;
+            object-position: top left;
             background: #000;
             display: block;
         }

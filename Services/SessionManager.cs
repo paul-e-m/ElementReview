@@ -35,7 +35,6 @@ public class SessionManager
 
     private readonly Stack<ClipAction> _history = new();
     private readonly Stack<ClipAction> _redoHistory = new();
-
     private const double MinClipLenSeconds = 0.05;
     private const double OverlapEps = 0.0005;
 
@@ -331,13 +330,15 @@ public class SessionManager
                 return;
             }
 
+            OpenClipStartSeconds = null;
+
             if (next.AddedClip != null)
             {
-                var alreadyPresent = Clips.Any(c =>
+                var existing = Clips.Any(c =>
                     NearlyEqual(c.StartSeconds, next.AddedClip.StartSeconds) &&
                     NearlyEqual(c.EndSeconds, next.AddedClip.EndSeconds));
 
-                if (!alreadyPresent)
+                if (!existing)
                 {
                     Clips.Add(new ClipSegment
                     {
@@ -346,27 +347,11 @@ public class SessionManager
                         EndSeconds = next.AddedClip.EndSeconds,
                         EverMarkedForReview = next.AddedClip.EverMarkedForReview
                     });
+                    SortAndReindex_NoLock();
                 }
             }
 
-            OpenClipStartSeconds = null;
             _history.Push(next);
-        }
-    }
-
-    public bool CanUndoLastClipAction()
-    {
-        lock (_lock)
-        {
-            return IsRecording && _history.Count > 0;
-        }
-    }
-
-    public bool CanRedoLastClipAction()
-    {
-        lock (_lock)
-        {
-            return IsRecording && _redoHistory.Count > 0;
         }
     }
 

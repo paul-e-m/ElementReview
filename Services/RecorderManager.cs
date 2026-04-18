@@ -36,8 +36,8 @@ public class RecorderManager
 
     private static readonly TimeSpan RecordingStartTimeout = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan InputWarmupCooldown = TimeSpan.FromSeconds(10);
-    private const int RtspAnalyzeDurationUsec = 1_000_000;
-    private const int RtspProbeSizeBytes = 262_144;
+    private const int RtspAnalyzeDurationUsec = 250_000;
+    private const int RtspProbeSizeBytes = 65_536;
 
     public RecorderManager(IWebHostEnvironment env, SessionManager session)
     {

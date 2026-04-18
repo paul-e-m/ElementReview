@@ -542,9 +542,40 @@ export class ReplayController {
         if (!this.app.state || this.app.state.mode !== "replay") return;
 
         const uiTime = this.replayUiSeconds(replayVideo.currentTime || 0);
-        if (this.app.refs.recTime) {
-            this.app.refs.recTime.textContent = this.app.fmtTimeFrames(uiTime);
-        }
+        this.updateReplayProgramTimeIndicator(uiTime);
+    }
+
+    formatProgramPlayTime(seconds) {
+        const rawSec = Number(seconds) || 0;
+        const isNegative = rawSec < 0;
+        const safeSec = Math.abs(rawSec);
+        const totalWhole = Math.floor(safeSec);
+        const minutes = Math.floor(totalWhole / 60);
+        const secondsWhole = totalWhole - minutes * 60;
+
+        let hundredths = Math.floor((safeSec - totalWhole) * 100 + 1e-6);
+        if (hundredths > 99) hundredths = 99;
+
+        const formatted = `${String(minutes).padStart(2, "0")}:${String(secondsWhole).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
+        return isNegative ? `-${formatted}` : formatted;
+    }
+
+    updateReplayProgramTimeIndicator(uiTime = this.replayUiSeconds(this.app.refs.replayVideo?.currentTime || 0)) {
+        const indicator = this.app.refs.replayProgramTimeIndicator;
+        if (!indicator) return;
+
+        const inReplay = this.app.state?.mode === "replay";
+        indicator.classList.toggle("hidden", !inReplay);
+        if (!inReplay) return;
+
+        const total = this.getReplayTotalSeconds();
+        const startOffset = Number(this.app.programTimerStartOffsetSeconds ?? 0);
+        const programTime = Number(uiTime || 0) - (Number.isFinite(startOffset) ? startOffset : 0);
+
+        indicator.textContent = this.formatProgramPlayTime(programTime);
+
+        const fraction = total > 0 ? clamp(Number(uiTime || 0) / total, 0, 1) : 0;
+        indicator.style.left = `${fraction * 100}%`;
     }
 
     updateReviewTimer() {

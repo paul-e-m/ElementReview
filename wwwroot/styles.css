@@ -12,6 +12,7 @@
     --clipStartGreen: #00e676;
     --clipStopRed: #ff1744;
     --undoOrange: #ff9800;
+    --redoBlue: #4f8dff;
     --emptyElementBg: #035F6B;
     /* Shared timeline geometry */
     --timelineBarH: 36px;
@@ -26,7 +27,12 @@
     --timerTextColor: var(--muted);
     --recordPanelW: 168px;
     --recordClipBtnsGap: 8px;
+    --recordClipRailInset: 1px;
+    --recordClipRailRowGap: 2px;
     --sessionInfoH: 34px;
+    --recordActionBarH: 64px;
+    --recordActionRowH: 62px;
+    --recordActionButtonColW: 184px;
     --topInset: 4px;
 }
 
@@ -96,6 +102,35 @@ iframe:focus-visible,
     pointer-events: none;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sessionInfoText {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sessionInfoStatus {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+    color: #fff;
+}
+
+.sessionInfoStatusItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sessionInfoStatusLabel {
+    font: 450 15px/1.1 system-ui, Segoe UI, Arial, sans-serif;
 }
 
 /* Replay mode: flush to top (no top padding) */
@@ -113,10 +148,16 @@ body.replayActive .container {
 
 .leftControls {
     flex: 0 0 auto;
+    width: 240px;
+    display: grid;
+    grid-template-rows: repeat(17, minmax(0, 1fr));
+    gap: 0;
+    min-height: 0;
+}
+
+body.replayActive .leftControls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-height: 0;
 }
 
 .rightContent {
@@ -157,26 +198,9 @@ body.replayActive .container {
     flex-direction: column;
 }
 
-.sidePanel {
-    flex: 0 0 var(--recordPanelW);
-    min-width: var(--recordPanelW);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: stretch;
-}
-
-#recordMode .sidePanel {
-    padding-right: 2px;
-}
-
-#replayMode .sidePanel {
-    padding-right: 2px;
-}
-
 #mainBtnHostRecord,
 #mainBtnHostReplay {
-    padding-top: var(--topInset);
+    width: 100%;
 }
 
 /* Buttons (base) */
@@ -229,13 +253,42 @@ button {
 
 /* Element boxes */
 .clipList {
-    width: 200px;
+    width: 100%;
     display: grid;
-    grid-template-rows: repeat(12, 1fr);
+    grid-template-rows: repeat(15, minmax(0, 1fr));
     gap: 0px;
-    padding-top: var(--topInset);
+    padding-top: 0;
     box-sizing: border-box;
-    height: 0px; /* JS will override */
+    height: 100%;
+    grid-row: 1 / span 15;
+}
+
+body.replayActive .clipList {
+    flex: 1 1 auto;
+    grid-row: auto;
+}
+
+.clipToggleRailHost {
+    grid-row: 16 / span 2;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: max-content max-content;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    column-gap: var(--recordClipBtnsGap);
+    row-gap: var(--recordClipRailRowGap);
+    padding: var(--recordClipRailInset);
+    justify-content: start;
+    align-items: stretch;
+}
+
+.clipToggleRailHost .clipActionBtn {
+    width: auto;
+    height: 100%;
+    min-height: 0;
+    max-width: 100%;
+    justify-self: start;
+    align-self: stretch;
 }
 
 .recordSettingsHost {
@@ -259,8 +312,8 @@ button {
     height: 100%;
     min-height: 0;
     border-radius: 4px;
-    border: 1px solid rgba(0,0,0,0.35);
-    background: linear-gradient(180deg, #3555ad 0%, #274694 100%);
+    border: 1px solid rgba(0,0,0,0.22);
+    background: #3557a8;
     color: #F0F0F0;
     font-weight: 900;
     font-size: 13px;
@@ -272,9 +325,8 @@ button {
     gap: 6px;
     overflow: visible;
     position: relative;
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.14),
-        0 1px 2px rgba(0,0,0,0.16);
+    z-index: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
     transform: translateY(0);
     transition:
         transform 120ms ease,
@@ -284,13 +336,19 @@ button {
 }
 
 .clipBtn.isLooping {
-    background: linear-gradient(180deg, #3150a3 0%, #244189 100%);
-    border-color: rgba(255,255,255,0.18);
+    background: #2d4d99;
+    border-color: rgba(255,255,255,0.14);
     box-shadow:
-        inset 0 1px 2px rgba(0,0,0,0.18),
-        inset 0 1px 0 rgba(255,255,255,0.08),
-        0 1px 1px rgba(0,0,0,0.12);
+        inset 0 1px 1px rgba(0,0,0,0.16),
+        inset 0 1px 0 rgba(255,255,255,0.06);
     transform: translateY(2px);
+}
+
+.clipBtn.hasHalfwayMarkerAfter,
+.clipBtn.hasHalfwayMarkerBefore,
+.clipSlotEmpty.hasHalfwayMarkerAfter,
+.clipSlotEmpty.hasHalfwayMarkerBefore {
+    z-index: 20;
 }
 
 .clipBtn.hasHalfwayMarkerAfter::after,
@@ -303,7 +361,7 @@ button {
     height: 2px;
     background: #ffd640;
     border-radius: 0;
-    z-index: 5;
+    z-index: 21;
 }
 
 .clipBtn.hasHalfwayMarkerBefore::before,
@@ -316,7 +374,7 @@ button {
     height: 2px;
     background: #ffd640;
     border-radius: 0;
-    z-index: 5;
+    z-index: 21;
 }
 
 /* Left number */
@@ -366,9 +424,11 @@ button {
     height: 100%;
     min-height: 0;
     border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: linear-gradient(180deg, #415899 0%, #344a85 100%);
+    border: 1px solid rgba(255,255,255,0.1);
+    background: #52679f;
+    opacity: 0.58;
     position: relative;
+    z-index: 0;
     overflow: visible;
 }
 
@@ -379,6 +439,10 @@ button {
     text-align: left;
     padding: 6px 8px 6px 4px;
     gap: 6px;
+    border-color: rgba(0,0,0,0.22);
+    background: #3557a8;
+    opacity: 1;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 /* Video boxes */
@@ -387,7 +451,7 @@ button {
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
-    margin-top: var(--topInset);
+    margin-top: 0;
     border-radius: 0;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,.08);
@@ -406,14 +470,119 @@ button {
             position: absolute;
             left: 0;
             right: 0;
-            top: var(--sessionInfoH);
+            top: calc(var(--sessionInfoH) + var(--recordActionBarH));
             bottom: 0;
             width: 100%;
-            height: calc(100% - var(--sessionInfoH));
+            height: calc(100% - var(--sessionInfoH) - var(--recordActionBarH));
             border: 0;
             background: black;
             display: block;
         }
+
+.recordActionBar {
+    position: absolute;
+    top: var(--sessionInfoH);
+    left: 0;
+    right: 0;
+    height: var(--recordActionBarH);
+    z-index: 24;
+    padding: 1px;
+    box-sizing: border-box;
+    background: black;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.recordActionRow {
+    width: 100%;
+    height: var(--recordActionRowH);
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns:
+        var(--recordActionButtonColW)
+        minmax(0, 0.95fr)
+        minmax(0, 0.95fr)
+        minmax(0, 0.95fr);
+    column-gap: 12px;
+    align-items: stretch;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.replayActionRow {
+    width: 100%;
+    height: var(--recordActionRowH);
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns:
+        var(--recordActionButtonColW)
+        minmax(0, 0.95fr)
+        minmax(0, 0.95fr)
+        minmax(0, 0.95fr);
+    column-gap: 12px;
+    align-items: stretch;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.recordActionCol {
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    pointer-events: auto;
+}
+
+.recordActionColMain,
+.recordActionColHistory {
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.replayActionColMain {
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.recordActionColTimer {
+    align-items: stretch;
+    justify-content: center;
+}
+
+#mainBtnHostRecord,
+#mainBtnHostReplay {
+    width: var(--recordActionButtonColW);
+    height: var(--recordActionRowH);
+    margin: 0;
+    padding: 0;
+}
+
+#recordMode .recordActionColMain .mainBtn.btnImg,
+#replayMode .replayActionColMain .mainBtn.btnImg {
+    display: block !important;
+    width: var(--recordActionButtonColW) !important;
+    min-width: var(--recordActionButtonColW) !important;
+    max-width: var(--recordActionButtonColW) !important;
+    height: var(--recordActionRowH) !important;
+    min-height: var(--recordActionRowH) !important;
+    max-height: var(--recordActionRowH) !important;
+    aspect-ratio: auto !important;
+    background-size: contain !important;
+    background-position: center !important;
+}
+
+#recordMode .recordActionColMain .mainBtn.btnImg,
+#replayMode .replayActionColMain .mainBtn.btnImg {
+    background-position: left center !important;
+}
+
+#recordMode .videoCol,
+#recordMode .liveWrap,
+#recordMode .videoStage {
+    align-items: flex-start;
+    justify-content: flex-start;
+}
 
 .replayVideo {
     width: 100%;
@@ -439,9 +608,9 @@ button {
     .replayVideoWrap > video.replayVideo {
         position: absolute;
         left: 0;
-        top: var(--sessionInfoH);
+        top: calc(var(--sessionInfoH) + var(--recordActionBarH));
         width: 100%;
-        height: calc(100% - var(--sessionInfoH));
+        height: calc(100% - var(--sessionInfoH) - var(--recordActionBarH));
         border: 0;
         border-radius: 0;
         background: black;
@@ -473,18 +642,6 @@ button {
     gap: 0px;
 }
 
-/* Timer (shared; JS moves it into the right-side host for the active mode) */
-.timerRow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 6px;
-    margin-bottom: 6px;
-    font-size: 18px;
-    flex: 0 0 auto;
-}
-
 .recLamp {
     font-size: 18px;
     color: #555;
@@ -494,73 +651,45 @@ button {
         color: #ff2f43;
     }
 
-.timerStack {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.05;
-}
-
-.recTime {
-    font-variant-numeric: tabular-nums;
-    color: var(--timerTextColor);
-    white-space: nowrap;
-}
-
-/* Right-side timer host (under main button) */
-.timerHostSide {
+.recordTimerCard {
     width: 100%;
+    min-height: 31px;
+    padding: 6px 9px;
     display: flex;
+    align-items: center;
     justify-content: center;
-    align-items: center;
-}
-
-#timerHostSideReplay .timerRow {
-    width: 100%;
-    font-size: 22px;
-    margin: 0;
-}
-
-#recordTimersTable.recordTimersTable {
-    width: max-content;
-    margin: 0 auto;
-    border-collapse: collapse;
+    gap: 6px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    font-family: system-ui, Segoe UI, Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.05;
+    font-weight: 400;
     font-variant-numeric: tabular-nums;
     color: var(--timerTextColor);
-}
-
-.recordTimersTable td {
-    padding: 0;
     white-space: nowrap;
 }
 
-.timerPrefixCell {
-    min-width: 5ch;
-    padding-right: 6px !important;
-    text-align: right;
+.recordTimerLabel,
+.recordTimerValue {
+    font: inherit;
+    color: inherit;
 }
 
-.timerValueCell {
-    text-align: left;
+.replayCountCard {
+    justify-content: space-between;
 }
 
-.timerLampCell {
-    width: 14px;
-    padding-left: 6px !important;
-    text-align: left;
+.replayReviewCard {
+    justify-content: center;
 }
 
-#recordTimerValue,
-#programTimerDisplay {
-    font-size: 18px;
-    line-height: 1.05;
-}
-
-#programTimerDisplay.stateArmed {
+.recordTimerCard.stateArmed {
     color: #ffd640;
 }
 
-#programTimerDisplay.stateRunning {
+.recordTimerCard.stateRunning {
     color: #2ecb70;
 }
 
@@ -599,6 +728,22 @@ button {
         width: 100%;
         height: 100%;
     }
+
+.replayProgramTimeIndicator {
+    position: absolute;
+    top: -26px;
+    transform: translateX(-50%);
+    z-index: 6;
+    padding: 3px 8px;
+    background: #b7b7b7;
+    color: #000;
+    border: 1px solid #666;
+    border-radius: 0;
+    font: 400 14px/1.1 "Segoe UI", Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+}
 
 .scrubRange {
     position: absolute;
@@ -680,13 +825,33 @@ button {
 }
 
 .redoBtn {
-    background: var(--solidBlue);
+    background: var(--redoBlue);
     color: #fff;
 }
 
 #clipToggleBtn {
-    width: 100%;
-    height: auto;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+}
+
+#undoClipBtn {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+#redoClipBtn {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.clipToggleRailHost .clipActionBtn.btnImg {
+    width: auto !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    max-width: none !important;
+    aspect-ratio: var(--button-ratio, 1) !important;
+    background-size: contain !important;
 }
 
 /* Bottom-pinned clip stack on right panel (record mode) */
@@ -1020,6 +1185,16 @@ button {
     aspect-ratio: var(--button-ratio, 2.65);
 }
 
+.mainBtn.btnImg:disabled {
+    opacity: 1 !important;
+}
+
+.mainBtn.btnImg.btnStarting {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    filter: saturate(0.8) brightness(0.9);
+}
+
 #clipToggleBtn.btnImg {
     width: 100% !important;
     height: auto !important;
@@ -1027,28 +1202,15 @@ button {
 }
 
 .recordClipHistoryRow .clipActionBtn.undoBtn.btnImg,
-.recordClipHistoryRow .clipActionBtn.redoBtn.btnImg {
+.recordActionColHistory .clipActionBtn.undoBtn.btnImg {
     width: auto !important;
     height: auto !important;
-    aspect-ratio: var(--button-ratio, 1.95);
+    aspect-ratio: var(--button-ratio, 2.15);
 }
-
-/* Clip timer: center it horizontally with the START/STOP CLIP button */
-#clipTimerRow {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 6px;
-}
-
-    #clipTimerRow .recTime {
-        text-align: center;
-    }
 
 .reviewTimer {
-    width: 100%;
-    margin-top: auto;
+    width: auto;
+    margin-top: 0;
     text-align: center;
     font-family: "Segoe UI", Arial, sans-serif;
     font-size: 18px;
@@ -1062,66 +1224,6 @@ button {
     border-radius: 0;
     padding: 8px 10px;
     white-space: nowrap;
-}
-
-.replayStatusPanel {
-    width: 100%;
-    margin-top: 18px;
-    padding: 10px 12px;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 0;
-    display: grid;
-    grid-template-columns: 1fr 120px;
-    column-gap: 10px;
-    row-gap: 8px;
-}
-
-.replayCountsPanel {
-    margin-top: 12px;
-}
-
-.replayStatusRow {
-    display: contents;
-}
-
-.replayStatusLabel,
-.replayStatusValue,
-.replayPingText {
-    font-family: system-ui, Segoe UI, Arial, sans-serif;
-    font-size: 15px;
-    line-height: 1.05;
-    letter-spacing: 0;
-    font-weight: 400;
-}
-
-.replayStatusLabel {
-    color: var(--timerTextColor);
-    grid-column: 1;
-    align-self: center;
-}
-
-.replayStatusValue {
-    display: inline-block;
-    width: 120px;
-    font-variant-numeric: tabular-nums;
-    color: var(--timerTealLight);
-    text-align: left;
-    grid-column: 2;
-    justify-self: start;
-    align-self: center;
-}
-
-.replayPingStatus {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    min-width: 120px;
-    width: 120px;
-    grid-column: 2;
-    justify-self: start;
-    align-self: center;
 }
 
 .replayPingDot {
@@ -1154,62 +1256,18 @@ button {
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);
 }
 
-.replayPingText {
-    display: inline-block;
-    width: 92px;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    text-align: left;
-}
-
-.replayPingText.green {
-    color: #75dd92;
-}
-
-.replayPingText.yellow {
-    color: #f0d167;
-}
-
-.replayPingText.red {
-    color: #ff9186;
-}
-
-.replayPingText.idle {
-    color: var(--muted);
-}
-
-.replayPingText.disabled {
-    color: transparent;
-}
-
 .shortcutHint {
     width: 100%;
     text-align: center;
     font: 400 10px/1.2 "Segoe UI", Arial, sans-serif;
     color: rgba(231, 238, 252, 0.72);
     letter-spacing: 0.15px;
+    display: none;
 }
 
 .shortcutHintBottom {
     margin-top: 8px;
     padding-bottom: 2px;
-}
-
-/* Replay controls bar: video timer beside REVIEW TIME */
-.replayVideoTimerHost {
-    display: flex;
-    align-items: center;
-}
-
-/* Override the shared timer styling when it's in the replay controls bar */
-#replayVideoTimerHost .timerRow {
-    margin: 0;
-    gap: 0; /* lamp is hidden in replay anyway */
-    justify-content: flex-start;
-}
-
-#replayVideoTimerHost .recTime {
-    font-size: 22px;
 }
 
 /* --- Edit mode toggle (Replay edit buttons) --- */

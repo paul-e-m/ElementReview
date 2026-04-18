@@ -24,7 +24,7 @@ The current app supports:
 - live preview from RTSP through MediaMTX
 - demo mode using `data/demovideo.mp4` or `%LocalAppData%\ElementReview\data\demovideo.mp4`
 - local recording to encoded and copied MP4 outputs
-- record mode clip marking with undo and redo before recording ends
+- record mode clip marking with undo before recording ends
 - automatic transition from record mode to replay mode
 - replay playback with loop controls and keyboard shortcuts
 - replay clip editing: trim in, trim out, split, insert, delete

@@ -189,3 +189,11 @@ P:\pCloud Sync\Data Specialist\Current ElementReview-dev\obj\Debug\net10.0-windo
 P:\pCloud Sync\Data Specialist\Current ElementReview-dev\obj\Debug\net10.0-windows\ElementReview.genruntimeconfig.cache
 P:\pCloud Sync\Data Specialist\Current ElementReview-dev\obj\Debug\net10.0-windows\ref\ElementReview.dll
 P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\mediamtx-reader.js
+P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\end_clip_en_old.png
+P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\redo_en_old.png
+P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\start_clip_en_old.png
+P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\undo_en_old.png
+P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\end_clip_en_old2.png
+P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\redo_en_old2.png
+P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\start_clip_en_old2.png
+P:\pCloud Sync\Data Specialist\Current ElementReview-dev\bin\Debug\net10.0-windows\wwwroot\img\i18-buttons\undo_en_old2.png
