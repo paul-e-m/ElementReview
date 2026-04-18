@@ -1,7 +1,7 @@
 import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js";
 import { TimelineRenderer } from "./app-timeline.js";
 import { ReplayController } from "./app-replay.js?v=20260417-replayindicator2";
-import { ShortcutKeysController } from "./app-shortcut-keys.js";
+import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260418-shortcuts1";
 
 // ElementReviewApp is the main browser-side coordinator for index.html.
 // It owns the shared application state fetched from the backend, wires that
@@ -272,7 +272,7 @@ export class ElementReviewApp {
         const totalWhole = Math.max(0, Math.floor(Number(seconds) || 0));
         const minutes = Math.floor(totalWhole / 60);
         const secondsWhole = totalWhole - minutes * 60;
-        return `HT: ${minutes}:${String(secondsWhole).padStart(2, "0")}`;
+        return `${this.t("halfwayTimePrefix")} ${minutes}:${String(secondsWhole).padStart(2, "0")}`;
     }
 
     updateHalfwayTimeValue() {

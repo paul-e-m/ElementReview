@@ -124,6 +124,24 @@ export class ShortcutKeysController {
             return;
         }
 
+        if (this.isUndoShortcut(event)) {
+            if (this.app.state?.mode === "record" && this.app.state?.isRecording) {
+                event.preventDefault();
+                if (event.repeat) return;
+                this.app.undoClipAction().catch(console.error);
+            }
+            return;
+        }
+
+        if (this.isRedoShortcut(event)) {
+            if (this.app.state?.mode === "record" && this.app.state?.isRecording) {
+                event.preventDefault();
+                if (event.repeat) return;
+                this.app.redoClipAction().catch(console.error);
+            }
+            return;
+        }
+
         if (event.code === "Backspace" || event.key === "Backspace") {
             if (this.app.state?.mode === "record" && this.app.state?.isRecording) {
                 event.preventDefault();
@@ -209,6 +227,14 @@ export class ShortcutKeysController {
         return event.code === "Space" || event.key === " " || event.key === "Spacebar";
     }
 
+    isUndoShortcut(event) {
+        return (event.ctrlKey || event.metaKey) && !event.altKey && (event.key === "z" || event.key === "Z");
+    }
+
+    isRedoShortcut(event) {
+        return (event.ctrlKey || event.metaKey) && !event.altKey && (event.key === "y" || event.key === "Y");
+    }
+
     jumpToHalfway() {
         const halfwaySeconds = Number(this.app.getHalfwaySeconds?.() ?? null);
         const programStart = Number(this.app.programTimerStartOffsetSeconds ?? null);
@@ -274,6 +300,8 @@ export class ShortcutKeysController {
             { key: this.app.t("shortcutKeyS"), action: this.app.t(halfwayEnabled ? "shortcutActionS" : "shortcutActionSNoHalfway") },
             { key: this.app.t("shortcutKeySpace"), action: this.app.t("shortcutActionRecordSpace") },
             { key: this.app.t("shortcutKeyBackspace"), action: this.app.t("shortcutActionBackspace") },
+            { key: this.app.t("shortcutKeyCtrlZ"), action: this.app.t("shortcutActionCtrlZ") },
+            { key: this.app.t("shortcutKeyCtrlY"), action: this.app.t("shortcutActionCtrlY") },
             ...shared,
         ];
         if (halfwayEnabled) {

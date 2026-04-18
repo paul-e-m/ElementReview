@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Element Review</title>
-    <link rel="stylesheet" href="styles.css?v=20260418-optionalht1" />
+    <link rel="stylesheet" href="styles.css?v=20260418-cliptimerfix1" />
 </head>
 <body>
 
@@ -71,29 +71,30 @@
                                                 </div>
                                             </div>
 
-                                            <div class="recordActionCol recordActionColTimer">
-                                                <div id="recordTimerCard" class="recordTimerCard" aria-hidden="true">
-                                                    <span id="recordTimerPrefix" class="recordTimerLabel">REC:</span>
-                                                    <span id="recordTimerValue" class="recordTimerValue">00:00:00</span>
-                                                    <span class="recLamp" id="recLamp">&#9679;</span>
+                                            <div class="recordActionCluster">
+                                                <div class="recordActionCol recordActionColTimer">
+                                                    <div id="recordTimerCard" class="recordTimerCard" aria-hidden="true">
+                                                        <span id="recordTimerPrefix" class="recordTimerLabel">REC:</span>
+                                                        <span id="recordTimerValue" class="recordTimerValue">00:00:00</span>
+                                                        <span class="recLamp" id="recLamp">&#9679;</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="recordActionCol recordActionColTimer">
+                                                    <div id="programTimerCard" class="recordTimerCard" aria-hidden="true">
+                                                        <span id="programTimerPrefix" class="recordTimerLabel">PROG:</span>
+                                                        <span id="programTimerDisplay" class="recordTimerValue">00:00.00</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="recordActionCol recordActionColHalfway">
+                                                    <label id="halfwayToggleWrap" class="halfwayToggleWrap" for="halfwayToggle">
+                                                        <span id="halfwayToggleLabel" class="halfwayToggleLabel">HALFWAY:</span>
+                                                        <input id="halfwayToggle" class="halfwayToggleInput" type="checkbox" checked />
+                                                        <span id="halfwayTimeValue" class="halfwayTimeValue hidden" aria-hidden="true"></span>
+                                                    </label>
                                                 </div>
                                             </div>
-
-                                            <div class="recordActionCol recordActionColTimer">
-                                                <div id="programTimerCard" class="recordTimerCard" aria-hidden="true">
-                                                    <span id="programTimerPrefix" class="recordTimerLabel">PROG:</span>
-                                                    <span id="programTimerDisplay" class="recordTimerValue">00:00.00</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="recordActionCol recordActionColHalfway">
-                                                <label id="halfwayToggleWrap" class="halfwayToggleWrap" for="halfwayToggle">
-                                                    <span id="halfwayToggleLabel" class="halfwayToggleLabel">HALFWAY:</span>
-                                                    <input id="halfwayToggle" class="halfwayToggleInput" type="checkbox" checked />
-                                                    <span id="halfwayTimeValue" class="halfwayTimeValue hidden" aria-hidden="true"></span>
-                                                </label>
-                                            </div>
-
                                         </div>
                                     </div>
 
@@ -265,7 +266,7 @@
         </div>
     </div>
 
-    <script src="index-i18n.js?v=20260417-statusdots1"></script>
-    <script type="module" src="app.js?v=20260418-optionalht1"></script>
+    <script src="index-i18n.js?v=20260418-shortcuts1"></script>
+    <script type="module" src="app.js?v=20260418-shortcuts1"></script>
 </body>
 </html>
