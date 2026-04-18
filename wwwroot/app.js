@@ -1014,7 +1014,7 @@ export class ElementReviewApp {
         if (!leftParts.length && !competitor) return "";
 
         const leftText = leftParts.join(" / ");
-        if (leftText && competitor) return `${leftText} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ${competitor}`;
+        if (leftText && competitor) return `${leftText} - ${competitor}`;
         return leftText || competitor;
     }
 
