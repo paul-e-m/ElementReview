@@ -107,7 +107,6 @@ export class ElementReviewApp {
         this.isStopPending = false;
         this.isClipPending = false;
         this.lastRecordStartRequestPerf = 0;
-        this.pendingDemoResume = null;
         this.pendingOpenClipSlotIndex = null;
         this.suppressOpenClipPlaceholder = false;
 
@@ -251,40 +250,6 @@ export class ElementReviewApp {
             return this.refs.liveFrame?.contentWindow?.document?.getElementById("demoVideo") ?? null;
         } catch {
             return null;
-        }
-    }
-
-    pauseDemoLiveAt(seconds) {
-        const video = this.getDemoLiveVideoElement();
-        if (!video) return;
-
-        const anchor = Math.max(0, Number(seconds) || 0);
-
-        try {
-            video.pause();
-            video.currentTime = anchor;
-            this.pendingDemoResume = anchor;
-        } catch {
-            this.pendingDemoResume = null;
-        }
-    }
-
-    resumeDemoLiveAfterStart() {
-        const video = this.getDemoLiveVideoElement();
-        if (!video) {
-            this.pendingDemoResume = null;
-            return;
-        }
-
-        try {
-            if (this.pendingDemoResume != null) {
-                video.currentTime = Math.max(0, Number(this.pendingDemoResume) || 0);
-            }
-            video.play().catch(() => { });
-        } catch {
-            // ignore
-        } finally {
-            this.pendingDemoResume = null;
         }
     }
 
@@ -1049,7 +1014,7 @@ export class ElementReviewApp {
         if (!leftParts.length && !competitor) return "";
 
         const leftText = leftParts.join(" / ");
-        if (leftText && competitor) return `${leftText} — ${competitor}`;
+        if (leftText && competitor) return `${leftText} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ${competitor}`;
         return leftText || competitor;
     }
 
@@ -1887,7 +1852,12 @@ export class ElementReviewApp {
             button.dataset.clipIndex = String(index);
             button.setAttribute("aria-pressed", isLooping ? "true" : "false");
             this.addHalfwayMarkerClasses(button, index, halfwayMarkerAnchorIndex);
-            this.appendClipListEntryContent(button, index, code || "[ element ]");
+            this.appendClipListEntryContent(
+                button,
+                index,
+                code || "[ element ]",
+                this.formatClipListTimeRange(start, end)
+            );
             return button;
         }
 
@@ -1914,7 +1884,30 @@ export class ElementReviewApp {
         return clip ? this.clipIdx(clip) : null;
     }
 
-    appendClipListEntryContent(container, index, text) {
+    formatClipListTimecode(seconds) {
+        const safeSec = Math.max(0, Number(seconds) || 0);
+        const totalWhole = Math.floor(safeSec);
+        const minutes = Math.floor(totalWhole / 60);
+        const secondsWhole = totalWhole - minutes * 60;
+
+        let hundredths = Math.floor((safeSec - totalWhole) * 100 + 1e-6);
+        if (hundredths > 99) hundredths = 99;
+
+        return `${String(minutes).padStart(2, "0")}:${String(secondsWhole).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
+    }
+
+    formatClipListTimeRange(startSeconds, endSeconds) {
+        const start = Number(startSeconds) || 0;
+        const end = Number(endSeconds) || 0;
+        const offset = Number.isFinite(Number(this.programTimerStartOffsetSeconds))
+            ? Number(this.programTimerStartOffsetSeconds)
+            : 0;
+        const startRelative = Math.max(0, start - offset);
+        const endRelative = Math.max(startRelative, end - offset);
+        return `${this.formatClipListTimecode(startRelative)} - ${this.formatClipListTimecode(endRelative)}`;
+    }
+
+    appendClipListEntryContent(container, index, text, timeRange = "") {
         const left = document.createElement("div");
         left.className = "clipBtnNum";
         left.textContent = String(index);
@@ -1926,13 +1919,18 @@ export class ElementReviewApp {
         top.className = "clipBtnCode";
         top.textContent = text;
 
+        const bottom = document.createElement("div");
+        bottom.className = "clipBtnTimes";
+        bottom.textContent = timeRange;
+
         right.appendChild(top);
+        if (timeRange) right.appendChild(bottom);
         container.appendChild(left);
         container.appendChild(right);
     }
 
     updateRecordClipButtonsUI() {
-        const { clipToggleBtn, clipToggleRailHost, undoClipBtn, redoClipBtn } = this.refs;
+        const { clipToggleBtn, clipToggleRailHost, clipTimerCard, undoClipBtn, redoClipBtn } = this.refs;
         if (!clipToggleBtn || !undoClipBtn || !redoClipBtn) return;
 
         const inRecord = this.state?.mode === "record";
@@ -1952,6 +1950,7 @@ export class ElementReviewApp {
 
         if (this.isClipPending) {
             clipToggleBtn.disabled = true;
+            clipTimerCard?.classList.add("isDisabled");
             undoClipBtn.disabled = true;
             redoClipBtn.disabled = true;
             clipToggleBtn.textContent = open ? this.t("clipStopping") : this.t("clipStarting");
@@ -1967,6 +1966,7 @@ export class ElementReviewApp {
         }
 
         clipToggleBtn.disabled = !canStartClip;
+        clipTimerCard?.classList.toggle("isDisabled", !canStartClip);
         undoClipBtn.disabled = !canUndo;
         redoClipBtn.disabled = !canRedo;
 
@@ -2124,9 +2124,6 @@ export class ElementReviewApp {
         if (this.isStartPending && this.state.isRecording) {
             this.isStartPending = false;
             this.lastRecordStartRequestPerf = 0;
-            if (this.currentLiveMode === "demo") {
-                this.resumeDemoLiveAfterStart();
-            }
         }
 
         if (this.isStopPending && !this.state.isRecording) {
@@ -2176,7 +2173,6 @@ export class ElementReviewApp {
                 } catch {
                     demoStartSeconds = 0;
                 }
-                this.pauseDemoLiveAt(demoStartSeconds);
             }
 
             const nextState = await apiPost("/api/record/start", { demoStartSeconds });
@@ -2185,9 +2181,6 @@ export class ElementReviewApp {
         } catch (err) {
             this.isStartPending = false;
             this.lastRecordStartRequestPerf = 0;
-            if (this.currentLiveMode === "demo") {
-                this.resumeDemoLiveAfterStart();
-            }
             throw err;
         } finally {
             this.syncPendingUi();

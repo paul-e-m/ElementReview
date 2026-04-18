@@ -396,7 +396,10 @@ body.replayActive .clipList {
 /* Right info area */
 .clipBtnInfo {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2px;
     min-width: 0;
     flex: 1 1 auto;
 }
@@ -406,12 +409,21 @@ body.replayActive .clipList {
     font-weight: 400;
     font-size: 15px;
     line-height: 1.1;
-    white-space: normal;
+    white-space: nowrap;
     overflow: hidden;
-    overflow-wrap: anywhere;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.clipBtnTimes {
+    font-size: 9px;
+    line-height: 1.05;
+    font-weight: 400;
+    color: rgba(240,240,240,0.88);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .clipBtn.isReview .clipBtnCode {
@@ -859,15 +871,23 @@ body.replayActive .clipList {
     grid-row: 1 / span 2;
     justify-self: center;
     align-self: start;
-    margin-top: 10px;
+    margin-top: 5px;
     width: auto;
     min-height: 0;
-    padding: 4px 8px;
+    padding: 0;
     gap: 4px;
     font-size: 11px;
     line-height: 1;
+    color: #fff;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
     z-index: 2;
     pointer-events: none;
+}
+
+.clipTimerOverlay.isDisabled {
+    opacity: 0.45;
 }
 
 .clipTimerOverlay[aria-hidden="true"] {
