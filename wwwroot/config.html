@@ -54,7 +54,7 @@
             padding: 0 16px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
             gap: 18px;
         }
 
@@ -79,36 +79,6 @@
             opacity: 0.95;
             white-space: nowrap;
         }
-
-        .siteNav {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            font-size: 14px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .languageSelect {
-            min-height: 34px;
-            padding: 0 10px;
-            border: 1px solid #c9c9c9;
-            border-radius: 4px;
-            background: #f5f5f5;
-            color: #1d1d1f;
-            font: inherit;
-            font-weight: 700;
-        }
-
-            .languageSelect:focus {
-                outline: 0;
-                box-shadow: 0 0 0 3px rgba(201,201,201,0.35);
-            }
-
-            .languageSelect option {
-                color: #1d1d1f;
-                background: #ffffff;
-            }
 
         .page {
             margin: 0;
@@ -480,9 +450,6 @@
                 padding-bottom: 12px;
             }
 
-            .siteNav {
-                font-size: 13px;
-            }
         }
 
         @media (max-width: 760px) {
@@ -536,12 +503,6 @@
                 <div class="version">( 0.1.0 alpha )</div>
             </div>
 
-            <div class="siteNav">
-                <select id="languageSelect" class="languageSelect" aria-label="Language">
-                    <option value="en">English</option>
-                    <option value="fr">Français</option>
-                </select>
-            </div>
         </div>
     </header>
 
@@ -797,7 +758,6 @@
         const saveBtn = form.querySelector(".saveBtn");
         const restartBtn = document.getElementById("restartBtn");
         const closeBtn = document.getElementById("closeBtn");
-        const languageSelect = document.getElementById("languageSelect");
         const cssLinkInput = document.getElementById("CSSLink");
 
         const demoModeInput = document.getElementById("DemoMode");
@@ -857,15 +817,6 @@
         function applyTranslations() {
             document.documentElement.lang = currentLanguage;
             document.title = t("pageTitle");
-
-            languageSelect.value = currentLanguage;
-            languageSelect.setAttribute("aria-label", t("languageSelectorAria"));
-
-            const englishOption = languageSelect.querySelector('option[value="en"]');
-            const frenchOption = languageSelect.querySelector('option[value="fr"]');
-
-            if (englishOption) englishOption.textContent = t("languageEnglish");
-            if (frenchOption) frenchOption.textContent = t("languageFrench");
 
             if (cssLinkInput) {
                 const noneOption = cssLinkInput.querySelector('option[value="None"]');
@@ -1430,24 +1381,6 @@
             pollAllHostPings();
         }
 
-        async function saveLanguagePreference() {
-            const response = await fetch("/api/appconfig", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(removeOrphanedSettings({
-                    ...serverConfig,
-                    Language: currentLanguage
-                }))
-            });
-
-            if (!response.ok) {
-                throw new Error(await response.text());
-            }
-
-            const saved = await response.json();
-            serverConfig = { ...saved };
-        }
-
         async function restartApp() {
             restartBtn.disabled = true;
             saveBtn.disabled = true;
@@ -1495,23 +1428,6 @@
             updateCssIntegrationState();
             pollDatabaseHostPing();
             pollCssServerHostPing();
-        });
-
-        languageSelect.addEventListener("change", async () => {
-            const previousLanguage = currentLanguage;
-
-            currentLanguage = normalizeLanguage(languageSelect.value);
-            applyTranslations();
-            updateVideoSourceState();
-
-            try {
-                await saveLanguagePreference();
-            } catch (err) {
-                currentLanguage = previousLanguage;
-                applyTranslations();
-                updateVideoSourceState();
-                setStatus("saveFailed", "err", true, err.message || String(err));
-            }
         });
 
         savedVideosFolderInput.addEventListener("blur", () => {

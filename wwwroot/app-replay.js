@@ -340,23 +340,38 @@ export class ReplayController {
 
     }
 
-    // Wrap the replay video once so zoom/pan behavior can be applied cleanly.
+    // The replay video now always lives in a fixed wrapper declared in
+    // index.html, so this method just binds the zoom behavior once.
     ensureReplayVideoWrap() {
         const { replayVideo } = this.app.refs;
         if (!replayVideo) return null;
         if (this.replayVideoWrap) return this.replayVideoWrap;
+
+        const isPointInsideRenderedVideo = (clientX, clientY) => {
+            const videoRect = replayVideo.getBoundingClientRect();
+            const rendered = this.getRenderedVideoRect();
+            if (!rendered) return false;
+
+            const left = videoRect.left + rendered.left;
+            const top = videoRect.top + rendered.top;
+            const right = left + rendered.width;
+            const bottom = top + rendered.height;
+
+            return clientX >= left && clientX <= right && clientY >= top && clientY <= bottom;
+        };
 
         const attachZoomHandler = (wrap) => {
             if (!wrap || wrap.dataset.zoomBound === "1") return;
 
             wrap.addEventListener("dblclick", (event) => {
                 if (this.app.state?.mode !== "replay") return;
+                if (!isPointInsideRenderedVideo(event.clientX, event.clientY)) return;
 
                 // Double-click zooms into the clicked point rather than the
                 // center so the operator can quickly inspect a specific area.
-                const rect = wrap.getBoundingClientRect();
-                const cx = event.clientX - rect.left;
-                const cy = event.clientY - rect.top;
+                const videoRect = replayVideo.getBoundingClientRect();
+                const cx = event.clientX - videoRect.left;
+                const cy = event.clientY - videoRect.top;
 
                 if (this.zoomState.scale <= 1.0001) {
                     const targetScale = 2.5;
@@ -372,41 +387,46 @@ export class ReplayController {
             wrap.dataset.zoomBound = "1";
         };
 
-        const existingWrap = document.getElementById("replayVideoWrap");
-        if (existingWrap) {
-            this.replayVideoWrap = existingWrap;
-            attachZoomHandler(existingWrap);
-            this.applyZoom();
-            return this.replayVideoWrap;
-        }
-
-        if (!replayVideo.parentNode) return null;
-
-        const wrap = document.createElement("div");
-        wrap.id = "replayVideoWrap";
-        wrap.className = "replayVideoWrap";
-
-        replayVideo.parentNode.insertBefore(wrap, replayVideo);
-        wrap.appendChild(replayVideo);
-
-        replayVideo.classList.add("replayVideo");
-        replayVideo.controls = false;
-        replayVideo.removeAttribute("controls");
-
-        attachZoomHandler(wrap);
+        const wrap = document.getElementById("replayVideoWrap");
+        if (!wrap) return null;
 
         this.replayVideoWrap = wrap;
+        attachZoomHandler(wrap);
         this.applyZoom();
         return wrap;
+    }
+
+    getRenderedVideoRect() {
+        const { replayVideo } = this.app.refs;
+        if (!replayVideo) return null;
+
+        const boxWidth = replayVideo.clientWidth || 0;
+        const boxHeight = replayVideo.clientHeight || 0;
+        const videoWidth = replayVideo.videoWidth || 0;
+        const videoHeight = replayVideo.videoHeight || 0;
+        if (boxWidth <= 0 || boxHeight <= 0 || videoWidth <= 0 || videoHeight <= 0) return null;
+
+        const scale = Math.min(boxWidth / videoWidth, boxHeight / videoHeight);
+        const width = videoWidth * scale;
+        const height = videoHeight * scale;
+
+        return {
+            left: 0,
+            top: 0,
+            width,
+            height,
+        };
     }
 
     // Keep the transformed video inside its visible container when zoomed.
     clampZoomToBounds() {
         const wrap = this.ensureReplayVideoWrap();
-        if (!wrap) return;
+        const { replayVideo } = this.app.refs;
+        if (!wrap || !replayVideo) return;
 
-        const w = wrap.clientWidth || 0;
-        const h = wrap.clientHeight || 0;
+        const rendered = this.getRenderedVideoRect();
+        const w = rendered?.width || replayVideo.clientWidth || wrap.clientWidth || 0;
+        const h = rendered?.height || replayVideo.clientHeight || wrap.clientHeight || 0;
         if (w <= 0 || h <= 0) return;
 
         const scale = this.zoomState.scale;
@@ -569,10 +589,12 @@ export class ReplayController {
         if (!inReplay) return;
 
         const total = this.getReplayTotalSeconds();
-        const startOffset = Number(this.app.programTimerStartOffsetSeconds ?? 0);
-        const programTime = Number(uiTime || 0) - (Number.isFinite(startOffset) ? startOffset : 0);
-
-        indicator.textContent = this.formatProgramPlayTime(programTime);
+        const zeroOffset = this.app.isHalfwayTrackingEnabled?.()
+            ? Number(this.app.programTimerStartOffsetSeconds ?? 0)
+            : 0;
+        const timelineZero = Number.isFinite(zeroOffset) && zeroOffset > 0 ? zeroOffset : 0;
+        const elapsedFromTimelineZero = Math.max(0, Number(uiTime || 0) - timelineZero);
+        indicator.textContent = this.formatProgramPlayTime(elapsedFromTimelineZero);
 
         const fraction = total > 0 ? clamp(Number(uiTime || 0) / total, 0, 1) : 0;
         indicator.style.left = `${fraction * 100}%`;

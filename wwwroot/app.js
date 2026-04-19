@@ -1,7 +1,7 @@
 import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js";
 import { TimelineRenderer } from "./app-timeline.js";
-import { ReplayController } from "./app-replay.js?v=20260417-replayindicator2";
-import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260418-shortcuts1";
+import { ReplayController } from "./app-replay.js?v=20260419-layoutcleanup1";
+import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260418-rkeyfix1";
 
 // ElementReviewApp is the main browser-side coordinator for index.html.
 // It owns the shared application state fetched from the backend, wires that
@@ -27,10 +27,16 @@ export class ElementReviewApp {
             mainBtn: el("mainBtn"),
             mainBtnHostRecord: el("mainBtnHostRecord"),
             mainBtnHostReplay: el("mainBtnHostReplay"),
+            recordLanguageSelect: el("recordLanguageSelect"),
+            replayLanguageSelect: el("replayLanguageSelect"),
+            recordSessionEncoderLabel: el("recordSessionEncoderLabel"),
             recordSessionEncoderDot: el("recordSessionEncoderDot"),
             recordSessionCssDot: el("recordSessionCssDot"),
+            recordRefreshBtn: el("recordRefreshBtn"),
+            replaySessionEncoderLabel: el("replaySessionEncoderLabel"),
             replaySessionEncoderDot: el("replaySessionEncoderDot"),
             replaySessionCssDot: el("replaySessionCssDot"),
+            replayRefreshBtn: el("replayRefreshBtn"),
             leftControls: el("leftControls"),
             replayElementsLabel: el("replayElementsLabel"),
             replayElementsValue: el("replayElementsValue"),
@@ -38,12 +44,19 @@ export class ElementReviewApp {
             replayReviewsValue: el("replayReviewsValue"),
             clipList: el("clipList"),
             clipToggleRailHost: el("clipToggleRailHost"),
+            buttonCanvasContainer: el("buttonCanvasContainer"),
             clipToggleBtn: el("clipToggleBtn"),
+            clipToggleIcon: el("clipToggleIcon"),
+            clipToggleText: el("clipToggleText"),
             undoClipBtn: el("undoClipBtn"),
+            undoClipText: el("undoClipText"),
             redoClipBtn: el("redoClipBtn"),
+            redoClipText: el("redoClipText"),
             halfwayToggleWrap: el("halfwayToggleWrap"),
             halfwayToggle: el("halfwayToggle"),
             halfwayToggleLabel: el("halfwayToggleLabel"),
+            halfwayTimeCol: el("halfwayTimeCol"),
+            halfwayTimeCard: el("halfwayTimeCard"),
             halfwayTimeValue: el("halfwayTimeValue"),
             recordTimerCard: el("recordTimerCard"),
             programTimerCard: el("programTimerCard"),
@@ -110,7 +123,9 @@ export class ElementReviewApp {
         this.isStartPending = false;
         this.isStopPending = false;
         this.isClipPending = false;
+        this.isDeletePending = false;
         this.isSavingHalfwaySetting = false;
+        this.isSavingLanguage = false;
         this.lastRecordStartRequestPerf = 0;
         this.pendingOpenClipSlotIndex = null;
         this.suppressOpenClipPlaceholder = false;
@@ -280,9 +295,11 @@ export class ElementReviewApp {
         if (!ref) return;
 
         const halfwaySeconds = this.getHalfwaySeconds();
-        const show = Number.isFinite(halfwaySeconds) && halfwaySeconds > 0;
+        const show = this.isHalfwayTrackingEnabled() && Number.isFinite(halfwaySeconds) && halfwaySeconds > 0;
 
         ref.textContent = show ? this.formatHalfwayTimeValue(halfwaySeconds) : "";
+        this.refs.halfwayTimeCol?.classList.toggle("hidden", !show);
+        this.refs.halfwayTimeCard?.setAttribute("aria-hidden", show ? "false" : "true");
         ref.classList.toggle("hidden", !show);
         ref.setAttribute("aria-hidden", show ? "false" : "true");
     }
@@ -322,6 +339,72 @@ export class ElementReviewApp {
         this.applyButtonImage(button, imageKind);
     }
 
+    getClipRailPrimaryIconPath(kind) {
+        return (kind === "stop" || kind === "stopping")
+            ? "/img/buttons/stop_slip_icon.png"
+            : "/img/buttons/start_clip_icon.png";
+    }
+
+    setClipRailPrimaryVisual(kind) {
+        const { clipToggleBtn, clipToggleIcon, clipToggleText } = this.refs;
+        if (!clipToggleBtn) return;
+
+        const isStop = kind === "stop" || kind === "stopping";
+        const isPending = kind === "starting" || kind === "stopping";
+        const textKey = kind === "starting"
+            ? "clipStarting"
+            : kind === "stopping"
+                ? "clipStopping"
+                : isStop
+                    ? "clipStop"
+                    : "clipStart";
+        const ariaKey = kind === "starting"
+            ? "clipStartingAria"
+            : kind === "stopping"
+                ? "clipStoppingAria"
+                : isStop
+                    ? "clipStopAria"
+                    : "clipStartAria";
+
+        clipToggleBtn.classList.remove("clipStart", "clipStop", "isPending");
+        clipToggleBtn.classList.add(isStop ? "clipStop" : "clipStart");
+        clipToggleBtn.classList.toggle("isPending", isPending);
+        this.setAriaLabel(clipToggleBtn, this.t(ariaKey));
+        this.setText(clipToggleText, this.t(textKey));
+
+        if (clipToggleIcon) {
+            clipToggleIcon.src = this.getClipRailPrimaryIconPath(kind);
+        }
+    }
+
+    setClipRailHistoryLabels() {
+        this.setText(this.refs.undoClipText, this.t("undo"));
+        this.setAriaLabel(this.refs.undoClipBtn, this.t("undoAria"));
+        this.setText(this.refs.redoClipText, this.t("redo"));
+        this.setAriaLabel(this.refs.redoClipBtn, this.t("redoAria"));
+    }
+
+    updateClipCanvasSizing() {
+        const container = this.refs.buttonCanvasContainer;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        if (!(rect.width > 0) || !(rect.height > 0)) return;
+
+        const primaryWidth = rect.width * (2 / 3);
+        const primaryHeight = rect.height;
+        const historyWidth = rect.width * (1 / 3);
+        const historyHeight = rect.height / 2;
+
+        const primaryFontPx = clamp(Math.min(primaryWidth * 0.115, primaryHeight * 0.17), 11, 25);
+        const historyFontPx = clamp(Math.min(historyWidth * 0.17, historyHeight * 0.24), 9, 18);
+        const overlayFontPx = clamp(Math.min(primaryWidth * 0.09, primaryHeight * 0.135), 12, 18);
+
+        container.style.setProperty("--clipCanvasPrimaryFontPx", `${primaryFontPx.toFixed(2)}px`);
+        container.style.setProperty("--clipCanvasHistoryFontPx", `${historyFontPx.toFixed(2)}px`);
+        container.style.setProperty("--clipCanvasOverlayFontPx", `${overlayFontPx.toFixed(2)}px`);
+    }
+
     getButtonLanguageSuffix() {
         return this.currentLanguage === "fr" ? "fr" : "en";
     }
@@ -339,7 +422,7 @@ export class ElementReviewApp {
         case "stop":
             return ["/img/i18-buttons/stop_" + lang + ".png"];
         case "stopping":
-            return ["/img/i18-buttons/stop_" + lang + ".png"];
+            return ["/img/i18-buttons/stopping_" + lang + ".png"];
         case "next":
             return ["/img/i18-buttons/next_" + lang + ".png"];
         case "clipStart":
@@ -461,6 +544,21 @@ export class ElementReviewApp {
     applyStaticTranslations() {
         this.setAriaLabel(this.refs.clipList, this.t("elementsListAria"));
         this.setTitleAndAria(this.refs.settingsBtn, this.t("settings"));
+        this.setTitleAndAria(this.refs.recordRefreshBtn, this.t("refreshAria"));
+        this.setTitleAndAria(this.refs.replayRefreshBtn, this.t("refreshAria"));
+        for (const select of [this.refs.recordLanguageSelect, this.refs.replayLanguageSelect]) {
+            if (!select) continue;
+            select.value = this.currentLanguage;
+            select.disabled = this.isSavingLanguage;
+            this.setAriaLabel(select, this.t("languageSelectorAria"));
+
+            const englishOption = select.querySelector('option[value="en"]');
+            const frenchOption = select.querySelector('option[value="fr"]');
+            if (englishOption) englishOption.textContent = this.t("languageEnglish");
+            if (frenchOption) frenchOption.textContent = this.t("languageFrench");
+        }
+        this.setText(this.refs.recordSessionEncoderLabel, this.t("encoderStatusLabel"));
+        this.setText(this.refs.replaySessionEncoderLabel, this.t("encoderStatusLabel"));
         this.setText(this.refs.recordShortcutHint, this.t("shortcutHint"));
         this.setText(this.refs.replayShortcutHint, this.t("shortcutHint"));
         this.setText(this.refs.recordTimerPrefix, this.t("recordTimerPrefix"));
@@ -497,15 +595,14 @@ export class ElementReviewApp {
             [this.refs.replayElementsLabel, "statusElementsLabel"],
             [this.refs.replayReviewsLabel, "statusReviewsLabel"],
         ]) {
-            this.setText(ref, `${this.t(key)}:`);
+            this.setText(ref, this.t(key));
         }
     }
 
     applyTranslatedDefaults() {
         this.setMainButtonVisual("start");
-        this.applyTranslatedButtonState(this.refs.clipToggleBtn, "clipStart", "clipStartAria", "clipStart");
-        this.applyTranslatedButtonState(this.refs.undoClipBtn, "undo", "undoAria", "undo");
-        this.applyTranslatedButtonState(this.refs.redoClipBtn, "redo", "redoAria", "redo");
+        this.setClipRailPrimaryVisual("start");
+        this.setClipRailHistoryLabels();
         this.setText(this.refs.recordTimerValue, this.formatRecordingTimerDisplay(0));
         this.setText(this.refs.clipTime, this.formatClipTimerDisplay(0));
         this.setText(this.refs.reviewTimerEl, `${this.t("reviewLabel")}: 00:00`);
@@ -515,6 +612,7 @@ export class ElementReviewApp {
         this.replay.updateLoopButtonsUI();
         this.replay.updateZoomHint();
         this.shortcuts.refreshOverlay();
+        this.updateClipCanvasSizing();
     }
 
     getClipMarkerAdvanceSeconds() {
@@ -524,7 +622,7 @@ export class ElementReviewApp {
     }
 
     refreshBusyCursor() {
-        const busy = this.isStartPending || this.isStopPending || this.isClipPending;
+        const busy = this.isStartPending || this.isStopPending || this.isClipPending || this.isDeletePending;
         document.body.style.cursor = busy ? "progress" : "";
     }
 
@@ -561,6 +659,17 @@ export class ElementReviewApp {
 
         this.refs.confirmYes?.addEventListener("click", () => this.hideConfirm(true));
         this.refs.confirmCancel?.addEventListener("click", () => this.hideConfirm(false));
+        this.refs.recordRefreshBtn?.addEventListener("click", () => window.location.reload());
+        this.refs.replayRefreshBtn?.addEventListener("click", () => window.location.reload());
+        const bindLanguageSelect = (select) => {
+            select?.addEventListener("change", () => {
+                this.setLanguage(select.value).catch((err) => {
+                    alert(err?.message || "Unable to save language setting.");
+                });
+            });
+        };
+        bindLanguageSelect(this.refs.recordLanguageSelect);
+        bindLanguageSelect(this.refs.replayLanguageSelect);
 
         this.refs.confirmModal?.addEventListener("click", (event) => {
             if (event.target === this.refs.confirmModal) this.hideConfirm(false);
@@ -606,7 +715,24 @@ export class ElementReviewApp {
         bindRecordAction(this.refs.redoClipBtn, () => this.redoClipAction());
 
         this.refs.clipList?.addEventListener("click", async (event) => {
-            if (!this.state || this.state.mode !== "replay") return;
+            if (!this.state) return;
+            if (!(event.target instanceof Element)) return;
+
+            const deleteHandle = event.target.closest("[data-delete-clip-index]");
+            if (deleteHandle && this.state.mode === "record" && this.state.isRecording) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const idx = parseInt(deleteHandle.dataset.deleteClipIndex, 10);
+                if (!Number.isFinite(idx) || idx <= 0) return;
+
+                await this.deleteRecordedClip(idx).catch((err) => {
+                    alert(err?.message || "Unable to delete clip.");
+                });
+                return;
+            }
+
+            if (this.state.mode !== "replay") return;
 
             const empty = event.target.closest(".clipSlotEmpty");
             if (empty) {
@@ -1440,6 +1566,44 @@ export class ElementReviewApp {
         this.applyTranslations();
     }
 
+    async setLanguage(language) {
+        if (this.isSavingLanguage) return;
+
+        const nextLanguage = this.normalizeLanguage(language);
+        const baseConfig = this.appConfig ?? await apiGet(`/api/appconfig?ts=${Date.now()}`);
+        const previousLanguage = this.normalizeLanguage(
+            baseConfig?.Language ?? baseConfig?.language ?? this.currentLanguage
+        );
+
+        if (previousLanguage === nextLanguage && this.currentLanguage === nextLanguage) {
+            this.applyTranslations();
+            return;
+        }
+
+        this.isSavingLanguage = true;
+        this.currentLanguage = nextLanguage;
+        this.appConfig = { ...baseConfig, Language: nextLanguage };
+        this.applyTranslations();
+        this.preloadButtonImages();
+
+        try {
+            const saved = await apiPost("/api/appconfig", this.appConfig);
+            this.appConfig = saved;
+            this.syncLanguageFromConfig(saved);
+            this.syncHalfwayToggleFromConfig(saved);
+            this.preloadButtonImages();
+        } catch (err) {
+            this.appConfig = { ...baseConfig, Language: previousLanguage };
+            this.currentLanguage = previousLanguage;
+            this.applyTranslations();
+            this.preloadButtonImages();
+            throw err;
+        } finally {
+            this.isSavingLanguage = false;
+            this.applyTranslations();
+        }
+    }
+
     async refreshReplayHostStatuses() {
         if (this.replayHostPollInFlight) return;
         this.replayHostPollInFlight = true;
@@ -1775,6 +1939,7 @@ export class ElementReviewApp {
             this.fitModeHeights();
             this.syncClipListHeightToVideo();
             this.updateReplayButtonOffset();
+            this.updateClipCanvasSizing();
         });
     }
 
@@ -1876,7 +2041,7 @@ export class ElementReviewApp {
         if (!button) return;
 
         this.currentMainButtonKind = kind;
-        button.classList.remove("btnGreen", "btnRed", "btnBlue", "btnTimerArm", "btnStarting");
+        button.classList.remove("btnGreen", "btnRed", "btnBlue", "btnTimerArm", "btnStarting", "btnStopping");
 
         if (kind === "start") {
             button.classList.add("btnGreen");
@@ -1895,7 +2060,7 @@ export class ElementReviewApp {
             button.innerHTML = this.t("mainStopRecordingHtml");
             button.setAttribute("aria-label", this.t("mainStopRecordingAria"));
         } else if (kind === "stopping") {
-            button.classList.add("btnRed");
+            button.classList.add("btnRed", "btnStopping");
             button.innerHTML = this.t("mainStoppingHtml");
             button.setAttribute("aria-label", this.t("mainStoppingAria"));
         } else {
@@ -1918,6 +2083,7 @@ export class ElementReviewApp {
         // Build a cheap render key so we can skip rebuilding the list when the
         // clip geometry and element metadata are unchanged.
         let key = "";
+        key += `mode:${this.state?.mode ?? "record"}|recording:${this.state?.isRecording ? 1 : 0}|deleting:${this.isDeletePending ? 1 : 0}|lang:${this.currentLanguage}|`;
         for (const clip of clips) {
             const idx = this.clipIdx(clip);
             const start = this.clipStart(clip);
@@ -1958,20 +2124,32 @@ export class ElementReviewApp {
             const review = !!meta?.review;
             const start = this.clipStart(clip);
             const end = this.clipEnd(clip);
+            const isSelected = this.isSelectedClip(index, start, end);
             const isLooping = this.isLoopingClip(index, start, end);
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = `clipBtn${review ? " isReview" : ""}${isLooping ? " isLooping" : ""}`;
-            button.dataset.clipIndex = String(index);
-            button.setAttribute("aria-pressed", isLooping ? "true" : "false");
-            this.addHalfwayMarkerClasses(button, index, halfwayMarkerAnchorIndex);
+            const canDelete =
+                this.state?.mode === "record" &&
+                !!this.state?.isRecording &&
+                !this.isDeletePending;
+            const container = this.state?.mode === "replay"
+                ? document.createElement("button")
+                : document.createElement("div");
+
+            if (container instanceof HTMLButtonElement) {
+                container.type = "button";
+                container.setAttribute("aria-pressed", isSelected ? "true" : "false");
+            }
+
+            container.className = `clipBtn${review ? " isReview" : ""}${isLooping ? " isLooping" : ""}${isSelected ? " isSelectedReplay" : ""}${canDelete ? " clipBtnDeletable" : ""}`;
+            container.dataset.clipIndex = String(index);
+            this.addHalfwayMarkerClasses(container, index, halfwayMarkerAnchorIndex);
             this.appendClipListEntryContent(
-                button,
+                container,
                 index,
                 code || "[ element ]",
-                this.formatClipListTimeRange(start, end)
+                this.formatClipListTimeRange(start, end),
+                { showDeleteHandle: canDelete }
             );
-            return button;
+            return container;
         }
 
         const slot = document.createElement("div");
@@ -2020,10 +2198,27 @@ export class ElementReviewApp {
         return `${this.formatClipListTimecode(startRelative)} - ${this.formatClipListTimecode(endRelative)}`;
     }
 
-    appendClipListEntryContent(container, index, text, timeRange = "") {
+    appendClipListEntryContent(container, index, text, timeRange = "", options = {}) {
+        const showDeleteHandle = !!options.showDeleteHandle;
         const left = document.createElement("div");
         left.className = "clipBtnNum";
-        left.textContent = String(index);
+        if (showDeleteHandle) {
+            left.dataset.deleteClipIndex = String(index);
+            left.title = this.t("deleteClipInlineTitle");
+        }
+
+        const number = document.createElement("span");
+        number.className = "clipBtnNumText";
+        number.textContent = String(index);
+        left.appendChild(number);
+
+        if (showDeleteHandle) {
+            const deleteIcon = document.createElement("span");
+            deleteIcon.className = "clipBtnDeleteIcon";
+            deleteIcon.textContent = "✕";
+            deleteIcon.setAttribute("aria-hidden", "true");
+            left.appendChild(deleteIcon);
+        }
 
         const right = document.createElement("div");
         right.className = "clipBtnInfo";
@@ -2042,6 +2237,32 @@ export class ElementReviewApp {
         container.appendChild(right);
     }
 
+    async deleteRecordedClip(index) {
+        if (
+            this.state?.mode !== "record" ||
+            !this.state?.isRecording ||
+            this.isStartPending ||
+            this.isStopPending ||
+            this.isClipPending ||
+            this.isDeletePending
+        ) {
+            return;
+        }
+
+        this.isDeletePending = true;
+        this.renderClipList();
+        this.syncPendingUi();
+
+        try {
+            const nextState = await apiPost("/api/record/delete", { index });
+            this.applyStatusUpdate(nextState);
+        } finally {
+            this.isDeletePending = false;
+            this.renderClipList();
+            this.syncPendingUi();
+        }
+    }
+
     updateRecordClipButtonsUI() {
         const { clipToggleBtn, clipToggleRailHost, clipTimerCard, undoClipBtn, redoClipBtn } = this.refs;
         if (!clipToggleBtn || !undoClipBtn || !redoClipBtn) return;
@@ -2058,23 +2279,13 @@ export class ElementReviewApp {
         undoClipBtn.classList.toggle("hidden", !inRecord);
         redoClipBtn.classList.toggle("hidden", !inRecord);
 
-        clipToggleBtn.classList.remove("clipStart", "clipStop");
-        clipToggleBtn.classList.add(open ? "clipStop" : "clipStart");
-
         if (this.isClipPending) {
             clipToggleBtn.disabled = true;
             clipTimerCard?.classList.add("isDisabled");
             undoClipBtn.disabled = true;
             redoClipBtn.disabled = true;
-            clipToggleBtn.textContent = open ? this.t("clipStopping") : this.t("clipStarting");
-            clipToggleBtn.setAttribute("aria-label", open ? this.t("clipStoppingAria") : this.t("clipStartingAria"));
-            undoClipBtn.textContent = this.t("undo");
-            undoClipBtn.setAttribute("aria-label", this.t("undoAria"));
-            redoClipBtn.textContent = this.t("redo");
-            redoClipBtn.setAttribute("aria-label", this.t("redoAria"));
-            this.applyButtonImage(clipToggleBtn, open ? "clipStop" : "clipStart");
-            this.applyButtonImage(undoClipBtn, "undo");
-            this.applyButtonImage(redoClipBtn, "redo");
+            this.setClipRailPrimaryVisual(open ? "stopping" : "starting");
+            this.setClipRailHistoryLabels();
             return;
         }
 
@@ -2082,23 +2293,8 @@ export class ElementReviewApp {
         clipTimerCard?.classList.toggle("isDisabled", !canStartClip);
         undoClipBtn.disabled = !canUndo;
         redoClipBtn.disabled = !canRedo;
-
-        if (open) {
-            clipToggleBtn.textContent = this.t("clipStop");
-            clipToggleBtn.setAttribute("aria-label", this.t("clipStopAria"));
-        } else {
-            clipToggleBtn.textContent = this.t("clipStart");
-            clipToggleBtn.setAttribute("aria-label", this.t("clipStartAria"));
-        }
-
-        undoClipBtn.textContent = this.t("undo");
-        undoClipBtn.setAttribute("aria-label", this.t("undoAria"));
-        redoClipBtn.textContent = this.t("redo");
-        redoClipBtn.setAttribute("aria-label", this.t("redoAria"));
-
-        this.applyButtonImage(clipToggleBtn, open ? "clipStop" : "clipStart");
-        this.applyButtonImage(undoClipBtn, "undo");
-        this.applyButtonImage(redoClipBtn, "redo");
+        this.setClipRailPrimaryVisual(open ? "stop" : "start");
+        this.setClipRailHistoryLabels();
     }
 
     updateClipTimerUI() {
@@ -2131,12 +2327,15 @@ export class ElementReviewApp {
 
         const inRecord = uiMode === "record";
         const recording = !!this.state.isRecording;
+        const showProgramTimer = inRecord && this.isHalfwayTrackingEnabled();
+        const programTimerCol = this.refs.programTimerCard?.parentElement ?? null;
 
         if (this.refs.replayProgramTimeIndicator) {
             this.refs.replayProgramTimeIndicator.classList.toggle("hidden", uiMode !== "replay");
         }
         if (this.refs.recordTimerCard) this.refs.recordTimerCard.setAttribute("aria-hidden", uiMode === "record" ? "false" : "true");
-        if (this.refs.programTimerCard) this.refs.programTimerCard.setAttribute("aria-hidden", uiMode === "record" ? "false" : "true");
+        if (this.refs.programTimerCard) this.refs.programTimerCard.setAttribute("aria-hidden", showProgramTimer ? "false" : "true");
+        if (programTimerCol) programTimerCol.classList.toggle("hidden", !showProgramTimer);
         if (this.refs.clipTimerCard) this.refs.clipTimerCard.setAttribute("aria-hidden", uiMode === "record" ? "false" : "true");
         if (this.refs.recLamp) this.refs.recLamp.classList.toggle("on", inRecord && recording);
 

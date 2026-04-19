@@ -617,6 +617,19 @@ public static class AppServer
             return Results.Ok(session.GetStatus(cfg.SourceFps));
         });
 
+        app.MapPost("/api/record/delete", async (HttpRequest req, SessionManager session) =>
+        {
+            var cfg = LoadConfig();
+            var root = await ReadJsonRootAsync(req);
+            if (root is null) return Results.BadRequest("Missing JSON body.");
+
+            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
+            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
+
+            session.DeleteClipWhileRecording(clipIndex.Value);
+            return Results.Ok(session.GetStatus(cfg.SourceFps));
+        });
+
         app.MapPost("/api/replay/split", async (HttpRequest req, SessionManager session) =>
         {
             var cfg = LoadConfig();

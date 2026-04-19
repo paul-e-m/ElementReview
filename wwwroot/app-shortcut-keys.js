@@ -13,6 +13,7 @@ export class ShortcutKeysController {
         this.app = app;
         this.replay = app.replay;
         this.overlayVisible = false;
+        this.boundKeyboardTargets = new WeakSet();
 
         this.refs = {
             shortcutOverlay: el("shortcutOverlay"),
@@ -23,16 +24,43 @@ export class ShortcutKeysController {
     }
 
     bindEvents() {
-        document.addEventListener("keydown", (event) => this.handleCaptureKeyDown(event), true);
-        document.addEventListener("keyup", (event) => this.handleCaptureKeyUp(event), true);
-
-        window.addEventListener("keydown", (event) => this.handleWindowKeyDown(event));
-        window.addEventListener("keyup", (event) => this.handleWindowKeyUp(event));
+        this.bindKeyboardTarget(window, document);
+        this.bindLiveFrameKeyboardTarget();
+        this.app.refs.liveFrame?.addEventListener("load", () => this.bindLiveFrameKeyboardTarget());
 
         window.addEventListener("blur", () => this.hideShortcutOverlay());
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) this.hideShortcutOverlay();
         });
+    }
+
+    bindKeyboardTarget(targetWindow, targetDocument) {
+        if (targetDocument && !this.boundKeyboardTargets.has(targetDocument)) {
+            targetDocument.addEventListener("keydown", (event) => this.handleCaptureKeyDown(event), true);
+            targetDocument.addEventListener("keyup", (event) => this.handleCaptureKeyUp(event), true);
+            this.boundKeyboardTargets.add(targetDocument);
+        }
+
+        if (targetWindow && !this.boundKeyboardTargets.has(targetWindow)) {
+            targetWindow.addEventListener("keydown", (event) => this.handleWindowKeyDown(event));
+            targetWindow.addEventListener("keyup", (event) => this.handleWindowKeyUp(event));
+            targetWindow.addEventListener("blur", () => this.hideShortcutOverlay());
+            this.boundKeyboardTargets.add(targetWindow);
+        }
+    }
+
+    bindLiveFrameKeyboardTarget() {
+        const liveFrame = this.app.refs.liveFrame;
+        if (!liveFrame) return;
+
+        try {
+            const frameWindow = liveFrame.contentWindow;
+            const frameDocument = frameWindow?.document;
+            if (!frameWindow || !frameDocument) return;
+            this.bindKeyboardTarget(frameWindow, frameDocument);
+        } catch {
+            // Cross-origin or not-yet-ready iframe content cannot be instrumented.
+        }
     }
 
     handleCaptureKeyDown(event) {
@@ -108,6 +136,14 @@ export class ShortcutKeysController {
                 this.replay.selectNextPrevElement(event.key === "ArrowUp" ? +1 : -1);
                 return;
             }
+
+            const replayElementIndex = this.getReplayElementShortcutIndex(event);
+            if (replayElementIndex != null) {
+                event.preventDefault();
+                if (event.repeat) return;
+                this.app.refs.clipList?.querySelector(`button[data-clip-index="${replayElementIndex}"]`)?.click();
+                return;
+            }
         }
 
         if (this.isSpaceShortcut(event)) {
@@ -151,6 +187,16 @@ export class ShortcutKeysController {
         }
 
         if (event.key === "s" || event.key === "S") {
+            if (this.app.state?.mode === "record") {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (event.repeat) return;
+                refs.mainBtn?.click();
+            }
+            return;
+        }
+
+        if (event.key === "r" || event.key === "R") {
             if (this.app.state?.mode === "record") {
                 event.preventDefault();
                 event.stopImmediatePropagation();
@@ -235,6 +281,26 @@ export class ShortcutKeysController {
         return (event.ctrlKey || event.metaKey) && !event.altKey && (event.key === "y" || event.key === "Y");
     }
 
+    getReplayElementShortcutIndex(event) {
+        if (event.ctrlKey || event.metaKey || event.altKey) return null;
+
+        switch (event.code) {
+        case "Digit1": return 1;
+        case "Digit2": return 2;
+        case "Digit3": return 3;
+        case "Digit4": return 4;
+        case "Digit5": return 5;
+        case "Digit6": return 6;
+        case "Digit7": return 7;
+        case "Digit8": return 8;
+        case "Digit9": return 9;
+        case "Digit0": return 10;
+        case "Minus": return 11;
+        case "Equal": return 12;
+        default: return null;
+        }
+    }
+
     jumpToHalfway() {
         const halfwaySeconds = Number(this.app.getHalfwaySeconds?.() ?? null);
         const programStart = Number(this.app.programTimerStartOffsetSeconds ?? null);
@@ -285,19 +351,21 @@ export class ShortcutKeysController {
                 { key: this.app.t("shortcutKeyArrowRight"), action: this.app.t("shortcutActionArrowRight") },
                 { key: this.app.t("shortcutKeyArrowUp"), action: this.app.t("shortcutActionArrowUp") },
                 { key: this.app.t("shortcutKeyArrowDown"), action: this.app.t("shortcutActionArrowDown") },
+                { key: this.app.t("shortcutKeyReplayElementSelect"), action: this.app.t("shortcutActionReplayElementSelect") },
                 { key: this.app.t("shortcutKeyL"), action: this.app.t("shortcutActionL") },
                 { key: this.app.t("shortcutKeyN"), action: this.app.t("shortcutActionN") },
                 { key: this.app.t("shortcutKeyEscape"), action: this.app.t("shortcutActionEscape") },
                 ...shared,
             ];
             if (halfwayEnabled) {
-                items.splice(5, 0, { key: this.app.t("shortcutKeyH"), action: this.app.t("shortcutActionH") });
+                items.splice(6, 0, { key: this.app.t("shortcutKeyH"), action: this.app.t("shortcutActionH") });
             }
             return items;
         }
 
         const items = [
             { key: this.app.t("shortcutKeyS"), action: this.app.t(halfwayEnabled ? "shortcutActionS" : "shortcutActionSNoHalfway") },
+            { key: this.app.t("shortcutKeyR"), action: this.app.t(halfwayEnabled ? "shortcutActionR" : "shortcutActionRNoHalfway") },
             { key: this.app.t("shortcutKeySpace"), action: this.app.t("shortcutActionRecordSpace") },
             { key: this.app.t("shortcutKeyBackspace"), action: this.app.t("shortcutActionBackspace") },
             { key: this.app.t("shortcutKeyCtrlZ"), action: this.app.t("shortcutActionCtrlZ") },
@@ -311,25 +379,40 @@ export class ShortcutKeysController {
     }
 
     renderShortcutOverlay() {
-        const mode = this.app.state?.mode === "replay" ? "replay" : "record";
-        const items = this.getShortcutItemsForMode(mode);
+        const recordItems = this.getShortcutItemsForMode("record");
+        const replayItems = this.getShortcutItemsForMode("replay");
 
         if (this.refs.shortcutTitle) {
             this.refs.shortcutTitle.textContent = this.app.t("shortcutTitle");
         }
 
         if (this.refs.shortcutModeLabel) {
-            this.refs.shortcutModeLabel.textContent =
-                mode === "replay" ? this.app.t("shortcutModeReplay") : this.app.t("shortcutModeRecord");
+            this.refs.shortcutModeLabel.textContent = "";
+            this.refs.shortcutModeLabel.classList.add("hidden");
         }
 
         if (this.refs.shortcutList) {
-            this.refs.shortcutList.innerHTML = items.map(({ key, action }) => `
+            const renderItems = (items) => items.map(({ key, action }) => `
                 <div class="shortcutRow">
                     <div class="shortcutKey">${key}</div>
                     <div class="shortcutAction">${action}</div>
                 </div>
             `).join("");
+
+            this.refs.shortcutList.innerHTML = `
+                <section class="shortcutModeColumn">
+                    <div class="shortcutModeHeader">${this.app.t("shortcutModeRecord")}</div>
+                    <div class="shortcutModeItems">
+                        ${renderItems(recordItems)}
+                    </div>
+                </section>
+                <section class="shortcutModeColumn">
+                    <div class="shortcutModeHeader">${this.app.t("shortcutModeReplay")}</div>
+                    <div class="shortcutModeItems">
+                        ${renderItems(replayItems)}
+                    </div>
+                </section>
+            `;
         }
     }
 

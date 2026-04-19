@@ -371,6 +371,41 @@ public class SessionManager
         }
     }
 
+    public void DeleteClipWhileRecording(int index)
+    {
+        lock (_lock)
+        {
+            if (IsArming) return;
+            if (!IsRecording) return;
+            if (!string.Equals(Mode, "record", StringComparison.OrdinalIgnoreCase)) return;
+
+            var i = Clips.FindIndex(c => c.Index == index);
+            if (i < 0) return;
+
+            Clips.RemoveAt(i);
+            SortAndReindex_NoLock();
+
+            if (_everReviewedIndices.Count > 0)
+            {
+                var shifted = new HashSet<int>();
+                foreach (var reviewedIndex in _everReviewedIndices)
+                {
+                    if (reviewedIndex < index) shifted.Add(reviewedIndex);
+                    else if (reviewedIndex > index) shifted.Add(reviewedIndex - 1);
+                }
+
+                _everReviewedIndices.Clear();
+                foreach (var shiftedIndex in shifted)
+                    _everReviewedIndices.Add(shiftedIndex);
+            }
+
+            // Deleting a completed clip changes the visible clip order, so the
+            // record-mode undo stacks are no longer safe to replay.
+            _history.Clear();
+            _redoHistory.Clear();
+        }
+    }
+
     public void SplitClip(int index, double splitSeconds)
     {
         lock (_lock)

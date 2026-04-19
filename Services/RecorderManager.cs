@@ -724,15 +724,7 @@ public class RecorderManager
                 ? AppPaths.DefaultSavedVideosFolder
                 : cfg.SavedVideosFolder.Trim();
 
-            var targetFolder = videosRoot;
-
-            var category = SanitizePathPart(exportInfo.CategoryName);
-            var segment = SanitizePathPart(exportInfo.SegmentName);
-
-            if (!string.IsNullOrWhiteSpace(category) && !string.IsNullOrWhiteSpace(segment))
-            {
-                targetFolder = Path.Combine(videosRoot, category, segment);
-            }
+            var targetFolder = BuildSavedVideoFolder(videosRoot, exportInfo);
 
             Directory.CreateDirectory(targetFolder);
 
@@ -767,6 +759,8 @@ public class RecorderManager
             var info = new ExportInfo
             {
                 CategoryName = FindStringRecursive(root, "categoryName", "CategoryName", "category", "Category"),
+                CategoryDiscipline = FindStringRecursive(root, "categoryDiscipline", "CategoryDiscipline", "discipline", "Discipline"),
+                CategoryFlight = FindStringRecursive(root, "categoryFlight", "CategoryFlight", "flight", "Flight"),
                 SegmentName = FindStringRecursive(root, "segmentName", "SegmentName", "segment", "Segment", "segDesc", "SegDesc"),
                 CompetitorFirstName = FindStringRecursive(root, "competitorFirstName", "CompetitorFirstName", "firstName", "FirstName"),
                 CompetitorLastName = FindStringRecursive(root, "competitorLastName", "CompetitorLastName", "lastName", "LastName"),
@@ -816,6 +810,27 @@ public class RecorderManager
         return parts.Count > 0
             ? string.Join("-", parts)
             : DateTime.Now.ToString("yyyyMMddHHmmss");
+    }
+
+    private static string BuildSavedVideoFolder(string videosRoot, ExportInfo info)
+    {
+        var path = videosRoot;
+
+        var folderParts = new[]
+        {
+            SanitizePathPart(info.CategoryName),
+            SanitizePathPart(info.CategoryDiscipline),
+            SanitizePathPart(info.CategoryFlight),
+            SanitizePathPart(info.SegmentName)
+        };
+
+        foreach (var part in folderParts)
+        {
+            if (!string.IsNullOrWhiteSpace(part))
+                path = Path.Combine(path, part);
+        }
+
+        return path;
     }
 
     private static void SplitFullName(string? fullName, out string firstName, out string lastName)
@@ -913,6 +928,8 @@ public class RecorderManager
     private sealed class ExportInfo
     {
         public string CategoryName { get; set; } = "";
+        public string CategoryDiscipline { get; set; } = "";
+        public string CategoryFlight { get; set; } = "";
         public string SegmentName { get; set; } = "";
         public string CompetitorFirstName { get; set; } = "";
         public string CompetitorLastName { get; set; } = "";
