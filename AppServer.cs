@@ -596,8 +596,7 @@ public static class AppServer
 
         app.MapGet("/api/recording/file", (HttpContext http, RecorderManager recorder, string? kind) =>
         {
-            var wantCopied = string.Equals(kind, "copied", StringComparison.OrdinalIgnoreCase) ||
-                             string.Equals(kind, "remote", StringComparison.OrdinalIgnoreCase);
+            var wantCopied = string.Equals(kind, "copied", StringComparison.OrdinalIgnoreCase);
 
             var path = wantCopied && File.Exists(recorder.CopiedOutputFilePath)
                 ? recorder.CopiedOutputFilePath

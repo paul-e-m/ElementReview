@@ -2341,7 +2341,7 @@ export class ElementReviewApp {
             this.setMainButtonVisual("next");
 
             // Replay always uses the encoded file in the main operator UI.
-            // Remote clients use the smaller `kind=remote` asset instead.
+            // Remote clients use the smaller copied replay asset instead.
             if (!this.refs.replayVideo.src || !this.refs.replayVideo.src.includes("/api/recording/file")) {
                 this.refs.replayVideo.src = `/api/recording/file?kind=encoded&ts=${Date.now()}`;
                 this.refs.replayVideo.load();

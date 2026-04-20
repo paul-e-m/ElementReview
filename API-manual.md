@@ -304,7 +304,6 @@ Query options:
 
 - no query string: encoded replay file
 - `?kind=copied`: copied replay file
-- `?kind=remote`: copied replay file
 
 If the copied file does not exist, the server falls back to the encoded file.
 

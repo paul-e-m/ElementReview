@@ -172,11 +172,11 @@
     <!--
       Lightweight remote replay client for judges.
       Unlike index.html, this page does not manage the full session lifecycle;
-      it waits for replay mode, loads the smaller `kind=remote` asset, and
+      it waits for replay mode, loads the smaller `kind=copied` asset, and
       exposes a focused transport UI for a single requested clip.
     -->
     <div class="wrap">
-        <!-- Single remote video player backed by the shared copied/remote asset. -->
+        <!-- Single remote video player backed by the shared copied asset. -->
         <video id="v" playsinline preload="auto"></video>
 
         <div class="controls">
@@ -533,7 +533,7 @@
         }
 
         // ----------------------------
-        // Load the remote asset, park the playhead on the requested clip start,
+        // Load the copied replay asset, park the playhead on the requested clip start,
         // wait for initial buffering, then enable the transport controls.
         // ----------------------------
         async function prepareVideo() {
@@ -649,7 +649,7 @@
         // ----------------------------
         // Startup flow:
         // 1. read clip/autoplay/loop options from the URL
-        // 2. point the video element at the shared remote asset
+        // 2. point the video element at the shared copied asset
         // 3. poll until the requested clip exists in replay mode
         // 4. prepare the transport UI around that clip
         // ----------------------------
@@ -666,7 +666,7 @@
             state.loopArmed = state.wantLoop;
 
             // All remote clients share the smaller copied-file variant.
-            dom.video.src = BASE + "/api/recording/file?kind=remote";
+            dom.video.src = BASE + "/api/recording/file?kind=copied";
             dom.video.load();
 
             state.clip = await getReplayClip(options.clipIndex);
