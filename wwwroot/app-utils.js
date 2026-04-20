@@ -1,6 +1,4 @@
-// Shared frontend helpers used across the record/replay UI modules.
-// Keep this file intentionally small: DOM lookups, numeric helpers, and the
-// thin fetch wrappers that every page uses to talk to the backend.
+// Shared frontend helpers used by the main operator UI.
 export const BTN_DIR = "/img/buttons";
 export const BTN_SIZE = 52;
 
@@ -34,16 +32,14 @@ export function isTypingTarget(target) {
 }
 
 export async function apiGet(path) {
-  // Most state reads are polled frequently and should always reflect the
-  // latest backend state rather than a cached JSON response.
+  // Status/config reads should always reflect the latest backend state.
   const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(await response.text());
   return response.json();
 }
 
 export async function apiPost(path, bodyObj) {
-  // The backend expects JSON even for "empty" commands, so default to "{}"
-  // instead of omitting the body entirely.
+  // The backend expects JSON bodies even for commands without payload fields.
   const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

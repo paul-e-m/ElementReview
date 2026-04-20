@@ -1,4 +1,3 @@
-//ClipSegment.cs
 namespace ElementReview.Models;
 
 public class ClipSegment

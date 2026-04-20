@@ -1,24 +1,15 @@
 import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js";
 import { TimelineRenderer } from "./app-timeline.js";
-import { ReplayController } from "./app-replay.js?v=20260419-layoutcleanup1";
+import { ReplayController } from "./app-replay.js?v=20260419-zoomexit1";
 import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260418-rkeyfix1";
 
-// ElementReviewApp is the main browser-side coordinator for index.html.
-// It owns the shared application state fetched from the backend, wires that
-// state into the DOM, and delegates specialized behavior to:
-// - TimelineRenderer for canvas drawing
-// - ReplayController for replay-only transport and edit interactions
-//
-// A useful mental model is:
-// - backend = source of truth for recording mode, clips, and session state
-// - this class = source of truth for current DOM/UI state
-// - ReplayController = source of truth for replay-local interaction state
+// ElementReviewApp coordinates the shared operator UI state in index.html.
+// Backend session data stays authoritative, while ReplayController manages replay-local interactions.
 const LS_EDIT_KEY = "ElementReview_EditMode";
 
 export class ElementReviewApp {
     constructor() {
-        // Cache the DOM once up front so the rest of the code can focus on
-        // state transitions instead of repeated querySelector calls.
+        // Cache DOM references once up front so the rest of the code can focus on state transitions.
         this.refs = {
             recordMode: el("recordMode"),
             replayMode: el("replayMode"),
@@ -103,6 +94,7 @@ export class ElementReviewApp {
             shortcutTitle: el("shortcutTitle"),
             shortcutModeLabel: el("shortcutModeLabel"),
             shortcutList: el("shortcutList"),
+            shortcutVersion: el("shortcutVersion"),
             recordSessionInfo: el("recordSessionInfo"),
             recordSessionInfoText: el("recordSessionInfoText"),
             replaySessionInfo: el("replaySessionInfo"),
@@ -111,15 +103,13 @@ export class ElementReviewApp {
 
         this.refs.recordCtx = this.refs.recordCanvas?.getContext("2d") || null;
 
-        // `state` mirrors `/api/status` and should be treated as authoritative
-        // for the current session/recording lifecycle.
+        // `state` mirrors `/api/status` and is the authoritative backend session snapshot.
         this.state = null;
         this.currentLiveMode = "rtsp";
         this.localRecStartPerf = null;
         this.currentDomMode = null;
 
-        // Small UI-only pending states so the app reacts immediately while
-        // the backend is still working.
+        // UI-only pending flags keep the interface responsive while backend requests finish.
         this.isStartPending = false;
         this.isStopPending = false;
         this.isClipPending = false;
@@ -130,9 +120,9 @@ export class ElementReviewApp {
         this.pendingOpenClipSlotIndex = null;
         this.suppressOpenClipPlaceholder = false;
 
-        // Cache appconfig once up front so the first clip button press does
-        // not need to fetch it on demand.
+        // Cache appconfig early so later interactions do not need an extra fetch.
         this.appConfig = null;
+        this.appVersion = "v0.4.2-alpha";
         this.currentLanguage = "en";
         this.i18n = window.INDEX_I18N || {};
         this.buttonImageUrlCache = new Map();
@@ -151,8 +141,7 @@ export class ElementReviewApp {
         this.programTimerRunning = false;
         this.pendingRecordShortcut = null;
 
-        // Element metadata comes from `/api/elements` / SessionInfo.json and is
-        // intentionally kept separate from clip timing returned by `/api/status`.
+        // Element metadata comes from `/api/elements` and stays separate from clip timing in `/api/status`.
         this.elementMeta = {};
         this.elementMetaVersion = 0;
         this.elementMetaSig = "";
@@ -210,6 +199,7 @@ export class ElementReviewApp {
         await Promise.all([
             this.refreshLiveUrl(),
             this.warmAppConfig(),
+            this.warmAppInfo(),
         ]);
         this.updateReplayStatusPanel();
         this.startReplayHostPolling();
@@ -217,15 +207,13 @@ export class ElementReviewApp {
         this.ensureLayoutObserver();
         this.scheduleLayout();
 
-        // Status and element metadata are polled independently because they
-        // change at different times and come from different backend sources.
+        // Status and element metadata are polled separately because they come from different backend sources.
         setInterval(() => {
             this.pollStatus().catch(() => { });
             this.pollElementNames().catch(() => { });
         }, 500);
 
-        // Recording mode updates the timeline and timers locally between polls
-        // so the UI feels continuous even though the backend is polled.
+        // Keep timers and the timeline moving smoothly between backend polls.
         setInterval(() => {
             if (!this.state) return;
             if (this.state.mode !== "record" || !this.state.isRecording) return;
@@ -250,7 +238,7 @@ export class ElementReviewApp {
         }
 
         this.currentLanguage = this.normalizeLanguage(
-            this.appConfig?.Language ?? this.appConfig?.language ?? this.currentLanguage
+            this.appConfig?.Language ?? this.currentLanguage
         );
         this.applyTranslations();
         this.syncHalfwayToggleFromConfig(this.appConfig);
@@ -262,7 +250,7 @@ export class ElementReviewApp {
     }
 
     getHalfwayEnabledValue(config = this.appConfig) {
-        const value = config?.HalfwayEnabled ?? config?.halfwayEnabled;
+        const value = config?.HalfwayEnabled;
         return typeof value === "boolean" ? value : true;
     }
 
@@ -617,7 +605,7 @@ export class ElementReviewApp {
 
     getClipMarkerAdvanceSeconds() {
         const cfg = this.appConfig;
-        const advanceMsec = Number(cfg?.clipMarkerAdvanceMsec ?? cfg?.ClipMarkerAdvanceMsec ?? 0);
+        const advanceMsec = Number(cfg?.ClipMarkerAdvanceMsec ?? 0);
         return Math.max(0, advanceMsec / 1000);
     }
 
@@ -765,7 +753,6 @@ export class ElementReviewApp {
         try {
             localStorage.setItem(LS_EDIT_KEY, on ? "1" : "0");
         } catch {
-            // ignore
         }
     }
 
@@ -862,15 +849,15 @@ export class ElementReviewApp {
     }
 
     clipIdx(clip) {
-        return Number(clip?.index ?? clip?.Index ?? 0);
+        return Number(clip?.index ?? 0);
     }
 
     clipStart(clip) {
-        return Number(clip?.startSeconds ?? clip?.StartSeconds ?? 0);
+        return Number(clip?.startSeconds ?? 0);
     }
 
     clipEnd(clip) {
-        return Number(clip?.endSeconds ?? clip?.EndSeconds ?? 0);
+        return Number(clip?.endSeconds ?? 0);
     }
 
     getClips() {
@@ -1109,42 +1096,22 @@ export class ElementReviewApp {
     }
 
     normalizeElementsPayload(payload) {
-        // SessionInfo/elements data has evolved over time and can arrive in
-        // camelCase, PascalCase, array form, or object form. Normalize it once
-        // here so the rest of the UI can use a single shape.
+        // Normalize the documented SessionInfo `elements` object into the
+        // shape the rest of the UI expects.
         const out = {};
         if (!payload) return out;
 
-        const elements = payload.elements ?? payload.Elements ?? payload;
+        const elements = payload.elements;
         const toBool = (value) =>
             value === true || value === 1 || value === "1" || String(value).toLowerCase() === "true";
-
-        if (Array.isArray(elements)) {
-            for (const item of elements) {
-                const idx = parseInt(item?.index ?? item?.Index ?? item?.id ?? item?.Id, 10);
-                if (!Number.isFinite(idx) || idx <= 0) continue;
-
-                const code = (item?.code ?? item?.Code ?? item?.name ?? item?.Name ?? "").toString().trim();
-                const review = toBool(item?.review ?? item?.Review ?? item?.reviewed ?? item?.Reviewed);
-
-                if (code) out[idx] = { code, review };
-            }
-            return out;
-        }
 
         if (elements && typeof elements === "object") {
             for (const [key, value] of Object.entries(elements)) {
                 const idx = parseInt(key, 10);
                 if (!Number.isFinite(idx) || idx <= 0) continue;
 
-                if (typeof value === "string" || typeof value === "number") {
-                    const code = String(value).trim();
-                    if (code) out[idx] = { code, review: false };
-                    continue;
-                }
-
-                const code = (value?.code ?? value?.Code ?? value?.name ?? value?.Name ?? "").toString().trim();
-                const review = toBool(value?.review ?? value?.Review ?? value?.reviewed ?? value?.Reviewed);
+                const code = (value?.code ?? "").toString().trim();
+                const review = toBool(value?.review);
 
                 if (code) out[idx] = { code, review };
             }
@@ -1153,15 +1120,13 @@ export class ElementReviewApp {
         return out;
     }
 
-    getSessionInfoField(payload, camelName) {
+    getSessionInfoField(payload, propertyName) {
         if (!payload || typeof payload !== "object") return "";
-
-        const pascalName = camelName.charAt(0).toUpperCase() + camelName.slice(1);
-        return (payload[camelName] ?? payload[pascalName] ?? "").toString().trim();
+        return (payload[propertyName] ?? "").toString().trim();
     }
 
-    getSessionInfoTimeSeconds(payload, camelName) {
-        const raw = this.getSessionInfoField(payload, camelName);
+    getSessionInfoTimeSeconds(payload, propertyName) {
+        const raw = this.getSessionInfoField(payload, propertyName);
         if (!raw) return null;
 
         if (!raw.includes(":")) {
@@ -1257,12 +1222,12 @@ export class ElementReviewApp {
             this.updateSessionInfoOverlay();
             this.updateReplayStatusPanel();
         } catch {
-            // silent fail; we'll try again on the next poll
+            // Polling will retry on the next cycle.
         }
     }
 
     getFps() {
-        const value = this.state?.sourceFps ?? this.state?.SourceFps ?? 60;
+        const value = this.state?.sourceFps ?? 60;
         return Math.max(1, Math.round(Number(value) || 60));
     }
 
@@ -1559,11 +1524,21 @@ export class ElementReviewApp {
 
     syncLanguageFromConfig(config) {
         const nextLanguage = this.normalizeLanguage(
-            config?.Language ?? config?.language ?? this.currentLanguage
+            config?.Language ?? this.currentLanguage
         );
 
         this.currentLanguage = nextLanguage;
         this.applyTranslations();
+    }
+
+    async warmAppInfo() {
+        try {
+            const info = await apiGet("/api/appinfo");
+            if (info?.version) {
+                this.appVersion = String(info.version).trim() || this.appVersion;
+            }
+        } catch {
+        }
     }
 
     async setLanguage(language) {
@@ -1572,7 +1547,7 @@ export class ElementReviewApp {
         const nextLanguage = this.normalizeLanguage(language);
         const baseConfig = this.appConfig ?? await apiGet(`/api/appconfig?ts=${Date.now()}`);
         const previousLanguage = this.normalizeLanguage(
-            baseConfig?.Language ?? baseConfig?.language ?? this.currentLanguage
+            baseConfig?.Language ?? this.currentLanguage
         );
 
         if (previousLanguage === nextLanguage && this.currentLanguage === nextLanguage) {
@@ -1617,7 +1592,7 @@ export class ElementReviewApp {
             if (config?.DemoMode) {
                 this.setReplayPingStatus("encoder", "disabled");
             } else {
-                const encoderHost = this.getHostFromRtspUrl(config?.RtspUrl ?? config?.rtspUrl);
+                const encoderHost = this.getHostFromRtspUrl(config?.RtspUrl);
                 if (!encoderHost) {
                     this.setReplayPingStatus("encoder", "red");
                 } else {
@@ -1630,16 +1605,16 @@ export class ElementReviewApp {
                 }
             }
 
-            const cssLink = this.normalizeCssLinkValue(config?.CSSLink ?? config?.cssLink);
+            const cssLink = this.normalizeCssLinkValue(config?.CSSLink);
 
             let cssHost = "";
             let cssDisabled = false;
             if (cssLink === "Legacy") {
-                cssHost = this.getHostFromDatabaseLocation(config?.DatabaseLocation ?? config?.databaseLocation);
+                cssHost = this.getHostFromDatabaseLocation(config?.DatabaseLocation);
             } else if (cssLink === "Online CSS") {
                 cssHost = this.getHostFromDatabaseLocation("http://css.skatecanada.ca/en");
             } else if (cssLink === "Offline CSS") {
-                cssHost = this.getHostFromDatabaseLocation(config?.CSSServerHost ?? config?.cssServerHost);
+                cssHost = this.getHostFromDatabaseLocation(config?.CSSServerHost);
             } else {
                 cssDisabled = true;
             }

@@ -1,12 +1,10 @@
 using System.Text.Json;
 using ElementReview.Models;
 
-//SessionManager.cs
 namespace ElementReview.Services;
 
-// Holds the in-memory session state that drives record mode, replay mode, and
-// clip editing. It is the backend source of truth for clip timing and review
-// history during a single competitor's session.
+// Holds the in-memory session state for a single competitor, including clip timing,
+// replay edits, undo/redo state, and review-history flags derived from SessionInfo.
 public class SessionManager
 {
     private readonly object _lock = new();
@@ -23,7 +21,6 @@ public class SessionManager
     private readonly HashSet<int> _everReviewedIndices = new();
     private string? _savedMarkerJsonPath;
 
-    // Undo support for record-mode clip start/stop actions.
     private enum ClipActionKind { Start, Stop }
 
     private sealed class ClipAction
@@ -38,7 +35,6 @@ public class SessionManager
     private const double MinClipLenSeconds = 0.05;
     private const double OverlapEps = 0.0005;
 
-    // Recording and replay state transitions
     public void OnRecordingArming()
     {
         lock (_lock)
@@ -151,8 +147,7 @@ public class SessionManager
         }
     }
 
-    // Review flags are remembered so replay clips can stay marked even if the
-    // SessionInfo payload changes between polls.
+    // Review flags are sticky for the session so replay clips stay marked even if SessionInfo updates later.
     public void UpdateReviewHistory(IReadOnlyDictionary<int, bool>? reviewFlags)
     {
         if (reviewFlags == null) return;
@@ -188,41 +183,25 @@ public class SessionManager
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            if (TryGetPropertyIgnoreCase(root, "elements", out var elementsRoot))
-                root = elementsRoot;
-
-            if (root.ValueKind == JsonValueKind.Array)
+            if (root.ValueKind == JsonValueKind.Object &&
+                root.TryGetProperty("elements", out var elementsRoot) &&
+                elementsRoot.ValueKind == JsonValueKind.Object)
             {
-                foreach (var item in root.EnumerateArray())
-                {
-                    var idx = GetInt(item, "index", "Index", "id", "Id");
-                    if (idx < 1) continue;
-
-                    result[idx] = GetBool(item, "review", "Review", "reviewed", "Reviewed");
-                }
-
-                return result;
-            }
-
-            if (root.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var prop in root.EnumerateObject())
+                foreach (var prop in elementsRoot.EnumerateObject())
                 {
                     if (!int.TryParse(prop.Name, out var idx) || idx < 1) continue;
 
-                    result[idx] = GetBool(prop.Value, "review", "Review", "reviewed", "Reviewed");
+                    result[idx] = GetBool(prop.Value, "review");
                 }
             }
         }
         catch
         {
-            // ignore malformed JSON
         }
 
         return result;
     }
 
-    // Record-mode clip marking and undo
     public void ToggleClipMarker(double nowSeconds)
     {
         lock (_lock)
@@ -355,7 +334,6 @@ public class SessionManager
         }
     }
 
-    // Replay-mode clip editing
     public void DeleteClip(int index)
     {
         lock (_lock)
@@ -525,7 +503,6 @@ public class SessionManager
         }
     }
 
-    // Internal validation and persistence helpers
     private bool IsReplayReady_NoLock()
     {
         if (IsArming) return false;
@@ -632,69 +609,28 @@ public class SessionManager
         }
         catch
         {
-            // ignore marker export failures
         }
     }
 
     private static double RoundToTenths(double value)
         => Math.Round(Math.Max(0, value), 1, MidpointRounding.AwayFromZero);
 
-    private static bool TryGetPropertyIgnoreCase(JsonElement element, string name, out JsonElement value)
+    private static bool GetBool(JsonElement element, string name)
     {
-        value = default;
+        if (element.ValueKind != JsonValueKind.Object) return false;
+        if (!element.TryGetProperty(name, out var value)) return false;
 
-        if (element.ValueKind != JsonValueKind.Object)
-            return false;
+        if (value.ValueKind == JsonValueKind.True) return true;
+        if (value.ValueKind == JsonValueKind.False) return false;
 
-        foreach (var prop in element.EnumerateObject())
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var n))
+            return n != 0;
+
+        if (value.ValueKind == JsonValueKind.String)
         {
-            if (prop.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-            {
-                value = prop.Value;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static int GetInt(JsonElement element, params string[] names)
-    {
-        foreach (var name in names)
-        {
-            if (!TryGetPropertyIgnoreCase(element, name, out var value))
-                continue;
-
-            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var n))
-                return n;
-
-            if (value.ValueKind == JsonValueKind.String &&
-                int.TryParse(value.GetString(), out n))
-                return n;
-        }
-
-        return 0;
-    }
-
-    private static bool GetBool(JsonElement element, params string[] names)
-    {
-        foreach (var name in names)
-        {
-            if (!TryGetPropertyIgnoreCase(element, name, out var value))
-                continue;
-
-            if (value.ValueKind == JsonValueKind.True) return true;
-            if (value.ValueKind == JsonValueKind.False) return false;
-
-            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var n))
-                return n != 0;
-
-            if (value.ValueKind == JsonValueKind.String)
-            {
-                var s = value.GetString();
-                if (bool.TryParse(s, out var b)) return b;
-                if (int.TryParse(s, out n)) return n != 0;
-            }
+            var s = value.GetString();
+            if (bool.TryParse(s, out var b)) return b;
+            if (int.TryParse(s, out n)) return n != 0;
         }
 
         return false;

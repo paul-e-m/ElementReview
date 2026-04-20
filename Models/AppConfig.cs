@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 
-//AppConfig.cs
 namespace ElementReview.Models;
 
 public class AppConfig

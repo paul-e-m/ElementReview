@@ -4,12 +4,10 @@ using System.Globalization;
 using System.Text.Json;
 using ElementReview.Models;
 
-//RecorderManager.cs
 namespace ElementReview.Services;
 
-// Coordinates the ffmpeg-based recording pipeline. It starts and stops
-// captures, produces replay assets, and optionally exports saved videos using
-// SessionInfo metadata for naming.
+// Runs the ffmpeg recording pipeline, prepares replay assets, and optionally
+// exports completed recordings into the configured saved-video folder tree.
 public class RecorderManager
 {
     private readonly object _lock = new();
@@ -54,7 +52,7 @@ public class RecorderManager
         _session = session;
     }
 
-    // Backward-compatible aliases used elsewhere in the app.
+    // Legacy property names retained for existing callers inside the app.
     public string OutputFilePath => _encodedFile;
     public string TempFilePath => _encodedTempFile;
 
@@ -63,7 +61,6 @@ public class RecorderManager
     public string CopiedOutputFilePath => _copiedFile;
     public string CopiedTempFilePath => _copiedTempFile;
 
-    // Recording process lifecycle
     public bool IsRecording
     {
         get
@@ -96,7 +93,6 @@ public class RecorderManager
         }
         catch
         {
-            // ignore
         }
         finally
         {
@@ -104,8 +100,7 @@ public class RecorderManager
         }
     }
 
-    // Warm up encoder detection before the user presses Start Recording.
-    // This moves ffmpeg capability probing off the operator's critical path.
+    // Probe encoder/input readiness ahead of time so the first record click has less startup work.
     public void Warmup(AppConfig cfg)
     {
         string? ffmpegExe = null;
@@ -225,7 +220,6 @@ public class RecorderManager
         }
         catch
         {
-            // ignore
         }
         finally
         {
@@ -283,7 +277,6 @@ public class RecorderManager
         }
         catch (OperationCanceledException)
         {
-            // ignore
         }
         catch
         {
@@ -491,7 +484,7 @@ public class RecorderManager
         }
         catch
         {
-            // Best-effort only. A failed warm-up should never block recording.
+            // Warm-up failures should not block a real recording attempt.
         }
     }
 
@@ -604,7 +597,6 @@ public class RecorderManager
         }
         catch
         {
-            // ignore
         }
     }
 
@@ -624,7 +616,6 @@ public class RecorderManager
         }
         catch
         {
-            // ignore
         }
     }
 
@@ -758,32 +749,15 @@ public class RecorderManager
 
             var info = new ExportInfo
             {
-                CategoryName = FindStringRecursive(root, "categoryName", "CategoryName", "category", "Category"),
-                CategoryDiscipline = FindStringRecursive(root, "categoryDiscipline", "CategoryDiscipline", "discipline", "Discipline"),
-                CategoryFlight = FindStringRecursive(root, "categoryFlight", "CategoryFlight", "flight", "Flight"),
-                SegmentName = FindStringRecursive(root, "segmentName", "SegmentName", "segment", "Segment", "segDesc", "SegDesc"),
-                CompetitorFirstName = FindStringRecursive(root, "competitorFirstName", "CompetitorFirstName", "firstName", "FirstName"),
-                CompetitorLastName = FindStringRecursive(root, "competitorLastName", "CompetitorLastName", "lastName", "LastName"),
-                CompetitorClub = FindStringRecursive(root, "competitorClub", "CompetitorClub", "clubName", "ClubName", "club", "Club"),
-                CompetitorSection = FindStringRecursive(root, "competitorSection", "CompetitorSection", "section", "Section")
+                CategoryName = GetRootString(root, "categoryName"),
+                CategoryDiscipline = GetRootString(root, "categoryDiscipline"),
+                CategoryFlight = GetRootString(root, "categoryFlight"),
+                SegmentName = GetRootString(root, "segmentName"),
+                CompetitorFirstName = GetRootString(root, "competitorFirstName"),
+                CompetitorLastName = GetRootString(root, "competitorLastName"),
+                CompetitorClub = GetRootString(root, "competitorClub"),
+                CompetitorSection = GetRootString(root, "competitorSection")
             };
-
-            if (string.IsNullOrWhiteSpace(info.CompetitorFirstName) && string.IsNullOrWhiteSpace(info.CompetitorLastName))
-            {
-                var fullName = FindStringRecursive(
-                    root,
-                    "competitorName",
-                    "CompetitorName",
-                    "competitorFullName",
-                    "CompetitorFullName",
-                    "skaterName",
-                    "SkaterName");
-
-                SplitFullName(fullName, out var firstName, out var lastName);
-
-                info.CompetitorFirstName = firstName;
-                info.CompetitorLastName = lastName;
-            }
 
             return info;
         }
@@ -833,34 +807,6 @@ public class RecorderManager
         return path;
     }
 
-    private static void SplitFullName(string? fullName, out string firstName, out string lastName)
-    {
-        firstName = "";
-        lastName = "";
-
-        if (string.IsNullOrWhiteSpace(fullName)) return;
-
-        var trimmed = fullName.Trim();
-
-        var commaParts = trimmed.Split(',', 2, StringSplitOptions.TrimEntries);
-        if (commaParts.Length == 2)
-        {
-            lastName = commaParts[0];
-            firstName = commaParts[1];
-            return;
-        }
-
-        var parts = trimmed.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 1)
-        {
-            firstName = parts[0];
-            return;
-        }
-
-        lastName = parts[^1];
-        firstName = string.Join(" ", parts, 0, parts.Length - 1);
-    }
-
     private static string SanitizePathPart(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return "";
@@ -874,43 +820,11 @@ public class RecorderManager
         return cleaned.Trim(' ', '_', '.');
     }
 
-    private static string FindStringRecursive(JsonElement element, params string[] propertyNames)
+    private static string GetRootString(JsonElement element, string propertyName)
     {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.Object:
-                foreach (var prop in element.EnumerateObject())
-                {
-                    for (int i = 0; i < propertyNames.Length; i++)
-                    {
-                        if (prop.Name.Equals(propertyNames[i], StringComparison.OrdinalIgnoreCase))
-                        {
-                            var value = JsonElementToString(prop.Value);
-                            if (!string.IsNullOrWhiteSpace(value))
-                                return value;
-                        }
-                    }
-                }
-
-                foreach (var prop in element.EnumerateObject())
-                {
-                    var nested = FindStringRecursive(prop.Value, propertyNames);
-                    if (!string.IsNullOrWhiteSpace(nested))
-                        return nested;
-                }
-                break;
-
-            case JsonValueKind.Array:
-                foreach (var item in element.EnumerateArray())
-                {
-                    var nested = FindStringRecursive(item, propertyNames);
-                    if (!string.IsNullOrWhiteSpace(nested))
-                        return nested;
-                }
-                break;
-        }
-
-        return "";
+        if (element.ValueKind != JsonValueKind.Object) return "";
+        if (!element.TryGetProperty(propertyName, out var value)) return "";
+        return JsonElementToString(value);
     }
 
     private static string JsonElementToString(JsonElement element)

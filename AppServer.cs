@@ -5,12 +5,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
+using System.Reflection;
 using System.Text.Json;
 using ElementReview.Models;
 using ElementReview.Services;
 using ElementReview.Shell;
 
-//AppServer.cs
 namespace ElementReview.Hosting;
 
 public static class AppServer
@@ -90,6 +90,18 @@ public static class AppServer
             }
 
             return cfg;
+        }
+
+        static string GetAppVersion()
+        {
+            var version =
+                Assembly.GetExecutingAssembly()
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                    ?.InformationalVersion
+                ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+                ?? "0.0.0";
+
+            return version.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? version : $"v{version}";
         }
 
         AppConfig LoadConfig()
@@ -208,27 +220,21 @@ public static class AppServer
             }
         }
 
-        static int? TryGetInt(JsonElement root, params string[] names)
+        static int? TryGetInt(JsonElement root, string name)
         {
-            foreach (var n in names)
-            {
-                if (!root.TryGetProperty(n, out var v)) continue;
+            if (!root.TryGetProperty(name, out var value)) return null;
 
-                if (v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i)) return i;
-                if (v.ValueKind == JsonValueKind.String && int.TryParse(v.GetString(), out var s)) return s;
-            }
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number)) return number;
+            if (value.ValueKind == JsonValueKind.String && int.TryParse(value.GetString(), out var parsed)) return parsed;
             return null;
         }
 
-        static double? TryGetDouble(JsonElement root, params string[] names)
+        static double? TryGetDouble(JsonElement root, string name)
         {
-            foreach (var n in names)
-            {
-                if (!root.TryGetProperty(n, out var v)) continue;
+            if (!root.TryGetProperty(name, out var value)) return null;
 
-                if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d)) return d;
-                if (v.ValueKind == JsonValueKind.String && double.TryParse(v.GetString(), out var s)) return s;
-            }
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number)) return number;
+            if (value.ValueKind == JsonValueKind.String && double.TryParse(value.GetString(), out var parsed)) return parsed;
             return null;
         }
 
@@ -289,7 +295,15 @@ public static class AppServer
         app.MapGet("/api/appconfig", () =>
         {
             var cfg = LoadConfig();
-            return Results.Ok(cfg);
+            return Results.Json(cfg, jsonOpts);
+        });
+
+        app.MapGet("/api/appinfo", () =>
+        {
+            return Results.Json(new
+            {
+                version = GetAppVersion()
+            }, jsonOpts);
         });
 
         app.MapPost("/api/appconfig", (AppConfig cfg, MediaMtxManager mtx) =>
@@ -300,7 +314,7 @@ public static class AppServer
             if (!cfg.DemoMode)
                 mtx.Restart(cfg);
 
-            return Results.Ok(cfg);
+            return Results.Json(cfg, jsonOpts);
         });
 
         app.MapGet("/api/elements", (SessionManager session) =>
@@ -610,8 +624,8 @@ public static class AppServer
             var root = await ReadJsonRootAsync(req);
             if (root is null) return Results.BadRequest("Missing JSON body.");
 
-            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
-            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
+            var clipIndex = TryGetInt(root.Value, "index");
+            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing index.");
 
             session.DeleteClip(clipIndex.Value);
             return Results.Ok(session.GetStatus(cfg.SourceFps));
@@ -623,8 +637,8 @@ public static class AppServer
             var root = await ReadJsonRootAsync(req);
             if (root is null) return Results.BadRequest("Missing JSON body.");
 
-            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
-            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
+            var clipIndex = TryGetInt(root.Value, "index");
+            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing index.");
 
             session.DeleteClipWhileRecording(clipIndex.Value);
             return Results.Ok(session.GetStatus(cfg.SourceFps));
@@ -636,10 +650,10 @@ public static class AppServer
             var root = await ReadJsonRootAsync(req);
             if (root is null) return Results.BadRequest("Missing JSON body.");
 
-            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
-            var splitSeconds = TryGetDouble(root.Value, "splitSeconds", "SplitSeconds", "atSeconds", "AtSeconds", "nowSeconds", "NowSeconds", "timeSeconds", "TimeSeconds");
+            var clipIndex = TryGetInt(root.Value, "index");
+            var splitSeconds = TryGetDouble(root.Value, "splitSeconds");
 
-            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
+            if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing index.");
             if (splitSeconds is null) return Results.BadRequest("Missing splitSeconds.");
 
             session.SplitClip(clipIndex.Value, splitSeconds.Value);
@@ -652,19 +666,12 @@ public static class AppServer
             var root = await ReadJsonRootAsync(req);
             if (root is null) return Results.BadRequest("Missing JSON body.");
 
-            var startSeconds = TryGetDouble(root.Value, "startSeconds", "StartSeconds");
-            var endSeconds = TryGetDouble(root.Value, "endSeconds", "EndSeconds");
+            var startSeconds = TryGetDouble(root.Value, "startSeconds");
+            var endSeconds = TryGetDouble(root.Value, "endSeconds");
+            if (startSeconds is null || endSeconds is null)
+                return Results.BadRequest("Missing startSeconds or endSeconds.");
 
-            if (startSeconds.HasValue && endSeconds.HasValue)
-            {
-                session.InsertClip(startSeconds.Value, endSeconds.Value);
-                return Results.Ok(session.GetStatus(cfg.SourceFps));
-            }
-
-            var atSeconds = TryGetDouble(root.Value, "atSeconds", "AtSeconds", "nowSeconds", "NowSeconds", "timeSeconds", "TimeSeconds");
-            if (atSeconds is null) return Results.BadRequest("Missing startSeconds/endSeconds or atSeconds.");
-
-            session.InsertClip(atSeconds.Value, atSeconds.Value + 1.0);
+            session.InsertClip(startSeconds.Value, endSeconds.Value);
             return Results.Ok(session.GetStatus(cfg.SourceFps));
         });
 
@@ -674,8 +681,8 @@ public static class AppServer
             var root = await ReadJsonRootAsync(req);
             if (root is null) return Results.BadRequest("Missing JSON body.");
 
-            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
-            var atSeconds = TryGetDouble(root.Value, "atSeconds", "AtSeconds", "nowSeconds", "NowSeconds", "timeSeconds", "TimeSeconds");
+            var clipIndex = TryGetInt(root.Value, "clipIndex");
+            var atSeconds = TryGetDouble(root.Value, "atSeconds");
 
             if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
             if (atSeconds is null) return Results.BadRequest("Missing atSeconds.");
@@ -690,8 +697,8 @@ public static class AppServer
             var root = await ReadJsonRootAsync(req);
             if (root is null) return Results.BadRequest("Missing JSON body.");
 
-            var clipIndex = TryGetInt(root.Value, "clipIndex", "ClipIndex", "index", "Index");
-            var atSeconds = TryGetDouble(root.Value, "atSeconds", "AtSeconds", "nowSeconds", "NowSeconds", "timeSeconds", "TimeSeconds");
+            var clipIndex = TryGetInt(root.Value, "clipIndex");
+            var atSeconds = TryGetDouble(root.Value, "atSeconds");
 
             if (clipIndex is null || clipIndex.Value <= 0) return Results.BadRequest("Missing clipIndex.");
             if (atSeconds is null) return Results.BadRequest("Missing atSeconds.");

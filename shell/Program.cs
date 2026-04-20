@@ -3,7 +3,6 @@ using ElementReview.Hosting;
 using ElementReview.Shell;
 using System.Windows.Forms;
 
-//Program.cs
 namespace ElementReview;
 
 internal static class Program

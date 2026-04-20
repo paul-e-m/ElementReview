@@ -1,14 +1,7 @@
 import { BTN_DIR, BTN_SIZE, approxEqual, clamp, isTypingTarget, apiPost } from "./app-utils.js";
 
-// ReplayController owns the replay-mode experience: playback controls, timeline
-// scrubbing, loop handling, zoom, keyboard shortcuts, and clip edit actions.
-// It sits on top of the shared app state and keeps the replay UI in sync with
-// the currently loaded recording and selected clip.
-//
-// Design note:
-// - ElementReviewApp remains the source of truth for shared session state.
-// - ReplayController owns only replay-local behavior such as playback mode,
-//   manual loops, zoom/pan state, and temporary interaction state.
+// ReplayController manages replay-local behavior such as transport, scrubbing,
+// loops, zoom, and clip edits while ElementReviewApp keeps the shared session state.
 const SPEED_BUTTON_DEFS = [
     { label: "REVERSE 1X", display: "Reverse 1x", def: -1.0, icon: "play-rev-1x.png" },
     { label: "QUARTER SPEED", display: "Slower", def: 0.25, icon: "play-025x.png" },
@@ -21,7 +14,6 @@ const SPEED_BUTTON_DEFS = [
 const REPLAY_SCRUB_MAX = 10000;
 
 export class ReplayController {
-    // Store replay-only UI state that does not belong in the shared app model.
     constructor(app) {
         this.app = app;
 
@@ -50,7 +42,6 @@ export class ReplayController {
         this.rafId = null;
     }
 
-    // Initial one-time setup for replay controls and button visuals.
     init() {
         const { loopInBtn, loopOutBtn, loopClearBtn } = this.app.refs;
 
@@ -75,9 +66,7 @@ export class ReplayController {
         }
     }
 
-    // Wire replay-local DOM events such as scrubber gestures, transport button
-    // clicks, video events, and wheel stepping. Keyboard orchestration lives
-    // separately in app-shortcut-keys.js.
+    // Wire replay DOM events. Keyboard routing is handled in app-shortcut-keys.js.
     bindEvents() {
         const refs = this.app.refs;
 
@@ -340,8 +329,7 @@ export class ReplayController {
 
     }
 
-    // The replay video now always lives in a fixed wrapper declared in
-    // index.html, so this method just binds the zoom behavior once.
+    // Bind zoom behavior to the fixed replay video wrapper.
     ensureReplayVideoWrap() {
         const { replayVideo } = this.app.refs;
         if (!replayVideo) return null;
@@ -365,23 +353,24 @@ export class ReplayController {
 
             wrap.addEventListener("dblclick", (event) => {
                 if (this.app.state?.mode !== "replay") return;
+
+                if (this.zoomState.scale > 1.0001) {
+                    this.resetZoom();
+                    return;
+                }
+
                 if (!isPointInsideRenderedVideo(event.clientX, event.clientY)) return;
 
-                // Double-click zooms into the clicked point rather than the
-                // center so the operator can quickly inspect a specific area.
+                // Zoom toward the clicked point so the operator can inspect a specific area quickly.
                 const videoRect = replayVideo.getBoundingClientRect();
                 const cx = event.clientX - videoRect.left;
                 const cy = event.clientY - videoRect.top;
 
-                if (this.zoomState.scale <= 1.0001) {
-                    const targetScale = 2.5;
-                    this.zoomState.scale = targetScale;
-                    this.zoomState.tx = cx - cx * targetScale;
-                    this.zoomState.ty = cy - cy * targetScale;
-                    this.applyZoom();
-                } else {
-                    this.resetZoom();
-                }
+                const targetScale = 2.5;
+                this.zoomState.scale = targetScale;
+                this.zoomState.tx = cx - cx * targetScale;
+                this.zoomState.ty = cy - cy * targetScale;
+                this.applyZoom();
             });
 
             wrap.dataset.zoomBound = "1";
@@ -1061,8 +1050,7 @@ export class ReplayController {
         const newStart = time;
         if (Math.abs(newStart - start) < 1e-6) return;
 
-        // Preserve the old segment so we can repair selection if the backend
-        // reindexes clips or returns a slightly different state shape.
+        // Preserve the old segment so selection can be reattached after backend edits.
         const oldSegment = { startSeconds: start, endSeconds: end };
         const newSegment = { startSeconds: newStart, endSeconds: end };
         const hadLoop = !!(this.elementLoop && this.app.segEquals(this.elementLoop, start, end, 0.03));
@@ -1106,8 +1094,7 @@ export class ReplayController {
         const newEnd = time;
         if (Math.abs(newEnd - end) < 1e-6) return;
 
-        // Preserve the old segment so we can repair selection if the backend
-        // reindexes clips or returns a slightly different state shape.
+        // Preserve the old segment so selection can be reattached after backend edits.
         const oldSegment = { startSeconds: start, endSeconds: end };
         const newSegment = { startSeconds: start, endSeconds: newEnd };
         const hadLoop = !!(this.elementLoop && this.app.segEquals(this.elementLoop, start, end, 0.03));
@@ -1144,9 +1131,7 @@ export class ReplayController {
         const duration = this.getReplayDurSeconds();
         if (!Number.isFinite(duration) || duration <= 0.01) return;
 
-        // Insert currently creates a fixed one-second placeholder clip. That
-        // keeps the gesture simple and gives the operator something concrete
-        // to trim afterward.
+        // Insert starts as a one-second placeholder clip so the operator can trim it afterward.
         const start = time;
         const end = time + 1.0;
 

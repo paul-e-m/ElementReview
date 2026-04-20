@@ -112,7 +112,7 @@ window.INDEX_I18N = {
         shortcutActionN: "Go to the next competitor",
         shortcutKeyEscape: "Escape",
         shortcutActionEscape: "Clear loops and zoom, or close the current dialog",
-        replayZoomHint: "Double click video again to exit zoom",
+        replayZoomHint: "Double click the video or press [Esc] key to exit video zoom",
     },
     fr: {
         pageTitle: "Element Review",
@@ -227,6 +227,6 @@ window.INDEX_I18N = {
         shortcutActionN: "Passer au comp\u00e9titeur suivant",
         shortcutKeyEscape: "\u00c9chap",
         shortcutActionEscape: "Effacer les boucles et le zoom, ou fermer le dialogue en cours",
-        replayZoomHint: "Double-cliquez de nouveau sur la vid\u00e9o pour quitter le zoom",
+        replayZoomHint: "Double-cliquez de nouveau sur la vid\u00e9o ou appuyez sur la touche [ESC] pour quitter le zoom",
     }
 };

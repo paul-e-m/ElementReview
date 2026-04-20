@@ -10,7 +10,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Windows.Forms;
 
-//MainForm.cs
 namespace ElementReview.Shell;
 
 public sealed class MainForm : Form
@@ -21,20 +20,8 @@ public sealed class MainForm : Form
     private SettingsForm? _settingsForm;
     private bool _restarting;
 
-    // ------------------------------------------------------------
-    // UI zoom notes
-    //
-    // WebView2 uses a zoom factor where:
-    //   1.0 = 100%
-    //   0.9 =  90%
-    //
-    // We store the setting in LocalAppData\ElementReview\data\appconfig.json
-    // so the shell and config.html both read/write the same value.
-    //
-    // Ctrl+ / Ctrl- continue to work because WebView2 zoom controls
-    // remain enabled. When the user changes zoom, we save the new
-    // value back into appconfig.json so it persists across sessions.
-    // ------------------------------------------------------------
+    // WebView2 uses fractional zoom factors, while appconfig stores whole percents.
+    // These bounds keep both representations aligned across the shell and config page.
     private const int DefaultUiZoomPercent = 90;
     private const int MinUiZoomPercent = 50;
     private const int MaxUiZoomPercent = 250;
@@ -95,8 +82,7 @@ public sealed class MainForm : Form
         if (alreadyFits)
             return;
 
-        // Some Windows/WebView2 setups report a maximized form that still dips
-        // under the taskbar. Re-applying the working area keeps the replay bar visible.
+        // Re-apply the working area if Windows reports a maximized window that still overlaps the taskbar.
         WindowState = FormWindowState.Normal;
         Bounds = workingArea;
         WindowState = FormWindowState.Maximized;
@@ -111,14 +97,9 @@ public sealed class MainForm : Form
 
             _webView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
 
-            // Keep normal browser-like zoom controls enabled:
-            // Ctrl+, Ctrl-, Ctrl+0, Ctrl+mouse wheel, etc.
+            // Leave WebView2 zoom shortcuts enabled and persist the resulting factor back to appconfig.
             _webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
-
-            // Apply the saved default zoom before loading the main page.
             _webView.ZoomFactor = ReadUiZoomFactorFromConfig();
-
-            // Save zoom whenever the user changes it.
             _webView.ZoomFactorChanged += (_, _) =>
             {
                 SaveCurrentZoomToConfig();
@@ -268,7 +249,7 @@ public sealed class MainForm : Form
             if (TryReadInt(root, "UiZoomPercent", out var percent))
                 return ClampUiZoomPercent(percent);
 
-            // Backward-compatible fallback in case a factor is ever stored instead.
+            // Accept either whole percents or a pre-scaled factor.
             if (TryReadDouble(root, "UiZoomFactor", out var factor))
                 return ClampUiZoomPercent((int)Math.Round(factor * 100.0));
 

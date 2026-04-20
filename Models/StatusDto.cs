@@ -1,15 +1,14 @@
 using ElementReview.Models;
 
-//StatusDto.cs
 namespace ElementReview.Models;
 
 public class StatusDto
 {
-    public string Mode { get; set; } = "record"; // "record" or "replay"
+    public string Mode { get; set; } = "record";
     public bool IsArming { get; set; }
     public bool IsRecording { get; set; }
 
-    // Only meaningful after stop (for replay scaling)
+    // Filled after recording stops so replay clients know the full recording length.
     public double? RecordingDurationSeconds { get; set; }
 
     public List<ClipSegment> Clips { get; set; } = new();

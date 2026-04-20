@@ -1,13 +1,7 @@
 import { el, clamp, isTypingTarget } from "./app-utils.js";
 
-// ShortcutKeysController owns only keyboard orchestration:
-// - global key listeners
-// - mode-aware shortcut routing
-// - the hold-Tab shortcut overlay
-//
-// It intentionally delegates the real work back to ElementReviewApp and
-// ReplayController so transport/edit behavior remains implemented where it
-// already lives.
+// ShortcutKeysController owns global key handling and the hold-Tab shortcut overlay.
+// Recording and replay actions still execute through ElementReviewApp and ReplayController.
 export class ShortcutKeysController {
     constructor(app) {
         this.app = app;
@@ -20,6 +14,7 @@ export class ShortcutKeysController {
             shortcutTitle: el("shortcutTitle"),
             shortcutModeLabel: el("shortcutModeLabel"),
             shortcutList: el("shortcutList"),
+            shortcutVersion: el("shortcutVersion"),
         };
     }
 
@@ -86,8 +81,7 @@ export class ShortcutKeysController {
     handleWindowKeyDown(event) {
         const refs = this.app.refs;
 
-        // Let normal text inputs behave normally, but keep the replay scrubber
-        // eligible for transport shortcuts.
+        // Let text inputs keep their editing keys while still allowing range scrubbers to work.
         if (isTypingTarget(event.target)) {
             const tag = (event.target?.tagName || "").toLowerCase();
             const type = (event.target?.type || "").toLowerCase();
@@ -413,6 +407,10 @@ export class ShortcutKeysController {
                     </div>
                 </section>
             `;
+        }
+
+        if (this.refs.shortcutVersion) {
+            this.refs.shortcutVersion.textContent = this.app.appVersion || "";
         }
     }
 

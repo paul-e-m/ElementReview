@@ -1,4 +1,3 @@
-//ShellCommands.cs
 namespace ElementReview.Shell;
 
 public static class ShellCommands

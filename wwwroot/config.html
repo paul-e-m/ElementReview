@@ -73,13 +73,6 @@
             white-space: nowrap;
         }
 
-        .version {
-            font-size: 16px;
-            font-weight: 700;
-            opacity: 0.95;
-            white-space: nowrap;
-        }
-
         .page {
             margin: 0;
             padding: 8px 8px 20px;
@@ -369,6 +362,7 @@
             gap: 10px;
             flex-wrap: wrap;
             align-items: center;
+            justify-content: flex-end;
             margin-top: 2px;
         }
 
@@ -478,10 +472,6 @@
                 font-size: 20px;
             }
 
-            .version {
-                font-size: 14px;
-            }
-
             .modalMessage {
                 font-size: 21px;
             }
@@ -500,7 +490,6 @@
         <div class="siteHeaderInner">
             <div class="brandBlock">
                 <div class="brand">Element Review</div>
-                <div class="version">( 0.1.0 alpha )</div>
             </div>
 
         </div>
@@ -994,7 +983,6 @@
 
         function removeOrphanedSettings(config) {
             delete config.PlaybackSpeeds;
-            delete config.playbackSpeeds;
             return config;
         }
 
@@ -1026,7 +1014,7 @@
         function writeForm(config) {
             serverConfig = removeOrphanedSettings({ ...config });
 
-            currentLanguage = normalizeLanguage(config.Language ?? config.language ?? "en");
+            currentLanguage = normalizeLanguage(config.Language ?? "en");
             applyTranslations();
 
             setPingIndicator(dbPingDot, dbPingText, "idle", "waiting");
@@ -1037,14 +1025,10 @@
                 const input = document.getElementById(fieldName);
                 if (!input) continue;
 
-                const camelName = fieldName.charAt(0).toLowerCase() + fieldName.slice(1);
-
                 let value =
                     config[fieldName] !== undefined
                         ? config[fieldName]
-                        : config[camelName] !== undefined
-                            ? config[camelName]
-                            : (booleanFields.includes(fieldName) ? false : "");
+                        : (booleanFields.includes(fieldName) ? false : "");
 
                 if (fieldName === "SavedVideosFolder") {
                     value = normalizeFolderPath(value);
@@ -1070,7 +1054,7 @@
                 }
             }
 
-            setCssLinkSelection(config.CSSLink ?? config.cssLink);
+            setCssLinkSelection(config.CSSLink);
             updateVideoSourceState();
         }
 
