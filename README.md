@@ -8,7 +8,7 @@ ElementReview is a Windows desktop recording and replay tool for figure skating 
 - `ffmpeg` / `ffprobe` for recording
 - MediaMTX for live RTSP relay into the browser UI
 
-The current app version is `v0.4.2-alpha`.
+The current app version is `v0.4.3-alpha`.
 
 ## What It Does
 
@@ -29,7 +29,7 @@ Current operator features include:
 - replay playback, scrubbing, looping, zoom, and frame stepping
 - replay clip editing
 - English/French UI switching from the main control bar
-- a separate remote replay page at `judge.html`
+- a separate remote replay page at `judge.html` (more to be added)
 - saved-video export into a metadata-based folder structure
 
 ## Saved Video Export
@@ -50,15 +50,15 @@ Folder and file names are built from `SessionInfo.json`.
 
 ## Architecture
 
-- [shell/Program.cs](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/shell/Program.cs>) starts the local web server and native shell.
-- [shell/MainForm.cs](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/shell/MainForm.cs>) hosts the main operator UI in WebView2.
-- [AppServer.cs](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/AppServer.cs>) serves static files and the local HTTP API.
-- [Services/RecorderManager.cs](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/Services/RecorderManager.cs>) manages recording, replay-file generation, and saved-video export.
-- [Services/MediaMtxManager.cs](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/Services/MediaMtxManager.cs>) runs MediaMTX for RTSP relay.
-- [Services/SessionManager.cs](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/Services/SessionManager.cs>) owns in-memory session and clip state.
-- [wwwroot/index.html](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/wwwroot/index.html>) is the main operator UI.
-- [wwwroot/config.html](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/wwwroot/config.html>) is the settings window.
-- [wwwroot/judge.html](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/wwwroot/judge.html>) is the remote replay page.
+- [shell/Program.cs] starts the local web server and native shell.
+- [shell/MainForm.cs] hosts the main operator UI in WebView2.
+- [AppServer.cs] serves static files and the local HTTP API.
+- [Services/RecorderManager.cs] manages recording, replay-file generation, and saved-video export.
+- [Services/MediaMtxManager.cs] runs MediaMTX for RTSP relay.
+- [Services/SessionManager.cs] owns in-memory session and clip state.
+- [wwwroot/index.html] is the main operator UI.
+- [wwwroot/config.html] is the settings window.
+- [wwwroot/judge.html] is a remote replay page.
 
 The local server listens on:
 
@@ -75,7 +75,7 @@ http://localhost:5050
 
 ## Runtime Requirements
 
-You need:
+To copmpile the app, you need:
 
 - Windows
 - .NET 10 SDK
@@ -84,11 +84,11 @@ You need:
 - `tools/ffprobe.exe`
 - `tools/mediamtx.exe`
 
-Optional CSS helper executables can be placed beside `ElementReview.exe`:
+Optional CSS helper executables should be placed beside `ElementReview.exe`:
 
-- `GetSessionInfo_LegacyCSS.exe`
-- `GetSessionInfo_OnlineCSS.exe`
-- `GetSessionInfo_OfflineCSS.exe`
+- `GetSessionInfo_LegacyCSS.exe` pulls session information from legacy CSS into SessionInfo.json
+- `GetSessionInfo_OnlineCSS.exe` pulls session information from Online CSS into SessionInfo.json
+- `GetSessionInfo_OfflineCSS.exe` pulls session information from Offline CSS into SessionInfo.json
 
 ## Data Files
 
