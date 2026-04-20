@@ -1,6 +1,6 @@
 # ElementReview
 
-ElementReview is a Windows desktop recording and replay tool for figure skating events. It combines:
+ElementReview is a Windows desktop recording and replay tool for figure skating competitions. It combines:
 
 - a local ASP.NET Core server
 - a Windows Forms shell

@@ -448,8 +448,8 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 
 /* Left number */
 .clipBtnNum {
-    width: 20px;
-    flex: 0 0 28px;
+    width: 26px;
+    flex: 0 0 34px;
     text-align: center;
     font-weight: 200;
     font-size: 14px;
@@ -473,11 +473,36 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 }
 
 .clipBtnDeleteIcon {
+    width: 18px;
+    height: 18px;
+    position: relative;
+}
+
+.clipBtnDeleteIcon {
     display: none;
     color: #ff5b5b;
-    font-size: 16px;
-    font-weight: 900;
     line-height: 1;
+}
+
+.clipBtnDeleteIcon::before,
+.clipBtnDeleteIcon::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 19px;
+    height: 4px;
+    background: currentColor;
+    border-radius: 999px;
+    transform-origin: center;
+}
+
+.clipBtnDeleteIcon::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.clipBtnDeleteIcon::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .clipBtnDeletable .clipBtnNum {

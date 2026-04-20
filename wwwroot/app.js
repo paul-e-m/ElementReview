@@ -329,7 +329,7 @@ export class ElementReviewApp {
 
     getClipRailPrimaryIconPath(kind) {
         return (kind === "stop" || kind === "stopping")
-            ? "/img/buttons/stop_slip_icon.png"
+            ? "/img/buttons/stop_clip_icon.png"
             : "/img/buttons/start_clip_icon.png";
     }
 
@@ -2190,7 +2190,6 @@ export class ElementReviewApp {
         if (showDeleteHandle) {
             const deleteIcon = document.createElement("span");
             deleteIcon.className = "clipBtnDeleteIcon";
-            deleteIcon.textContent = "✕";
             deleteIcon.setAttribute("aria-hidden", "true");
             left.appendChild(deleteIcon);
         }
