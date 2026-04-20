@@ -142,16 +142,16 @@ Notes:
 {
   "categoryName": "STAR 10",
   "categoryDiscipline": "Women",
-  "categoryFlight": "Free Program",
-  "segmentName": "Cindy Smith",
+  "categoryFlight": "Grp 1",
+  "segmentName": "Free Program",
   "segmentProgHalfTime": "1:30",
   "competitorFirstName": "Cindy",
   "competitorLastName": "Smith",
   "competitorClub": "Example Club",
   "competitorSection": "ON",
   "elements": {
-    "1": { "code": "2A", "review": false },
-    "2": { "code": "LSp4", "review": true }
+    "1": { "code": "2A", "review": true },
+    "2": { "code": "LSp1", "review": false }
   }
 }
 ```
@@ -200,4 +200,4 @@ bin\Release\net10.0-windows\win-x64\publish\
 
 ## API Reference
 
-See [API-manual.md](</P:/pCloud Sync/Data Specialist/Current ElementReview-dev/API-manual.md>) for the full endpoint list and request/response shapes.
+See [API-manual.md] for the full endpoint list and request/response shapes.
