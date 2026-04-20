@@ -136,7 +136,18 @@ Notes:
 
 ## SessionInfo Shape
 
-`SessionInfo.json` is expected to use the current canonical shape:
+`SessionInfo.json` is expected to use the current canonical shape. The app currently reads these top-level fields from it:
+
+- `categoryName`
+- `categoryDiscipline`
+- `categoryFlight`
+- `segmentName`
+- `segmentProgHalfTime`
+- `competitorFirstName`
+- `competitorLastName`
+- `competitorClub`
+- `competitorSection`
+- `elements`
 
 ```json
 {
@@ -156,13 +167,21 @@ Notes:
 }
 ```
 
-The app uses this data for:
+Within `elements`, each numbered entry can include:
 
-- session banners
-- replay element labels
-- review flags
-- halfway timing
-- saved-video folder/file naming
+- `code`: element label shown in the clip list and replay timeline
+- `review`: whether the element should be marked as a review item
+
+The app uses `SessionInfo.json` data for:
+
+- session banner text: `categoryName`, `categoryDiscipline`, `categoryFlight`, `segmentName`, `competitorFirstName`, `competitorLastName`
+- halfway/program timing: `segmentProgHalfTime`
+- replay element labels: `elements[n].code`
+- replay review flags: `elements[n].review`
+- saved-video folder naming: `categoryName`, `categoryDiscipline`, `categoryFlight`, `segmentName`
+- saved-video file naming: `competitorLastName`, `competitorFirstName`, `competitorClub`, `competitorSection`
+
+Unknown extra properties are ignored by the current app.
 
 ## Running
 
