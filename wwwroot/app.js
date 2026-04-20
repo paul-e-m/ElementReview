@@ -122,7 +122,7 @@ export class ElementReviewApp {
 
         // Cache appconfig early so later interactions do not need an extra fetch.
         this.appConfig = null;
-        this.appVersion = "v0.4.2-alpha";
+        this.appVersion = "v0.4.3-alpha";
         this.currentLanguage = "en";
         this.i18n = window.INDEX_I18N || {};
         this.buttonImageUrlCache = new Map();
@@ -758,10 +758,10 @@ export class ElementReviewApp {
 
     ensureEditToggle() {
         if (this.editToggleWrap) return;
-        if (!this.refs.deleteBtn || !this.refs.deleteBtn.parentElement) return;
+        if (!this.refs.replayLeftGroup) return;
 
-        // The toggle is injected next to the edit buttons so replay markup can
-        // stay simple and the control only exists when the page needs it.
+        // Keep the toggle anchored to the far left of the replay bar so it
+        // never shifts when the edit buttons are shown or hidden.
         const wrap = document.createElement("div");
         wrap.className = "editToggleWrap";
         wrap.innerHTML = `
@@ -772,7 +772,7 @@ export class ElementReviewApp {
       </label>
     `;
 
-        this.refs.deleteBtn.insertAdjacentElement("afterend", wrap);
+        this.refs.replayLeftGroup.insertAdjacentElement("afterbegin", wrap);
 
         this.editToggleWrap = wrap;
         this.editToggleInput = wrap.querySelector("#editToggle");

@@ -515,7 +515,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 }
 
 .clipBtnTimes {
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.05;
     font-weight: 400;
     color: rgba(240,240,240,0.88);
@@ -703,20 +703,26 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 .topBarLanguageSelect {
     width: var(--topBarLanguageSelectW);
     height: 34px;
-    padding: 0 10px;
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 4px;
-    background: rgba(255,255,255,0.16);
-    color: #f3f6fb;
+    padding: 0 34px 0 12px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #3f4650;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1.25 5 5.25 9 1.25' fill='none' stroke='%23d7dbe1' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    color: #d7dbe1;
     font: 600 14px/1 system-ui, Segoe UI, Arial, sans-serif;
     cursor: pointer;
+    box-shadow: none;
 }
 
 .topBarLanguageSelect:focus,
 .topBarLanguageSelect:focus-visible {
     outline: 0;
-    border-color: rgba(255,255,255,0.34);
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.14) !important;
+    border-color: rgba(215,219,225,0.34);
+    box-shadow: 0 0 0 2px rgba(215,219,225,0.12);
 }
 
 .topBarLanguageSelect:disabled {
@@ -742,7 +748,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
         0 10px 26px rgba(0,0,0,0.12);
     backdrop-filter: blur(14px) saturate(125%);
     -webkit-backdrop-filter: blur(14px) saturate(125%);
-    color: #4f5966;
+    color: #2f3b49;
 }
 
 .replayReviewCol {
@@ -895,7 +901,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 .replayCountCol .recordTimerCard,
 .replayCountCol .recordTimerLabel,
 .replayCountCol .recordTimerValue {
-    color: #4f5966;
+    color: #2f3b49;
     font-size: var(--replayStatusFontPx);
 }
 
@@ -1614,7 +1620,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     letter-spacing: 0.2px;
     font-variant-numeric: tabular-nums;
     text-transform: uppercase;
-    color: #4f5966;
+    color: #2f3b49;
     background: transparent;
     border: 0;
     border-radius: 0;
@@ -1675,7 +1681,8 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-left: 10px; /* gives a little space after Delete */
+    flex: 0 0 auto;
+    padding-left: 3px;
     user-select: none;
 }
 
