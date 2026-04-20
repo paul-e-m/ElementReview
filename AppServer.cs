@@ -317,7 +317,7 @@ public static class AppServer
             return Results.Json(cfg, jsonOpts);
         });
 
-        app.MapGet("/api/elements", (SessionManager session) =>
+        app.MapGet("/api/sessionInfo", (SessionManager session) =>
         {
             try
             {

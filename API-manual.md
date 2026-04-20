@@ -55,9 +55,9 @@ Common status codes:
 }
 ```
 
-### SessionInfo / Elements
+### SessionInfo
 
-`GET /api/elements` returns the raw SessionInfo payload. The app expects the current canonical shape:
+`GET /api/sessionInfo` returns the raw SessionInfo payload. The app expects the current canonical shape:
 
 ```json
 {
@@ -111,7 +111,7 @@ Common status codes:
 | `GET` | `/api/appconfig` | Read app configuration |
 | `POST` | `/api/appconfig` | Save app configuration |
 | `GET` | `/api/appinfo` | Get app version info |
-| `GET` | `/api/elements` | Read current SessionInfo payload |
+| `GET` | `/api/sessionInfo` | Read current SessionInfo payload |
 | `GET` | `/api/demoVideo` | Stream the demo video |
 | `GET` | `/demo-live` | Demo-video player page |
 | `GET` | `/rtsp-live` | RTSP live player page |
@@ -202,9 +202,9 @@ Returns the app version:
 }
 ```
 
-## SessionInfo / Elements
+## SessionInfo
 
-### GET `/api/elements`
+### GET `/api/sessionInfo`
 
 Returns the current `SessionInfo.json` contents.
 

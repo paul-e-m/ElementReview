@@ -141,7 +141,7 @@ export class ElementReviewApp {
         this.programTimerRunning = false;
         this.pendingRecordShortcut = null;
 
-        // Element metadata comes from `/api/elements` and stays separate from clip timing in `/api/status`.
+        // Element metadata comes from `/api/sessionInfo` and stays separate from clip timing in `/api/status`.
         this.elementMeta = {};
         this.elementMetaVersion = 0;
         this.elementMetaSig = "";
@@ -1192,7 +1192,7 @@ export class ElementReviewApp {
 
     async pollElementNames() {
         try {
-            const payload = await apiGet(`/api/elements?ts=${Date.now()}`);
+            const payload = await apiGet(`/api/sessionInfo?ts=${Date.now()}`);
             const nextMap = this.normalizeElementsPayload(payload);
             const nextSessionInfoText = this.buildSessionInfoText(payload);
             const nextHalfwaySeconds = this.getSessionInfoTimeSeconds(payload, "segmentProgHalfTime");
