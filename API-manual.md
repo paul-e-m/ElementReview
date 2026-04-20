@@ -198,7 +198,7 @@ Returns the app version:
 
 ```json
 {
-  "version": "v0.4.2-alpha"
+  "version": "v0.4.3-alpha"
 }
 ```
 
