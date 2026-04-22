@@ -15,6 +15,7 @@ export class ElementReviewApp {
             replayMode: el("replayMode"),
             recordTopRow: el("recordTopRow"),
             replayTopRow: el("replayTopRow"),
+            rightContent: document.querySelector(".rightContent"),
             mainBtn: el("mainBtn"),
             mainBtnHostRecord: el("mainBtnHostRecord"),
             mainBtnHostReplay: el("mainBtnHostReplay"),
@@ -1403,6 +1404,26 @@ export class ElementReviewApp {
         };
         this.updateReplayStatusPanel();
     }
+
+    normalizeRtspTransportProtocolValue(value) {
+        return String(value || "").trim().toUpperCase() === "TCP" ? "TCP" : "UDP";
+    }
+
+    getEncoderStatusBadge(config = this.appConfig) {
+        if (config?.DemoMode) return "D";
+        return this.normalizeRtspTransportProtocolValue(config?.RtspTransportProtocol) === "TCP" ? "T" : "U";
+    }
+
+    getCssStatusBadge(config = this.appConfig) {
+        const cssLink = this.normalizeCssLinkValue(config?.CSSLink);
+
+        if (cssLink === "Legacy") return "L";
+        if (cssLink === "Online CSS") return "N";
+        if (cssLink === "Offline CSS") return "F";
+        if (cssLink === "Custom") return "C";
+        return "";
+    }
+
     getElementCount() {
         return Object.values(this.elementMeta || {}).filter((meta) => {
             const code = (meta?.code ?? "").toString().trim();
@@ -1431,15 +1452,18 @@ export class ElementReviewApp {
         }
 
         const dotPairs = [
-            [this.refs.recordSessionEncoderDot, this.replayPingStatus.encoder],
-            [this.refs.replaySessionEncoderDot, this.replayPingStatus.encoder],
-            [this.refs.recordSessionCssDot, this.replayPingStatus.css],
-            [this.refs.replaySessionCssDot, this.replayPingStatus.css],
+            [this.refs.recordSessionEncoderDot, this.replayPingStatus.encoder, "encoder"],
+            [this.refs.replaySessionEncoderDot, this.replayPingStatus.encoder, "encoder"],
+            [this.refs.recordSessionCssDot, this.replayPingStatus.css, "css"],
+            [this.refs.replaySessionCssDot, this.replayPingStatus.css, "css"],
         ];
 
-        for (const [dotEl, status] of dotPairs) {
+        for (const [dotEl, status, kind] of dotPairs) {
             if (!dotEl || !status) continue;
             dotEl.className = `replayPingDot ${status.state || "idle"}`;
+            dotEl.textContent = kind === "encoder"
+                ? this.getEncoderStatusBadge()
+                : this.getCssStatusBadge();
         }
     }
 
@@ -1918,23 +1942,36 @@ export class ElementReviewApp {
         });
     }
 
-    refreshLiveSurfaceAfterModeChange() {
-        const { liveWrap, liveFrame } = this.refs;
-        if (!liveWrap || !liveFrame) return;
+    refreshMediaSurfaceAfterModeChange() {
+        const {
+            rightContent,
+            liveWrap,
+            liveFrame,
+            replayVideoWrap,
+            replayVideo,
+        } = this.refs;
+        const repaintRoot = rightContent || liveWrap || replayVideoWrap || liveFrame || replayVideo;
+        if (!repaintRoot) return;
 
         requestAnimationFrame(() => {
             this.scheduleLayout();
 
-            // WebView/iframe composition can occasionally leave stale pixels
-            // behind after switching back from replay. Briefly toggling the
-            // live container and iframe forces a repaint without changing app state.
-            const previousWrapDisplay = liveWrap.style.display;
-            const previousDisplay = liveFrame.style.display;
-            liveWrap.style.display = "none";
-            liveFrame.style.display = "none";
-            void liveWrap.offsetHeight;
-            liveWrap.style.display = previousWrapDisplay;
-            liveFrame.style.display = previousDisplay;
+            // WebView/composited video layers can occasionally leave stale
+            // replay pixels behind after switching back to record. Briefly
+            // detaching the media stack forces a clean repaint.
+            const nodes = [repaintRoot, liveWrap, liveFrame, replayVideoWrap, replayVideo]
+                .filter((node, idx, arr) => !!node && arr.indexOf(node) === idx);
+            const previousDisplays = nodes.map((node) => [node, node.style.display]);
+
+            for (const [node] of previousDisplays) {
+                node.style.display = "none";
+            }
+
+            void repaintRoot.offsetHeight;
+
+            for (const [node, display] of previousDisplays) {
+                node.style.display = display;
+            }
 
             requestAnimationFrame(() => this.scheduleLayout());
         });
@@ -1967,7 +2004,7 @@ export class ElementReviewApp {
                 this.refs.recordMode.classList.remove("hidden");
                 this.refs.replayMode.classList.add("hidden");
                 this.replay.resetZoom();
-                this.refreshLiveSurfaceAfterModeChange();
+                this.refreshMediaSurfaceAfterModeChange();
             } else {
                 this.refs.recordMode.classList.add("hidden");
                 this.refs.replayMode.classList.remove("hidden");
@@ -2428,6 +2465,12 @@ export class ElementReviewApp {
         }
 
         if (prevMode === "replay" && this.state.mode !== "replay") {
+            this.replay.stopReverse();
+            this.refs.replayVideo?.pause();
+            this.replay.setActiveSpeedIdx(null);
+            this.replay.clearElementLoop();
+            this.replay.resetManualLoop();
+            this.replay.resetZoom();
             this.replay.reviewStartPerf = null;
             this.replay.updateReviewTimer();
         }
@@ -2641,7 +2684,7 @@ export class ElementReviewApp {
         await this.pollStatus();
         await this.pollElementNames();
         await this.refreshLiveUrl();
-        this.refreshLiveSurfaceAfterModeChange();
+        this.refreshMediaSurfaceAfterModeChange();
     }
 
     showConfirm({

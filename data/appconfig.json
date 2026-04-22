@@ -5,6 +5,7 @@
   "DemoMode": true,
   "RtspUrl": "rtsp://192.168.6.200:8554/0",
   "SourceFps": 30,
+  "RtspTransportProtocol": "UDP",
   "UseHardwareEncodingWhenAvailable": true,
   "RecordingGop": 10,
   "CSSLink": "Legacy",

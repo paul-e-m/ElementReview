@@ -84,8 +84,8 @@ public class MediaMtxManager
         sb.AppendLine($"    source: \"{cfg.RtspUrl}\"");
         sb.AppendLine("    sourceOnDemand: yes");
 
-        // Important: force TCP to reduce packet-loss/jitter issues (stability > latency spikes).
-        sb.AppendLine("    sourceProtocol: tcp");
+        // Honor the app's preferred RTSP transport when pulling the upstream source.
+        sb.AppendLine($"    sourceProtocol: {GetSourceProtocol(cfg)}");
 
         File.WriteAllText(ymlPath, sb.ToString(), Encoding.UTF8);
     }
@@ -131,4 +131,7 @@ public class MediaMtxManager
             _proc = null;
         }
     }
+
+    private static string GetSourceProtocol(AppConfig cfg)
+        => string.Equals(cfg.RtspTransportProtocol, "TCP", StringComparison.OrdinalIgnoreCase) ? "tcp" : "udp";
 }

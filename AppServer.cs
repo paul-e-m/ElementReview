@@ -67,6 +67,7 @@ public static class AppServer
         {
             cfg ??= new AppConfig();
             cfg.HalfwayEnabled ??= true;
+            cfg.RtspTransportProtocol = NormalizeRtspTransportProtocol(cfg.RtspTransportProtocol);
 
             var cssLink = string.IsNullOrWhiteSpace(cfg.CSSLink) ? "None" : cfg.CSSLink.Trim();
             cfg.CSSLink =
@@ -90,6 +91,13 @@ public static class AppServer
             }
 
             return cfg;
+        }
+
+        static string NormalizeRtspTransportProtocol(string? protocol)
+        {
+            return string.Equals(protocol?.Trim(), "TCP", StringComparison.OrdinalIgnoreCase)
+                ? "TCP"
+                : "UDP";
         }
 
         static string GetAppVersion()
@@ -136,6 +144,8 @@ public static class AppServer
         static AppConfig MergeConfig(AppConfig existing, AppConfig incoming)
         {
             incoming.HalfwayEnabled ??= existing.HalfwayEnabled;
+            if (string.IsNullOrWhiteSpace(incoming.RtspTransportProtocol))
+                incoming.RtspTransportProtocol = existing.RtspTransportProtocol;
             return incoming;
         }
 

@@ -644,6 +644,18 @@
                     <div class="grid">
                         <div class="row">
                             <div class="labelBlock">
+                                <label for="RtspTransportProtocol" data-i18n="rtspTransportProtocol">RTSP Transport Protocol</label>
+                                <div class="help" data-i18n="rtspTransportProtocolHelp">Preferred transport protocol used when opening RTSP streams.</div>
+                            </div>
+
+                            <select id="RtspTransportProtocol" name="RtspTransportProtocol" class="fieldSelect">
+                                <option value="UDP" data-i18n="rtspTransportUdp">UDP</option>
+                                <option value="TCP" data-i18n="rtspTransportTcp">TCP</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="labelBlock">
                                 <label for="RecordingGop" data-i18n="gop">GOP</label>
                                 <div class="help" data-i18n="gopHelp">Keyframe interval used while recording.</div>
                             </div>
@@ -720,6 +732,7 @@
             "DemoMode",
             "RtspUrl",
             "SourceFps",
+            "RtspTransportProtocol",
             "UseHardwareEncodingWhenAvailable",
             "RecordingGop",
             "ClipMarkerAdvanceMsec",
@@ -748,6 +761,7 @@
         const restartBtn = document.getElementById("restartBtn");
         const closeBtn = document.getElementById("closeBtn");
         const cssLinkInput = document.getElementById("CSSLink");
+        const rtspTransportProtocolInput = document.getElementById("RtspTransportProtocol");
 
         const demoModeInput = document.getElementById("DemoMode");
         const rtspUrlInput = document.getElementById("RtspUrl");
@@ -819,6 +833,14 @@
                 if (customOption) customOption.textContent = t("cssLinkCustom");
                 if (onlineOption) onlineOption.textContent = t("cssLinkOnline");
                 if (offlineOption) offlineOption.textContent = t("cssLinkOffline");
+            }
+
+            if (rtspTransportProtocolInput) {
+                const udpOption = rtspTransportProtocolInput.querySelector('option[value="UDP"]');
+                const tcpOption = rtspTransportProtocolInput.querySelector('option[value="TCP"]');
+
+                if (udpOption) udpOption.textContent = t("rtspTransportUdp");
+                if (tcpOption) tcpOption.textContent = t("rtspTransportTcp");
             }
 
             document.querySelectorAll("[data-i18n]").forEach((el) => {
@@ -927,6 +949,10 @@
             if (normalized === "new" || normalized === "online css" || normalized === "onlinecss") return "Online CSS";
             if (normalized === "offline css" || normalized === "offlinecss") return "Offline CSS";
             return "None";
+        }
+
+        function normalizeRtspTransportProtocolValue(value) {
+            return String(value ?? "").trim().toUpperCase() === "TCP" ? "TCP" : "UDP";
         }
 
         function setCssLinkSelection(value) {
@@ -1042,6 +1068,10 @@
                     value = normalizeCssLinkValue(value);
                 }
 
+                if (fieldName === "RtspTransportProtocol") {
+                    value = normalizeRtspTransportProtocolValue(value);
+                }
+
                 if (booleanFields.includes(fieldName)) {
                     input.checked = !!value;
                     updateToggleText(fieldName);
@@ -1079,6 +1109,13 @@
 
                 if (fieldName === "CSSLink") {
                     const value = normalizeCssLinkValue(input.value);
+                    input.value = value;
+                    config[fieldName] = value;
+                    continue;
+                }
+
+                if (fieldName === "RtspTransportProtocol") {
+                    const value = normalizeRtspTransportProtocolValue(input.value);
                     input.value = value;
                     config[fieldName] = value;
                     continue;

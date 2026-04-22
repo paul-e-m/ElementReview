@@ -125,7 +125,7 @@ public class RecorderManager
 
         if (shouldWarmInput && ffmpegExe != null)
         {
-            _inputWarmupTask = Task.Run(() => WarmupRtspInput(ffmpegExe));
+            _inputWarmupTask = Task.Run(() => WarmupRtspInput(ffmpegExe, cfg));
         }
     }
 
@@ -422,7 +422,7 @@ public class RecorderManager
             return BuildDemoInputArgs(demoStartSeconds);
         }
 
-        return BuildRtspInputArgs();
+        return BuildRtspInputArgs(cfg);
     }
 
     private string BuildDemoInputArgs(double? demoStartSeconds)
@@ -438,14 +438,14 @@ public class RecorderManager
             : $"-stream_loop -1 -re -i \"{demoFile}\" ";
     }
 
-    private string BuildRtspInputArgs()
+    private string BuildRtspInputArgs(AppConfig cfg)
     {
         var localMtxRtsp = "rtsp://127.0.0.1:8554/mystream";
+        var transport = GetRtspTransportArgument(cfg);
 
-        // The recorder reads from a local MediaMTX relay, so we can bias toward
-        // lower startup latency without paying for lossy network conditions here.
+        // Keep the recorder aligned with the configured RTSP transport preference.
         return
-            "-rtsp_transport tcp " +
+            $"-rtsp_transport {transport} " +
             "-fflags +genpts+nobuffer " +
             "-flags low_delay " +
             $"-analyzeduration {RtspAnalyzeDurationUsec} " +
@@ -453,7 +453,7 @@ public class RecorderManager
             $"-i \"{localMtxRtsp}\" ";
     }
 
-    private void WarmupRtspInput(string ffmpegExe)
+    private void WarmupRtspInput(string ffmpegExe, AppConfig cfg)
     {
         try
         {
@@ -462,7 +462,7 @@ public class RecorderManager
                 FileName = ffmpegExe,
                 Arguments =
                     "-hide_banner -loglevel error -y " +
-                    BuildRtspInputArgs() +
+                    BuildRtspInputArgs(cfg) +
                     "-map 0:v:0 -frames:v 1 -f null -",
                 WorkingDirectory = _toolsDir,
                 UseShellExecute = false,
@@ -487,6 +487,9 @@ public class RecorderManager
             // Warm-up failures should not block a real recording attempt.
         }
     }
+
+    private static string GetRtspTransportArgument(AppConfig cfg)
+        => string.Equals(cfg.RtspTransportProtocol, "TCP", StringComparison.OrdinalIgnoreCase) ? "tcp" : "udp";
 
     private string BuildEncodedOutputArgs(string encoderName, int gop)
     {

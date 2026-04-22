@@ -187,6 +187,7 @@ body.replayActive .container {
     align-items: flex-start;
     flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
 }
 
 .leftControls {
@@ -209,6 +210,9 @@ body.replayActive .leftControls {
     min-height: 0;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
 }
 
 #recordMode, #replayMode {
@@ -216,6 +220,7 @@ body.replayActive .leftControls {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
 }
 
 #recordTopRow {
@@ -231,6 +236,7 @@ body.replayActive .leftControls {
     gap: 12px;
     flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
 }
 
 .videoCol {
@@ -239,6 +245,7 @@ body.replayActive .leftControls {
     min-height: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 #mainBtnHostRecord,
@@ -598,6 +605,8 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     border: 1px solid rgba(255,255,255,.08);
     background: black;
     display: block;
+    contain: paint;
+    isolation: isolate;
 }
 
     .liveWrap .videoStage {
@@ -842,6 +851,8 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     overflow: hidden;
     aspect-ratio: 16/9;
     display: block;
+    contain: paint;
+    isolation: isolate;
 }
 
     .replayVideoWrap > video.replayVideo {
@@ -1654,12 +1665,21 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 }
 
 .replayPingDot {
-    width: 11px;
-    height: 11px;
+    width: 17px;
+    height: 17px;
     border-radius: 50%;
     flex: 0 0 auto;
     background: #7a8698;
     box-shadow: 0 0 0 1px rgba(255,255,255,0.14);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font: 700 9px/1 Arial, Helvetica, sans-serif;
+    text-transform: uppercase;
+    text-align: center;
+    text-shadow: 0 0 1px rgba(0,0,0,0.55);
+    user-select: none;
 }
 
 .replayPingDot.green {

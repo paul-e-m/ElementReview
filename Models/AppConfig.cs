@@ -23,29 +23,32 @@ public class AppConfig
     public int SourceFps { get; set; } = 30;
 
     [JsonPropertyOrder(6)]
-    public bool UseHardwareEncodingWhenAvailable { get; set; } = true;
+    public string RtspTransportProtocol { get; set; } = "UDP";
 
     [JsonPropertyOrder(7)]
-    public int RecordingGop { get; set; } = 10;
+    public bool UseHardwareEncodingWhenAvailable { get; set; } = true;
 
     [JsonPropertyOrder(8)]
-    public string CSSLink { get; set; } = "Legacy";
+    public int RecordingGop { get; set; } = 10;
 
     [JsonPropertyOrder(9)]
-    public string DatabaseLocation { get; set; } = "localhost";
+    public string CSSLink { get; set; } = "Legacy";
 
     [JsonPropertyOrder(10)]
-    public string EventId { get; set; } = "";
+    public string DatabaseLocation { get; set; } = "localhost";
 
     [JsonPropertyOrder(11)]
-    public string CSSServerHost { get; set; } = "";
+    public string EventId { get; set; } = "";
 
     [JsonPropertyOrder(12)]
-    public bool SaveVideos { get; set; } = false;
+    public string CSSServerHost { get; set; } = "";
 
     [JsonPropertyOrder(13)]
-    public string SavedVideosFolder { get; set; } = "C:/Event_Videos";
+    public bool SaveVideos { get; set; } = false;
 
     [JsonPropertyOrder(14)]
+    public string SavedVideosFolder { get; set; } = "C:/Event_Videos";
+
+    [JsonPropertyOrder(15)]
     public bool? HalfwayEnabled { get; set; } = true;
 }
