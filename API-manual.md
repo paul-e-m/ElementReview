@@ -6,7 +6,7 @@ ElementReview exposes a local HTTP API used by:
 
 - the main operator UI in `index.html`
 - the settings window in `config.html`
-- the remote replay page in `judge.html`
+- the remote replay panel in `panel.html`
 - trusted local or LAN clients
 
 Base URL:
@@ -43,6 +43,7 @@ Common status codes:
   "DemoMode": true,
   "RtspUrl": "rtsp://192.168.6.200:8554/0",
   "SourceFps": 30,
+  "RtspTransportProtocol": "UDP",
   "UseHardwareEncodingWhenAvailable": true,
   "RecordingGop": 10,
   "CSSLink": "Legacy",
@@ -50,8 +51,7 @@ Common status codes:
   "EventId": "",
   "CSSServerHost": "",
   "SaveVideos": false,
-  "SavedVideosFolder": "C:/Event_Videos",
-  "HalfwayEnabled": true
+  "SavedVideosFolder": "C:/Event_Videos"
 }
 ```
 
@@ -63,8 +63,8 @@ Common status codes:
 {
   "categoryName": "STAR 10",
   "categoryDiscipline": "Women",
-  "categoryFlight": "Free Program",
-  "segmentName": "Cindy Smith",
+  "categoryFlight": "Grp 1",
+  "segmentName": "Free Program",
   "segmentProgHalfTime": "1:30",
   "competitorFirstName": "Cindy",
   "competitorLastName": "Smith",
@@ -87,6 +87,8 @@ Common status codes:
   "isArming": false,
   "isRecording": false,
   "recordingDurationSeconds": 42.6,
+  "programTimerStartOffsetSeconds": 4.0,
+  "replayMediaToken": "6f7f9f8df8a146c897dce3239f9b7976",
   "clips": [
     {
       "index": 1,
@@ -188,7 +190,6 @@ Saves the supplied `AppConfig` and returns the normalized result in PascalCase.
 
 Notes:
 
-- `HalfwayEnabled` is preserved if omitted from the incoming payload.
 - `SaveVideos` is forced off in demo mode.
 - `SavedVideosFolder` is defaulted if blank.
 
@@ -198,7 +199,7 @@ Returns the app version:
 
 ```json
 {
-  "version": "v0.4.3-alpha"
+  "version": "v0.5.0"
 }
 ```
 
@@ -244,9 +245,12 @@ Request body:
 
 ```json
 {
-  "uiElapsedSeconds": 38.2
+  "uiElapsedSeconds": 38.2,
+  "programTimerStartOffsetSeconds": 4.0
 }
 ```
+
+`programTimerStartOffsetSeconds` is optional. When supplied, replay clients can show timeline values relative to the operator's Set Start point, including negative timeline values before that point.
 
 Returns the current status object.
 
@@ -306,6 +310,36 @@ Query options:
 - `?kind=copied`: copied replay file
 
 If the copied file does not exist, the server falls back to the encoded file.
+
+## Remote Replay Panel
+
+`GET /panel.html` serves the remote replay panel. It is a static client that uses `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
+
+Common forms:
+
+```text
+/panel.html
+/panel.html?0
+/panel.html?2
+/panel.html?2&autoplay=false&loop=false
+```
+
+Query options:
+
+- `?0`: full panel mode with the element rail.
+- `?N`: open element clip `N` directly.
+- `autoplay=false` or `a=false`: disable initial autoplay.
+- `loop=false` or `l=false`: disable looping the selected clip.
+- `timer=true` or `tm=true`: show the panel timer control.
+
+Panel behavior:
+
+- clicking an element clip autoplays that clip
+- full panel mode shows a session info bar when replay clips are available
+- the session info bar includes the category, discipline, flight, segment, competitor name, and a refresh button
+- the panel timer range is drawn above element clip blocks and remains translucent
+
+`judge.html` has been removed; use `panel.html` for remote replay.
 
 ## Replay Editing
 

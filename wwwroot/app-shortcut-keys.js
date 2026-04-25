@@ -183,9 +183,8 @@ export class ShortcutKeysController {
         if (event.key === "s" || event.key === "S") {
             if (this.app.state?.mode === "record") {
                 event.preventDefault();
-                event.stopImmediatePropagation();
                 if (event.repeat) return;
-                refs.mainBtn?.click();
+                this.app.handleProgramTimerShortcut();
             }
             return;
         }
@@ -196,16 +195,6 @@ export class ShortcutKeysController {
                 event.stopImmediatePropagation();
                 if (event.repeat) return;
                 refs.mainBtn?.click();
-            }
-            return;
-        }
-
-        if (event.key === "t" || event.key === "T") {
-            if (this.app.state?.mode === "record") {
-                event.preventDefault();
-                if (event.repeat) return;
-                if (!this.app.isHalfwayTrackingEnabled?.()) return;
-                this.app.handleProgramTimerShortcut();
             }
             return;
         }
@@ -336,7 +325,7 @@ export class ShortcutKeysController {
             { key: this.app.t("shortcutKeyCtrlPlus"), action: this.app.t("shortcutActionCtrlPlus") },
             { key: this.app.t("shortcutKeyCtrlMinus"), action: this.app.t("shortcutActionCtrlMinus") },
         ];
-        const halfwayEnabled = !!this.app.isHalfwayTrackingEnabled?.();
+        const halfwayKnown = !!this.app.hasHalfwayTimeAvailable?.();
 
         if (mode === "replay") {
             const items = [
@@ -351,24 +340,21 @@ export class ShortcutKeysController {
                 { key: this.app.t("shortcutKeyEscape"), action: this.app.t("shortcutActionEscape") },
                 ...shared,
             ];
-            if (halfwayEnabled) {
+            if (halfwayKnown) {
                 items.splice(6, 0, { key: this.app.t("shortcutKeyH"), action: this.app.t("shortcutActionH") });
             }
             return items;
         }
 
         const items = [
-            { key: this.app.t("shortcutKeyS"), action: this.app.t(halfwayEnabled ? "shortcutActionS" : "shortcutActionSNoHalfway") },
-            { key: this.app.t("shortcutKeyR"), action: this.app.t(halfwayEnabled ? "shortcutActionR" : "shortcutActionRNoHalfway") },
+            { key: this.app.t("shortcutKeyR"), action: this.app.t("shortcutActionRNoHalfway") },
+            { key: this.app.t("shortcutKeyS"), action: this.app.t("shortcutActionS") },
             { key: this.app.t("shortcutKeySpace"), action: this.app.t("shortcutActionRecordSpace") },
             { key: this.app.t("shortcutKeyBackspace"), action: this.app.t("shortcutActionBackspace") },
             { key: this.app.t("shortcutKeyCtrlZ"), action: this.app.t("shortcutActionCtrlZ") },
             { key: this.app.t("shortcutKeyCtrlY"), action: this.app.t("shortcutActionCtrlY") },
             ...shared,
         ];
-        if (halfwayEnabled) {
-            items.splice(1, 0, { key: this.app.t("shortcutKeyT"), action: this.app.t("shortcutActionT") });
-        }
         return items;
     }
 

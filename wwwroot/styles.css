@@ -34,7 +34,7 @@
     --topBarLanguageSelectW: 118px;
     --clipToggleButtonH: calc(var(--recordActionBarH) * 1.45);
     --recordTimerPanelW: 140px;
-    --recordHalfwayTogglePanelW: 170px;
+    --recordProgramStartPanelW: 184px;
     --recordHalfwayTimePanelW: 150px;
     --clipCanvasPrimaryFontPx: 15px;
     --clipCanvasHistoryFontPx: 13px;
@@ -149,19 +149,22 @@ iframe:focus-visible,
     border: 0;
     border-radius: 50%;
     background: transparent;
-    color: rgba(255,255,255,0.92);
+    color: rgba(255,255,255,0.72);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     pointer-events: auto;
     flex: 0 0 auto;
-    transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
+    opacity: 0.78;
+    transition: background-color 120ms ease, color 120ms ease, opacity 120ms ease, filter 120ms ease, transform 120ms ease;
 }
 
 .sessionInfoRefreshBtn:hover {
     background: rgba(255,255,255,0.14);
     color: #fff;
+    opacity: 1;
+    filter: brightness(1.18);
 }
 
 .sessionInfoRefreshBtn:active {
@@ -169,8 +172,8 @@ iframe:focus-visible,
 }
 
 .sessionInfoRefreshIcon {
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
     display: block;
     object-fit: contain;
     pointer-events: none;
@@ -672,19 +675,17 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 }
 
 .recordActionColTimer,
-.recordActionColHalfway,
 .recordActionColHalfwayTime {
     align-items: stretch;
     justify-content: center;
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.07) 24%, rgba(255,255,255,0.03) 100%),
-        linear-gradient(135deg, rgba(40,52,74,0.52) 0%, rgba(24,32,49,0.38) 100%);
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.025) 100%),
+        rgba(52,61,72,0.86);
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.08),
-        inset 0 -1px 0 rgba(0,0,0,0.18),
-        0 10px 26px rgba(0,0,0,0.18);
-    backdrop-filter: blur(14px) saturate(135%);
-    -webkit-backdrop-filter: blur(14px) saturate(135%);
+        inset 1px 0 0 rgba(255,255,255,0.045),
+        inset -1px 0 0 rgba(0,0,0,0.14);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 .recordActionColTimer {
@@ -715,9 +716,14 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     pointer-events: none;
 }
 
-.recordActionColHalfway {
-    width: var(--recordHalfwayTogglePanelW);
-    padding: 0 18px;
+.recordActionColProgramStart {
+    width: auto;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    background: transparent;
+    box-shadow: none;
     pointer-events: auto;
 }
 
@@ -774,15 +780,14 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     min-width: 112px;
     padding: 1px 10px 0;
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.58) 24%, rgba(255,255,255,0.34) 100%),
-        linear-gradient(135deg, rgba(241,244,248,0.96) 0%, rgba(211,217,225,0.82) 100%);
+        linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.035) 100%),
+        rgba(59,68,80,0.88);
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.78),
-        inset 0 -1px 0 rgba(112,123,138,0.18),
-        0 10px 26px rgba(0,0,0,0.12);
-    backdrop-filter: blur(14px) saturate(125%);
-    -webkit-backdrop-filter: blur(14px) saturate(125%);
-    color: #2f3b49;
+        inset 1px 0 0 rgba(255,255,255,0.045),
+        inset -1px 0 0 rgba(0,0,0,0.14);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: #c7cfdb;
 }
 
 .replayReviewCol {
@@ -792,37 +797,72 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     align-items: stretch;
     justify-content: center;
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.58) 24%, rgba(255,255,255,0.34) 100%),
-        linear-gradient(135deg, rgba(247,241,195,0.96) 0%, rgba(230,219,150,0.82) 100%);
+        linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.035) 100%),
+        rgba(67,71,73,0.88);
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.78),
-        inset 0 -1px 0 rgba(112,123,138,0.18),
-        0 10px 26px rgba(0,0,0,0.12);
-    backdrop-filter: blur(14px) saturate(125%);
-    -webkit-backdrop-filter: blur(14px) saturate(125%);
+        inset 1px 0 0 rgba(255,255,255,0.045),
+        inset -1px 0 0 rgba(0,0,0,0.14);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     pointer-events: auto;
 }
 
 #mainBtnHostRecord,
 #mainBtnHostReplay {
-    width: var(--recordActionButtonColW);
+    width: auto;
+    flex: 0 0 auto;
     height: var(--recordActionRowH);
     margin: 0;
-    padding: 0;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #recordMode .recordActionColMain .mainBtn.btnImg,
-#replayMode .replayActionColMain .mainBtn.btnImg {
+#replayMode .replayActionColMain .mainBtn.btnImg,
+.programStartBtn.btnImg {
     display: block !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    height: var(--recordActionRowH) !important;
-    min-height: var(--recordActionRowH) !important;
-    max-height: var(--recordActionRowH) !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
     aspect-ratio: var(--button-ratio, 2.65) !important;
     background-size: contain !important;
-    background-position: left center !important;
+    background-position: center !important;
+    border-radius: 7px !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.34) inset,
+        0 -2px 0 rgba(0,0,0,0.24) inset,
+        0 3px 8px rgba(0,0,0,0.28) !important;
+    filter: saturate(1.04) contrast(1.03);
+    transition: filter 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+}
+
+.programStartBtn {
+    width: 100%;
+    height: var(--recordActionRowH);
+}
+
+#recordMode .recordActionColMain .mainBtn.btnImg:hover:not(:disabled),
+#replayMode .replayActionColMain .mainBtn.btnImg:hover:not(:disabled),
+.programStartBtn.btnImg:hover:not(:disabled) {
+    filter: saturate(1.12) brightness(1.05) contrast(1.04);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.42) inset,
+        0 -2px 0 rgba(0,0,0,0.26) inset,
+        0 5px 10px rgba(0,0,0,0.32) !important;
+}
+
+#recordMode .recordActionColMain .mainBtn.btnImg:active:not(:disabled),
+#replayMode .replayActionColMain .mainBtn.btnImg:active:not(:disabled),
+.programStartBtn.btnImg:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow:
+        0 1px 1px rgba(0,0,0,0.28) inset,
+        0 1px 4px rgba(0,0,0,0.24) !important;
 }
 
 #recordMode .videoCol,
@@ -937,7 +977,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 .replayCountCol .recordTimerCard,
 .replayCountCol .recordTimerLabel,
 .replayCountCol .recordTimerValue {
-    color: #2f3b49;
+    color: #c7cfdb;
     font-size: var(--replayStatusFontPx);
 }
 
@@ -952,67 +992,6 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 
 .recordTimerCard.stateRunning {
     color: #b7becb;
-}
-
-.halfwayToggleWrap {
-    height: 100%;
-    width: 100%;
-    display: grid;
-    align-items: center;
-    grid-template-columns: max-content max-content;
-    justify-content: center;
-    gap: 10px;
-    color: #b7becb;
-    font: 450 var(--recordStatusFontPx)/1 system-ui, Segoe UI, Arial, sans-serif;
-    white-space: nowrap;
-    user-select: none;
-}
-
-.halfwayToggleInput {
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    appearance: none;
-    -webkit-appearance: none;
-    display: inline-grid;
-    place-content: center;
-    border: 1px solid rgba(183,190,203,0.55);
-    border-radius: 3px;
-    background: rgba(183,190,203,0.2);
-    box-shadow: inset 0 1px 1px rgba(0,0,0,0.18);
-    cursor: pointer;
-}
-
-.halfwayToggleInput::after {
-    content: "";
-    width: 4px;
-    height: 8px;
-    border: solid #f4f7fb;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg) scale(0);
-    transition: transform 100ms ease;
-}
-
-.halfwayToggleInput:checked {
-    background: #6ea765;
-    border-color: #6ea765;
-}
-
-.halfwayToggleInput:checked::after {
-    transform: translateY(-1px) rotate(45deg) scale(1);
-}
-
-.halfwayToggleInput:focus-visible {
-    outline: 2px solid rgba(255,255,255,0.55);
-    outline-offset: 2px;
-}
-
-.halfwayToggleWrap.isDisabled {
-    opacity: 0.55;
-}
-
-.halfwayToggleWrap.isDisabled .halfwayToggleInput {
-    cursor: not-allowed;
 }
 
 .halfwayTimeValue {
@@ -1124,12 +1103,32 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 
 .clipActionBtn {
     padding: 0;
-    border-radius: 0;
-    border: 0;
+    border-radius: 5px;
+    border: 1px solid rgba(255,255,255,0.16);
     font-weight: 600;
     text-transform: uppercase;
     position: relative;
     overflow: hidden;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.25),
+        inset 0 -2px 0 rgba(0,0,0,0.22),
+        0 2px 5px rgba(0,0,0,0.26);
+    transform: translateY(0);
+    transition: filter 120ms ease, transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.clipActionBtn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0) 42%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.clipActionBtn > * {
+    position: relative;
+    z-index: 2;
 }
 
 #clipToggleBtn {
@@ -1230,11 +1229,29 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 .clipHistoryCanvasBtn:disabled,
 .clipToggleCanvasBtn:disabled {
     opacity: 0.55;
+    cursor: not-allowed;
+    filter: saturate(0.75) brightness(0.88);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.16);
 }
 
 .clipHistoryCanvasBtn:hover:not(:disabled),
 .clipToggleCanvasBtn:hover:not(:disabled) {
-    filter: brightness(1.04);
+    border-color: rgba(255,255,255,0.28);
+    filter: brightness(1.06) saturate(1.06);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.32),
+        inset 0 -2px 0 rgba(0,0,0,0.24),
+        0 3px 7px rgba(0,0,0,0.32);
+}
+
+.clipHistoryCanvasBtn:active:not(:disabled),
+.clipToggleCanvasBtn:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow:
+        inset 0 1px 2px rgba(0,0,0,0.26),
+        0 1px 3px rgba(0,0,0,0.22);
 }
 
 .clipTimerOverlay {
@@ -1618,6 +1635,12 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     opacity: 1 !important;
 }
 
+.programStartBtn.btnImg:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    filter: saturate(0.8) brightness(0.9);
+}
+
 .mainBtn.btnImg.btnStarting {
     opacity: 0.5 !important;
     cursor: not-allowed !important;
@@ -1638,12 +1661,23 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     aspect-ratio: var(--button-ratio, 1) !important;
     background-size: contain !important;
     background-position: center top !important;
+    border-radius: 5px !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.25),
+        inset 0 -2px 0 rgba(0,0,0,0.22),
+        0 2px 5px rgba(0,0,0,0.26) !important;
 }
 
-.clipActionBtn.undoBtn.btnImg {
+.clipActionBtn.undoBtn.btnImg,
+.clipActionBtn.redoBtn.btnImg {
     width: auto !important;
     height: auto !important;
     aspect-ratio: var(--button-ratio, 2.15);
+    border-radius: 5px !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.25),
+        inset 0 -2px 0 rgba(0,0,0,0.22),
+        0 2px 5px rgba(0,0,0,0.26) !important;
 }
 
 .reviewTimer {

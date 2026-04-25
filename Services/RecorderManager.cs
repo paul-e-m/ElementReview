@@ -547,7 +547,7 @@ public class RecorderManager
     }
 
     // Stop/finalize helpers and replay asset management
-    public async Task<double> StopRecordingAndGetDurationSecondsAsync(AppConfig cfg, double? uiElapsedSeconds = null)
+    public async Task<double> StopRecordingAndGetDurationSecondsAsync(AppConfig cfg, double? uiElapsedSeconds = null, double? programTimerStartOffsetSeconds = null)
     {
         Process? p;
         lock (_lock)
@@ -580,7 +580,7 @@ public class RecorderManager
         FinalizeRecordingFiles();
 
         var dur = await ProbeDurationSecondsAsync(_encodedFile);
-        _session.OnRecordingStopped(dur, uiElapsedSeconds);
+        _session.OnRecordingStopped(dur, uiElapsedSeconds, programTimerStartOffsetSeconds);
 
         SaveRecordingCopyIfNeeded(cfg);
 

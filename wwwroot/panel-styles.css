@@ -1,0 +1,877 @@
+:root {
+    --bg: #0b0f17;
+    --panel: #121a29;
+    --panelBorder: rgba(255, 255, 255, 0.08);
+    --text: #eef6ff;
+    --muted: #b9c7dd;
+    --railWidth: 240px;
+    --playBtnW: 104px;
+    --playBtnH: 48px;
+    --transportBtnBlue: #3f66bf;
+    --transportBtnBlueDark: #2d4d99;
+    --transportBtnBorder: rgba(214, 227, 255, 0.34);
+    --alertRed: #ff4d5f;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    margin: 0;
+    padding: 12px;
+    font-family: system-ui, Segoe UI, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.panelShell {
+    width: min(1380px, 100%);
+    height: 100%;
+    margin: 0 auto;
+    position: relative;
+}
+
+.panelLayout {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    column-gap: 12px;
+    row-gap: 0;
+    align-items: start;
+}
+
+.panelShell.withMenu .panelLayout {
+    grid-template-columns: var(--railWidth) minmax(0, 1fr);
+}
+
+.videoPane {
+    grid-column: 1;
+    grid-row: 1;
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.panelSessionInfo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 25;
+    width: 100%;
+    height: 34px;
+    max-width: none;
+    padding: 6px 10px;
+    background: #314784;
+    color: #FFFFFF;
+    border: 0;
+    border-radius: 0;
+    font: 450 15px/1.1 system-ui, Segoe UI, Arial, sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.panelSessionInfoText {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.panelSessionRefreshBtn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.72);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    flex: 0 0 auto;
+    opacity: 0.78;
+    transition: background-color 120ms ease, color 120ms ease, opacity 120ms ease, filter 120ms ease, transform 120ms ease;
+}
+
+.panelSessionRefreshBtn:hover {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    opacity: 1;
+    filter: brightness(1.18);
+}
+
+.panelSessionRefreshBtn:active {
+    transform: rotate(-24deg);
+}
+
+.panelSessionRefreshIcon {
+    width: 14px;
+    height: 14px;
+    display: block;
+    object-fit: contain;
+}
+
+.panelShell.withMenu .videoPane {
+    grid-column: 2;
+}
+
+.panelVideo {
+    width: 100%;
+    height: 100%;
+    display: block;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    background: #000;
+    border: 1px solid var(--panelBorder);
+    border-radius: 12px 12px 0 0;
+}
+
+.timelineArea {
+    grid-column: 1;
+    grid-row: 2;
+    position: relative;
+    height: 32px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.panelShell.withMenu .timelineArea {
+    grid-column: 2;
+}
+
+.timeline {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 17px;
+    background: #c9ced6;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-top: 0;
+    overflow: visible;
+}
+
+.elementMarkers,
+.timelineClip,
+.timelineTicks {
+    position: absolute;
+    inset: 0;
+}
+
+.elementMarkers {
+    z-index: 2;
+    pointer-events: none;
+}
+
+.timelineClip {
+    z-index: 3;
+}
+
+.elementMarker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    min-width: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #314784;
+    color: rgba(255, 255, 255, 0.98);
+    font: 600 12px/1 "Segoe UI", Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+
+.elementMarker.isReview {
+    color: #ffd640;
+    font-weight: 700;
+}
+
+.stopwatchRange {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 1;
+}
+
+.stopwatchRange.isPositive {
+    background: rgba(80, 255, 40, 0.58);
+}
+
+.stopwatchRange.isNegative {
+    background: rgba(255, 32, 32, 0.6);
+}
+
+.tick {
+    position: absolute;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-0.5px);
+}
+
+.tick.big {
+    height: 100%;
+    background: rgba(230, 255, 252, 0.65);
+}
+
+.tick.small {
+    height: 50%;
+    background: rgba(230, 255, 252, 0.38);
+}
+
+.timelineLabels {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 18px;
+    height: 14px;
+    pointer-events: none;
+}
+
+.tickLabel {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 11px;
+    line-height: 1;
+    color: #d7e9e8;
+    white-space: nowrap;
+}
+
+.playhead {
+    position: absolute;
+    top: -3px;
+    height: 23px;
+    width: 10px;
+    background: #ffffff;
+    z-index: 4;
+    pointer-events: none;
+    border-radius: 2px;
+    transform: translateX(-50%);
+}
+
+.playhead.isStopwatchPending {
+    background: #ffe600;
+}
+
+.playhead.isStopwatchPositive {
+    background: #5cff28;
+}
+
+.playhead.isStopwatchNegative {
+    background: #ff2020;
+}
+
+.playhead.isOutOfClip {
+    background: var(--alertRed);
+}
+
+.stopwatchMarker {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 3px;
+    transform: translateX(-50%);
+    background: #ffe600;
+    z-index: 3;
+    pointer-events: none;
+    box-shadow: 0 0 8px rgba(255, 230, 0, 0.55);
+}
+
+.stopwatchIndicator {
+    position: absolute;
+    top: -26px;
+    transform: translateX(-50%);
+    z-index: 6;
+    padding: 3px 8px;
+    background: #000;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 0;
+    font: 400 17px/1.1 "Segoe UI", Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.outOfClipIndicator {
+    position: absolute;
+    top: -26px;
+    z-index: 7;
+    padding: 3px 8px;
+    background: var(--alertRed);
+    color: #fff;
+    border: 1px solid rgba(80, 0, 0, 0.72);
+    border-radius: 0;
+    font: 700 17px/1.1 "Segoe UI", Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.outOfClipIndicator.isBeforeClip {
+    left: 0;
+}
+
+.outOfClipIndicator.isAfterClip {
+    right: 0;
+}
+
+.transportRow {
+    grid-column: 1;
+    grid-row: 3;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 78px;
+    margin-top: -6px;
+}
+
+.panelShell.withMenu .transportRow {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 124px) minmax(0, 1fr) minmax(0, 84px);
+    column-gap: 8px;
+}
+
+.relativeIndicator {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    min-width: 84px;
+    text-align: right;
+    color: var(--muted);
+    font-size: 22px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transform: translateY(-50%);
+}
+
+.relativeIndicator.isOutOfClip {
+    color: var(--alertRed);
+}
+
+.transportButtons {
+    display: grid;
+    grid-template-columns: repeat(5, var(--playBtnW));
+    grid-auto-rows: var(--playBtnH);
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+.panelShell.withMenu .transportButtons {
+    grid-column: 2;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    justify-self: center;
+    width: min(100%, calc((5 * var(--playBtnW)) + 32px));
+}
+
+.panelShell.withMenu .transportButtons .transportBtn {
+    width: 100%;
+    min-width: 0;
+}
+
+.stopwatchBtn {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.stopwatchTextBtn {
+    width: 124px;
+}
+
+.panelShell.withMenu .stopwatchBtn {
+    position: static;
+    grid-column: 1;
+    justify-self: start;
+    transform: none;
+}
+
+.panelShell.withMenu .relativeIndicator {
+    position: static;
+    grid-column: 3;
+    justify-self: end;
+    min-width: 0;
+    transform: none;
+}
+
+.stopwatchBtnLabel {
+    color: #eef4ff;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+}
+
+.stopwatchBtn.isActive {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 32%, rgba(0, 0, 0, 0.1) 100%),
+        linear-gradient(180deg, #4ddc5a 0%, #21963a 100%);
+    border-color: rgba(148, 255, 192, 0.72);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 0 0 1px rgba(57, 255, 20, 0.18),
+        0 10px 18px rgba(0, 0, 0, 0.22);
+}
+
+button {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.78;
+    cursor: not-allowed;
+}
+
+.transportBtn {
+    width: var(--playBtnW);
+    height: var(--playBtnH);
+    border-radius: 3px;
+    border: 1px solid var(--transportBtnBorder);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 32%, rgba(0, 0, 0, 0.12) 100%),
+        linear-gradient(180deg, var(--transportBtnBlue) 0%, var(--transportBtnBlueDark) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 10px 18px rgba(0, 0, 0, 0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.transportBtnLabel {
+    color: #eef4ff;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+}
+
+.playPauseGlyph {
+    position: relative;
+    display: block;
+    width: 24px;
+    height: 24px;
+}
+
+.playPauseBtn.isPlay .playPauseGlyph::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-left: 18px solid #ffffff;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.24));
+}
+
+.playPauseBtn.isPause .playPauseGlyph::before,
+.playPauseBtn.isPause .playPauseGlyph::after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    width: 6px;
+    height: 22px;
+    border-radius: 2px;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+}
+
+.playPauseBtn.isPause .playPauseGlyph::before {
+    left: 3px;
+}
+
+.playPauseBtn.isPause .playPauseGlyph::after {
+    right: 3px;
+}
+
+.jumpBtn {
+    text-transform: none;
+}
+
+.transportBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 14px 22px rgba(0, 0, 0, 0.24);
+}
+
+.stopwatchBtn:hover:not(:disabled) {
+    transform: translateY(calc(-50% - 1px));
+}
+
+.panelShell.withMenu .stopwatchBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.transportBtn:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow:
+        inset 0 2px 6px rgba(0, 0, 0, 0.18),
+        0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.stopwatchBtn:active:not(:disabled) {
+    transform: translateY(calc(-50% + 1px));
+}
+
+.panelShell.withMenu .stopwatchBtn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.elementRail {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 var(--railWidth);
+    width: var(--railWidth);
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: transparent;
+}
+
+.elementRailButton,
+.elementRailPlaceholder {
+    width: 100%;
+    height: calc(100% / 12);
+    min-height: 0;
+    flex: 0 0 calc(100% / 12);
+}
+
+.elementRailButton {
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.22);
+    background: #3557a8;
+    color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 6px 8px 6px 4px;
+    gap: 6px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.elementRailButton.isSelected {
+    background: #d5dae2;
+    border-color: rgba(86, 97, 112, 0.42);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    color: #253241;
+}
+
+.elementRailButton.isSelected .elementRailNum,
+.elementRailButton.isSelected .elementRailCode {
+    color: #253241;
+}
+
+.elementRailButton.isReview .elementRailCode {
+    color: #ffd640;
+    font-weight: 600;
+}
+
+.elementRailButton.isSelected.isReview .elementRailCode {
+    color: #c62828;
+}
+
+.elementRailPlaceholder {
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #52679f;
+    opacity: 0.58;
+}
+
+.elementRailNum {
+    width: 26px;
+    flex: 0 0 34px;
+    text-align: center;
+    font-weight: 200;
+    font-size: 14px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-right: 6px;
+    margin-right: 8px;
+    border-right: 1px solid rgba(240, 240, 240, 0.55);
+}
+
+.elementRailInfo {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+}
+
+.elementRailCode {
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.emptyState {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #52679f;
+    z-index: 10;
+}
+
+.emptyStateCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 720px;
+    text-align: center;
+}
+
+.emptyStateMessage {
+    color: #ffffff;
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 500;
+}
+
+.emptyStateRefreshBtn {
+    min-width: 180px;
+    height: 56px;
+    padding: 0 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.emptyStateRefreshBtn:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+@media (max-width: 960px) {
+    body {
+        padding: 8px;
+    }
+
+    .panelLayout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+        row-gap: 0;
+    }
+
+    .panelShell.withMenu .panelLayout {
+        grid-template-columns: clamp(96px, 24vw, var(--railWidth)) minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+    }
+
+    .panelShell.withMenu .elementRail {
+        grid-column: 1;
+        grid-row: 1;
+        width: 100%;
+        flex-basis: auto;
+    }
+
+    .panelShell.withMenu .videoPane {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .panelShell.withMenu .timelineArea {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .panelShell.withMenu .transportRow {
+        grid-column: 2;
+        grid-row: 3;
+    }
+
+    .panelVideo {
+        min-height: 0;
+    }
+
+    .transportRow {
+        flex-direction: column;
+        gap: 10px;
+        min-height: 0;
+        margin-top: 0;
+    }
+
+    .panelShell.withMenu .transportRow {
+        min-height: 78px;
+        margin-top: -6px;
+    }
+
+    .transportButtons {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        width: min(100%, 560px);
+        gap: 6px;
+    }
+
+    .panelShell:not(.withMenu) .stopwatchBtn {
+        position: static;
+        transform: none;
+    }
+
+    .panelShell:not(.withMenu) .relativeIndicator {
+        position: static;
+        min-width: 0;
+        text-align: center;
+        transform: none;
+    }
+
+    .transportBtnLabel {
+        font-size: 17px;
+    }
+
+    .emptyState {
+        font-size: 26px;
+    }
+
+    .emptyStateMessage {
+        font-size: 26px;
+    }
+
+    .emptyStateRefreshBtn {
+        min-width: 150px;
+        height: 48px;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 760px) {
+    :root {
+        --playBtnW: 82px;
+        --playBtnH: 40px;
+    }
+
+    .panelShell.withMenu .transportRow {
+        grid-template-columns: minmax(0, 96px) minmax(0, 1fr) minmax(0, 62px);
+    }
+
+    .transportButtons {
+        width: min(100%, 440px);
+        gap: 5px;
+    }
+
+    .transportBtnLabel {
+        font-size: 15px;
+    }
+
+    .playPauseGlyph {
+        width: 20px;
+        height: 20px;
+    }
+
+    .playPauseBtn.isPlay .playPauseGlyph::before {
+        border-top-width: 9px;
+        border-bottom-width: 9px;
+        border-left-width: 15px;
+    }
+
+    .playPauseBtn.isPause .playPauseGlyph::before,
+    .playPauseBtn.isPause .playPauseGlyph::after {
+        width: 5px;
+        height: 19px;
+    }
+
+    .relativeIndicator {
+        font-size: 17px;
+    }
+}
+
+@media (max-width: 560px) {
+    :root {
+        --playBtnW: 62px;
+        --playBtnH: 34px;
+    }
+
+    body {
+        padding: 6px;
+    }
+
+    .panelShell.withMenu .panelLayout {
+        column-gap: 8px;
+        grid-template-columns: clamp(76px, 24vw, 112px) minmax(0, 1fr);
+    }
+
+    .panelShell.withMenu .transportRow {
+        min-height: 58px;
+        grid-template-columns: minmax(0, 86px) minmax(0, 1fr) minmax(0, 46px);
+    }
+
+    .transportButtons {
+        width: min(100%, 330px);
+        gap: 4px;
+    }
+
+    .transportBtnLabel {
+        font-size: 12px;
+    }
+
+    .relativeIndicator {
+        min-width: 46px;
+        font-size: 13px;
+    }
+
+    .stopwatchBtnLabel {
+        font-size: 12px;
+    }
+
+    .stopwatchTextBtn {
+        width: 86px;
+    }
+}

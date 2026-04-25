@@ -85,6 +85,12 @@ export class TimelineRenderer {
         // 0:00 sits exactly at the timer start point.
         const firstLabelDisplaySec = useShiftedTimeline ? Math.ceil(minDisplaySec / 15) * 15 : 15;
 
+        if (useShiftedTimeline && minDisplaySec < -0.001 && firstLabelDisplaySec > minDisplaySec + 0.001) {
+            ctx.textAlign = "left";
+            ctx.fillText(this.app.fmtSignedMss(minDisplaySec), 2, labelY);
+            ctx.textAlign = "center";
+        }
+
         for (let displaySec = firstLabelDisplaySec; displaySec <= maxDisplaySec + 0.001; displaySec += 15) {
             const timelineSec = useShiftedTimeline ? displaySec + displayOriginSec : displaySec;
             const label = useShiftedTimeline
@@ -95,7 +101,6 @@ export class TimelineRenderer {
     }
 
     getHalfwayTimelineSeconds() {
-        if (!this.app.isHalfwayTrackingEnabled?.()) return null;
         if (!this.app.hasProgramTimerStarted?.()) return null;
 
         const halfwaySeconds = Number(this.app.getHalfwaySeconds?.() ?? null);
@@ -168,10 +173,10 @@ export class TimelineRenderer {
         let recNow = 0;
         const clips = this.app.getClips();
         const halfwayTimelineSeconds = this.getHalfwayTimelineSeconds();
-        const useShiftedTimeline = !!this.app.hasProgramTimerStarted?.();
-        const displayOriginSec = useShiftedTimeline
+        const displayOriginSec = this.app.hasProgramTimerStarted?.()
             ? Math.max(0, Number(this.app.programTimerStartOffsetSeconds) || 0)
             : 0;
+        const useShiftedTimeline = displayOriginSec > 0.001;
 
         if (state.mode === "record") {
             // In record mode, the timeline expands as recording continues.
@@ -254,7 +259,7 @@ export class TimelineRenderer {
                 this.drawHalfwayMarker(ctx, xFor(halfwayTimelineSeconds), barTop, barH, h);
             }
 
-            if (useShiftedTimeline && this.app.isHalfwayTrackingEnabled?.()) {
+            if (useShiftedTimeline) {
                 this.drawProgramTimerStartMarker(ctx, xFor(displayOriginSec), rectY, rectH);
             }
 
@@ -299,7 +304,7 @@ export class TimelineRenderer {
             this.drawHalfwayMarker(ctx, xFor(halfwayTimelineSeconds), barTop, barH, h);
         }
 
-        if (useShiftedTimeline && this.app.isHalfwayTrackingEnabled?.()) {
+        if (useShiftedTimeline) {
             this.drawProgramTimerStartMarker(ctx, xFor(displayOriginSec), rectY, rectH);
         }
 

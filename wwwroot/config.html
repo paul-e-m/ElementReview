@@ -50,7 +50,7 @@
         }
 
         .siteHeaderInner {
-            min-height: 74px;
+            min-height: 48px;
             padding: 0 16px;
             display: flex;
             align-items: center;
@@ -67,7 +67,7 @@
         }
 
         .brand {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
             letter-spacing: 0.02em;
             white-space: nowrap;
@@ -80,7 +80,7 @@
 
         h1 {
             margin: 0 0 8px;
-            font-size: 28px;
+            font-size: 26px;
             line-height: 1.2;
             font-weight: 500;
             color: #000;
@@ -89,7 +89,7 @@
         .subtitle {
             margin: 0 0 12px;
             color: var(--muted);
-            font-size: 15px;
+            font-size: 13px;
         }
 
         .formShell {
@@ -120,7 +120,7 @@
         .sectionTitle {
             margin: 0 -14px 0;
             padding: 10px;
-            font-size: 18px;
+            font-size: 16px;
             line-height: 1.2;
             font-weight: 700;
             color: #111;
@@ -145,18 +145,12 @@
 
             .labelBlock,
             .row > .toggleRow {
-                border-bottom: 1px solid #ececec;
                 min-height: 58px;
             }
 
             .row > input {
                 min-height: 58px;
             }
-
-        .grid .row:last-child .labelBlock,
-        .grid .row:last-child .toggleRow {
-            border-bottom: 0;
-        }
 
         .labelBlock {
             display: flex;
@@ -178,14 +172,14 @@
         }
 
         .labelBlock label {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             color: #1f1f1f;
         }
 
         .help {
             color: var(--muted);
-            font-size: 13px;
+            font-size: 11px;
             line-height: 1.4;
             max-width: 560px;
         }
@@ -204,9 +198,25 @@
             border-radius: 4px;
             background: var(--inputBg);
             color: var(--text);
-            font-size: 14px;
+            font-size: 12px;
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
             align-self: center;
+        }
+
+        input[type="text"].fieldWidthSmall,
+        input[type="number"].fieldWidthSmall,
+        .fieldSelect.fieldWidthSmall {
+            width: 150px;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        input[type="text"].fieldWidthMedium,
+        input[type="number"].fieldWidthMedium,
+        .fieldSelect.fieldWidthMedium {
+            width: 350px;
+            max-width: 100%;
+            min-width: 0;
         }
 
             input[type="text"]:focus,
@@ -239,7 +249,7 @@
         .toggleText {
             min-width: 34px;
             color: var(--brand);
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
         }
 
@@ -305,7 +315,7 @@
             align-items: center;
             gap: 8px;
             min-height: 18px;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 700;
         }
 
@@ -371,7 +381,7 @@
             padding: 0 18px;
             border: 0;
             border-radius: 4px;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
             cursor: pointer;
             box-shadow: var(--buttonShadow);
@@ -392,7 +402,7 @@
         .status {
             min-height: 24px;
             margin-top: 14px;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
         }
 
@@ -431,7 +441,7 @@
 
         .modalMessage {
             margin: 0;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
             line-height: 1.3;
             color: var(--text);
@@ -439,9 +449,9 @@
 
         @media (max-width: 980px) {
             .siteHeaderInner {
-                align-items: flex-start;
-                padding-top: 12px;
-                padding-bottom: 12px;
+                align-items: center;
+                padding-top: 6px;
+                padding-bottom: 6px;
             }
 
         }
@@ -469,11 +479,11 @@
             }
 
             .brand {
-                font-size: 20px;
+                font-size: 18px;
             }
 
             .modalMessage {
-                font-size: 21px;
+                font-size: 19px;
             }
 
             input[type="text"],
@@ -489,14 +499,13 @@
     <header class="siteHeader">
         <div class="siteHeaderInner">
             <div class="brandBlock">
-                <div class="brand">Element Review</div>
+                <div class="brand" data-i18n="settings">Settings</div>
             </div>
 
         </div>
     </header>
 
     <div class="page">
-        <h1 data-i18n="settings">Settings</h1>
         <p class="subtitle" data-i18n="restartNote">NOTE: Application must be restarted for changes to take effect.</p>
 
         <div class="formShell">
@@ -513,7 +522,7 @@
                                 </div>
                             </div>
 
-                            <input id="UiZoomPercent" name="UiZoomPercent" type="number" min="50" max="250" step="5" />
+                            <input id="UiZoomPercent" name="UiZoomPercent" class="fieldWidthSmall" type="number" min="50" max="250" step="5" />
                         </div>
 
                         <div class="row">
@@ -522,7 +531,7 @@
                                 <div class="help" data-i18n="clipMarkerAdvanceHelp">How far back to place the clip start when marking a clip.</div>
                             </div>
 
-                            <input id="ClipMarkerAdvanceMsec" name="ClipMarkerAdvanceMsec" type="number" min="0" step="100" />
+                            <input id="ClipMarkerAdvanceMsec" name="ClipMarkerAdvanceMsec" class="fieldWidthSmall" type="number" min="0" step="100" />
                         </div>
                     </div>
                 </div>
@@ -537,12 +546,12 @@
                                 <div class="help" data-i18n="cssLinkTypeHelp">Choose how Element Review links to CSS data.</div>
                             </div>
 
-                            <select id="CSSLink" name="CSSLink" class="fieldSelect">
-                                <option value="None" data-i18n="cssLinkNone">None</option>
+                            <select id="CSSLink" name="CSSLink" class="fieldSelect fieldWidthSmall">
                                 <option value="Legacy" data-i18n="cssLinkLegacy">Legacy</option>
-                                <option value="Custom" data-i18n="cssLinkCustom">Custom</option>
                                 <option value="Online CSS" data-i18n="cssLinkOnline">Online CSS</option>
                                 <option value="Offline CSS" data-i18n="cssLinkOffline">Offline CSS</option>
+                                <option value="Custom" data-i18n="cssLinkCustom">Custom</option>
+                                <option value="None" data-i18n="cssLinkNone">None</option>
                             </select>
                         </div>
 
@@ -561,7 +570,7 @@
                                 </div>
                             </div>
 
-                            <input id="DatabaseLocation" name="DatabaseLocation" type="text" spellcheck="false" />
+                            <input id="DatabaseLocation" name="DatabaseLocation" class="fieldWidthMedium" type="text" spellcheck="false" />
                         </div>
 
                         <div class="row" id="EventIdRow">
@@ -624,7 +633,7 @@
                                 </div>
                             </div>
 
-                            <input id="RtspUrl" name="RtspUrl" type="text" spellcheck="false" />
+                            <input id="RtspUrl" name="RtspUrl" class="fieldWidthMedium" type="text" spellcheck="false" />
                         </div>
 
                         <div class="row">
@@ -633,7 +642,7 @@
                                 <div class="help" data-i18n="fpsHelp">Video source frame rate (typically 30 or 60).</div>
                             </div>
 
-                            <input id="SourceFps" name="SourceFps" type="number" min="0" step="5" />
+                            <input id="SourceFps" name="SourceFps" class="fieldWidthSmall" type="number" min="0" step="5" />
                         </div>
                     </div>
                 </div>
@@ -648,7 +657,7 @@
                                 <div class="help" data-i18n="rtspTransportProtocolHelp">Preferred transport protocol used when opening RTSP streams.</div>
                             </div>
 
-                            <select id="RtspTransportProtocol" name="RtspTransportProtocol" class="fieldSelect">
+                            <select id="RtspTransportProtocol" name="RtspTransportProtocol" class="fieldSelect fieldWidthSmall">
                                 <option value="UDP" data-i18n="rtspTransportUdp">UDP</option>
                                 <option value="TCP" data-i18n="rtspTransportTcp">TCP</option>
                             </select>
@@ -660,7 +669,7 @@
                                 <div class="help" data-i18n="gopHelp">Keyframe interval used while recording.</div>
                             </div>
 
-                            <input id="RecordingGop" name="RecordingGop" type="number" min="1" step="1" />
+                            <input id="RecordingGop" name="RecordingGop" class="fieldWidthSmall" type="number" min="1" step="1" />
                         </div>
 
                         <div class="row">
@@ -705,7 +714,7 @@
                                 <div class="help" data-i18n="savedVideoLocationHelp">Folder where videos are saved.</div>
                             </div>
 
-                            <input id="SavedVideosFolder" name="SavedVideosFolder" type="text" spellcheck="false" />
+                            <input id="SavedVideosFolder" name="SavedVideosFolder" class="fieldWidthMedium" type="text" spellcheck="false" />
                         </div>
                     </div>
                 </div>

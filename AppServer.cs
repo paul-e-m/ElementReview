@@ -66,7 +66,6 @@ public static class AppServer
         static AppConfig NormalizeConfig(AppConfig? cfg)
         {
             cfg ??= new AppConfig();
-            cfg.HalfwayEnabled ??= true;
             cfg.RtspTransportProtocol = NormalizeRtspTransportProtocol(cfg.RtspTransportProtocol);
 
             var cssLink = string.IsNullOrWhiteSpace(cfg.CSSLink) ? "None" : cfg.CSSLink.Trim();
@@ -143,7 +142,6 @@ public static class AppServer
 
         static AppConfig MergeConfig(AppConfig existing, AppConfig incoming)
         {
-            incoming.HalfwayEnabled ??= existing.HalfwayEnabled;
             if (string.IsNullOrWhiteSpace(incoming.RtspTransportProtocol))
                 incoming.RtspTransportProtocol = existing.RtspTransportProtocol;
             return incoming;
@@ -549,7 +547,7 @@ public static class AppServer
         app.MapPost("/api/record/stop", async (RecorderManager recorder, StopRecordingRequest req) =>
         {
             var cfg = LoadConfig();
-            await recorder.StopRecordingAndGetDurationSecondsAsync(cfg, req.uiElapsedSeconds);
+            await recorder.StopRecordingAndGetDurationSecondsAsync(cfg, req.uiElapsedSeconds, req.programTimerStartOffsetSeconds);
 
             var session = app.Services.GetRequiredService<SessionManager>();
             return Results.Ok(session.GetStatus(cfg.SourceFps));
@@ -604,9 +602,14 @@ public static class AppServer
             return Results.Ok(session.GetStatus(cfg.SourceFps));
         });
 
-        app.MapGet("/api/recording/file", (HttpContext http, RecorderManager recorder, string? kind) =>
+        app.MapGet("/api/recording/file", (HttpContext http, RecorderManager recorder, SessionManager session, string? kind, string? v) =>
         {
+            if (!session.IsReplayMediaAvailable())
+                return Results.NotFound("No replay clips currently available.");
+
             var wantCopied = string.Equals(kind, "copied", StringComparison.OrdinalIgnoreCase);
+            if (wantCopied && !session.IsReplayMediaTokenCurrent(v))
+                return Results.NotFound("Replay media token is no longer current.");
 
             var path = wantCopied && File.Exists(recorder.CopiedOutputFilePath)
                 ? recorder.CopiedOutputFilePath
@@ -617,7 +620,9 @@ public static class AppServer
             var fileInfo = new FileInfo(path);
             var lastModified = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero);
             var entityTag = new EntityTagHeaderValue($"\"{fileInfo.Length:x}-{fileInfo.LastWriteTimeUtc.Ticks:x}\"");
-            http.Response.Headers[HeaderNames.CacheControl] = "public, max-age=0, must-revalidate";
+            http.Response.Headers[HeaderNames.CacheControl] = wantCopied
+                ? "private, max-age=31536000, immutable"
+                : "public, max-age=0, must-revalidate";
 
             return Results.File(
                 path,
@@ -791,4 +796,4 @@ public static class AppServer
 }
 
 public record StartRecordingRequest(double? demoStartSeconds);
-public record StopRecordingRequest(double? uiElapsedSeconds);
+public record StopRecordingRequest(double? uiElapsedSeconds, double? programTimerStartOffsetSeconds);

@@ -14,12 +14,14 @@ public class SessionManager
     public bool IsRecording { get; private set; } = false;
 
     public double? RecordingDurationSeconds { get; private set; }
+    public double? ProgramTimerStartOffsetSeconds { get; private set; }
 
     public List<ClipSegment> Clips { get; } = new();
     public double? OpenClipStartSeconds { get; private set; } = null;
 
     private readonly HashSet<int> _everReviewedIndices = new();
     private string? _savedMarkerJsonPath;
+    private string _replayMediaToken = Guid.NewGuid().ToString("N");
 
     private enum ClipActionKind { Start, Stop }
 
@@ -43,6 +45,7 @@ public class SessionManager
             IsArming = true;
             IsRecording = false;
             RecordingDurationSeconds = null;
+            ProgramTimerStartOffsetSeconds = null;
 
             Clips.Clear();
             OpenClipStartSeconds = null;
@@ -51,6 +54,7 @@ public class SessionManager
             _redoHistory.Clear();
             _everReviewedIndices.Clear();
             _savedMarkerJsonPath = null;
+            _replayMediaToken = Guid.NewGuid().ToString("N");
         }
     }
 
@@ -73,6 +77,7 @@ public class SessionManager
             IsArming = false;
             IsRecording = false;
             RecordingDurationSeconds = null;
+            ProgramTimerStartOffsetSeconds = null;
 
             Clips.Clear();
             OpenClipStartSeconds = null;
@@ -81,16 +86,21 @@ public class SessionManager
             _redoHistory.Clear();
             _everReviewedIndices.Clear();
             _savedMarkerJsonPath = null;
+            _replayMediaToken = Guid.NewGuid().ToString("N");
         }
     }
 
-    public void OnRecordingStopped(double durationSeconds, double? uiElapsedSeconds = null)
+    public void OnRecordingStopped(double durationSeconds, double? uiElapsedSeconds = null, double? programTimerStartOffsetSeconds = null)
     {
         lock (_lock)
         {
             IsArming = false;
             IsRecording = false;
             RecordingDurationSeconds = durationSeconds;
+            ProgramTimerStartOffsetSeconds =
+                double.IsFinite(programTimerStartOffsetSeconds ?? double.NaN)
+                    ? Math.Clamp(programTimerStartOffsetSeconds!.Value, 0.0, durationSeconds)
+                    : null;
 
             double ClampToRecording(double t) => Math.Clamp(t, 0.0, durationSeconds);
 
@@ -144,6 +154,7 @@ public class SessionManager
             _history.Clear();
             _redoHistory.Clear();
             Mode = "replay";
+            _replayMediaToken = Guid.NewGuid().ToString("N");
         }
     }
 
@@ -544,6 +555,7 @@ public class SessionManager
             IsArming = false;
             IsRecording = false;
             RecordingDurationSeconds = null;
+            ProgramTimerStartOffsetSeconds = null;
             Clips.Clear();
             OpenClipStartSeconds = null;
 
@@ -551,6 +563,7 @@ public class SessionManager
             _redoHistory.Clear();
             _everReviewedIndices.Clear();
             _savedMarkerJsonPath = null;
+            _replayMediaToken = Guid.NewGuid().ToString("N");
         }
     }
 
@@ -564,6 +577,8 @@ public class SessionManager
                 IsArming = IsArming,
                 IsRecording = IsRecording,
                 RecordingDurationSeconds = RecordingDurationSeconds,
+                ProgramTimerStartOffsetSeconds = ProgramTimerStartOffsetSeconds,
+                ReplayMediaToken = _replayMediaToken,
                 SourceFps = sourceFps,
                 CanUndoClipAction = IsRecording && _history.Count > 0,
                 CanRedoClipAction = IsRecording && _redoHistory.Count > 0,
@@ -576,6 +591,27 @@ public class SessionManager
                 }).ToList(),
                 OpenClipStartSeconds = OpenClipStartSeconds
             };
+        }
+    }
+
+    public bool IsReplayMediaAvailable()
+    {
+        lock (_lock)
+        {
+            return
+                string.Equals(Mode, "replay", StringComparison.OrdinalIgnoreCase) &&
+                !IsRecording &&
+                Clips.Count > 0;
+        }
+    }
+
+    public bool IsReplayMediaTokenCurrent(string? token)
+    {
+        lock (_lock)
+        {
+            return
+                !string.IsNullOrWhiteSpace(token) &&
+                string.Equals(_replayMediaToken, token, StringComparison.Ordinal);
         }
     }
 

@@ -1,7 +1,7 @@
 import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js";
-import { TimelineRenderer } from "./app-timeline.js";
+import { TimelineRenderer } from "./app-timeline.js?v=20260424-negativezero1";
 import { ReplayController } from "./app-replay.js?v=20260419-zoomexit1";
-import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260418-rkeyfix1";
+import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260424-rstart-ssetstart1";
 
 // ElementReviewApp coordinates the shared operator UI state in index.html.
 // Backend session data stays authoritative, while ReplayController manages replay-local interactions.
@@ -44,12 +44,15 @@ export class ElementReviewApp {
             undoClipText: el("undoClipText"),
             redoClipBtn: el("redoClipBtn"),
             redoClipText: el("redoClipText"),
-            halfwayToggleWrap: el("halfwayToggleWrap"),
-            halfwayToggle: el("halfwayToggle"),
-            halfwayToggleLabel: el("halfwayToggleLabel"),
+            recordProgramStartBtn: el("recordProgramStartBtn"),
+            replayProgramStartBtn: el("replayProgramStartBtn"),
+            replayJumpToHalfwayBtn: el("replayJumpToHalfwayBtn"),
             halfwayTimeCol: el("halfwayTimeCol"),
             halfwayTimeCard: el("halfwayTimeCard"),
             halfwayTimeValue: el("halfwayTimeValue"),
+            replayHalfwayTimeCol: el("replayHalfwayTimeCol"),
+            replayHalfwayTimeCard: el("replayHalfwayTimeCard"),
+            replayHalfwayTimeValue: el("replayHalfwayTimeValue"),
             recordTimerCard: el("recordTimerCard"),
             programTimerCard: el("programTimerCard"),
             clipTimerCard: el("clipTimerCard"),
@@ -115,7 +118,6 @@ export class ElementReviewApp {
         this.isStopPending = false;
         this.isClipPending = false;
         this.isDeletePending = false;
-        this.isSavingHalfwaySetting = false;
         this.isSavingLanguage = false;
         this.lastRecordStartRequestPerf = 0;
         this.pendingOpenClipSlotIndex = null;
@@ -123,9 +125,10 @@ export class ElementReviewApp {
 
         // Cache appconfig early so later interactions do not need an extra fetch.
         this.appConfig = null;
-        this.appVersion = "v0.4.3-alpha";
+        this.appVersion = "v0.5.0";
         this.currentLanguage = "en";
         this.i18n = window.INDEX_I18N || {};
+        this.buttonAssetVersion = "20260424-rstart-ssetstart1";
         this.buttonImageUrlCache = new Map();
         this.buttonImageMetaCache = new Map();
         this.currentMainButtonKind = "start";
@@ -140,6 +143,9 @@ export class ElementReviewApp {
         this.programTimerStartOffsetSeconds = null;
         this.programTimerStopOffsetSeconds = null;
         this.programTimerRunning = false;
+        this.hasReplayProgramStartOverride = false;
+        this.recordProgramStartLockedOut = false;
+        this.recordProgramStartWasPressed = false;
         this.pendingRecordShortcut = null;
 
         // Element metadata comes from `/api/sessionInfo` and stays separate from clip timing in `/api/status`.
@@ -182,15 +188,6 @@ export class ElementReviewApp {
         this.replay.init();
         this.replay.bindEvents();
         this.shortcuts.bindEvents();
-
-        if (this.refs.halfwayToggle) {
-            this.refs.halfwayToggle.checked = this.isHalfwayTrackingEnabled();
-            this.refs.halfwayToggle.addEventListener("change", () => {
-                this.setHalfwayTrackingEnabled(!!this.refs.halfwayToggle.checked).catch((err) => {
-                    alert(err?.message || "Unable to save halfway setting.");
-                });
-            });
-        }
 
         this.applyEditModeUI();
         this.updateEditButtonsUI();
@@ -242,7 +239,7 @@ export class ElementReviewApp {
             this.appConfig?.Language ?? this.currentLanguage
         );
         this.applyTranslations();
-        this.syncHalfwayToggleFromConfig(this.appConfig);
+        this.syncHalfwayUi();
         this.preloadButtonImages();
     }
 
@@ -250,25 +247,39 @@ export class ElementReviewApp {
         return String(language || "").trim().toLowerCase() === "fr" ? "fr" : "en";
     }
 
-    getHalfwayEnabledValue(config = this.appConfig) {
-        const value = config?.HalfwayEnabled;
-        return typeof value === "boolean" ? value : true;
-    }
-
     hasHalfwayTimeAvailable() {
+        if (!this.isHalfwayInterfaceEligible()) return false;
+
         const seconds = this.getSessionInfoTimeSeconds(this.sessionInfoPayload, "segmentProgHalfTime");
         return Number.isFinite(seconds) && seconds > 0;
     }
 
-    isHalfwayTrackingEnabled() {
-        return this.hasHalfwayTimeAvailable() && this.getHalfwayEnabledValue(this.appConfig);
+    normalizeSessionInfoMatchValue(value) {
+        return String(value ?? "").trim().toLowerCase();
     }
 
-    syncHalfwayToggleFromConfig(config = this.appConfig) {
-        const enabled = this.hasHalfwayTimeAvailable() && this.getHalfwayEnabledValue(config);
-        if (this.refs.halfwayToggle) this.refs.halfwayToggle.checked = enabled;
-        this.setText(this.refs.halfwayToggleLabel, this.t("halfwayToggleLabel"));
-        this.setAriaLabel(this.refs.halfwayToggle, this.t("halfwayToggleAria"));
+    isHalfwayInterfaceEligible() {
+        const payload = this.sessionInfoPayload;
+        const categoryName = this.normalizeSessionInfoMatchValue(
+            this.getSessionInfoField(payload, "categoryName")
+        );
+        const categoryDiscipline = this.normalizeSessionInfoMatchValue(
+            this.getSessionInfoField(payload, "categoryDiscipline")
+        );
+        const segmentName = this.normalizeSessionInfoMatchValue(
+            this.getSessionInfoField(payload, "segmentName")
+        );
+
+        return (
+            categoryName === "senior" &&
+            (categoryDiscipline === "women" || categoryDiscipline === "men") &&
+            (segmentName === "free program" || segmentName === "short program")
+        );
+    }
+
+    syncHalfwayUi() {
+        this.updateProgramStartButtons();
+        this.updateReplayJumpHalfwayButton();
         this.updateHalfwayTimeValue();
     }
 
@@ -280,17 +291,21 @@ export class ElementReviewApp {
     }
 
     updateHalfwayTimeValue() {
-        const ref = this.refs.halfwayTimeValue;
-        if (!ref) return;
-
         const halfwaySeconds = this.getHalfwaySeconds();
-        const show = this.isHalfwayTrackingEnabled() && Number.isFinite(halfwaySeconds) && halfwaySeconds > 0;
+        const show = Number.isFinite(halfwaySeconds) && halfwaySeconds > 0;
+        const text = show ? this.formatHalfwayTimeValue(halfwaySeconds) : "";
 
-        ref.textContent = show ? this.formatHalfwayTimeValue(halfwaySeconds) : "";
-        this.refs.halfwayTimeCol?.classList.toggle("hidden", !show);
-        this.refs.halfwayTimeCard?.setAttribute("aria-hidden", show ? "false" : "true");
-        ref.classList.toggle("hidden", !show);
-        ref.setAttribute("aria-hidden", show ? "false" : "true");
+        const apply = (valueRef, colRef, cardRef) => {
+            if (!valueRef) return;
+            valueRef.textContent = text;
+            colRef?.classList.toggle("hidden", !show);
+            cardRef?.setAttribute("aria-hidden", show ? "false" : "true");
+            valueRef.classList.toggle("hidden", !show);
+            valueRef.setAttribute("aria-hidden", show ? "false" : "true");
+        };
+
+        apply(this.refs.halfwayTimeValue, this.refs.halfwayTimeCol, this.refs.halfwayTimeCard);
+        apply(this.refs.replayHalfwayTimeValue, this.refs.replayHalfwayTimeCol, this.refs.replayHalfwayTimeCard);
     }
 
     t(key) {
@@ -407,7 +422,11 @@ export class ElementReviewApp {
         case "starting":
             return ["/img/i18-buttons/starting_" + lang + ".png"];
         case "timer":
-            return ["/img/i18-buttons/timer_" + lang + ".png"];
+            return ["/img/i18-buttons/set_start_" + lang + ".png"];
+        case "timerRestart":
+            return ["/img/i18-buttons/reset_start_" + lang + ".png"];
+        case "jumpHalfway":
+            return ["/img/i18-buttons/jump_to_halfway_" + lang + ".png"];
         case "stop":
             return ["/img/i18-buttons/stop_" + lang + ".png"];
         case "stopping":
@@ -430,22 +449,28 @@ export class ElementReviewApp {
         }
     }
 
+    versionButtonImageUrl(path) {
+        if (!path || path.includes("?")) return path;
+        return `${path}?v=${this.buttonAssetVersion}`;
+    }
+
     async loadButtonImageMeta(path) {
         if (!path) return null;
-        if (!this.buttonImageMetaCache.has(path)) {
-            this.buttonImageMetaCache.set(path, new Promise((resolve) => {
+        const url = this.versionButtonImageUrl(path);
+        if (!this.buttonImageMetaCache.has(url)) {
+            this.buttonImageMetaCache.set(url, new Promise((resolve) => {
                 const probe = new Image();
                 probe.onload = () => resolve({
-                    url: path,
+                    url,
                     width: probe.naturalWidth || probe.width || 0,
                     height: probe.naturalHeight || probe.height || 0,
                 });
                 probe.onerror = () => resolve(null);
-                probe.src = path;
+                probe.src = url;
             }));
         }
 
-        return await this.buttonImageMetaCache.get(path);
+        return await this.buttonImageMetaCache.get(url);
     }
 
     async resolveButtonImageAsset(kind) {
@@ -466,7 +491,7 @@ export class ElementReviewApp {
     }
 
     preloadButtonImages() {
-        for (const kind of ["start", "starting", "timer", "stop", "stopping", "next", "clipStart", "clipStop", "undo", "redo"]) {
+        for (const kind of ["start", "starting", "timer", "timerRestart", "jumpHalfway", "stop", "stopping", "next", "clipStart", "clipStop", "undo", "redo"]) {
             this.resolveButtonImageAsset(kind).catch(() => { });
         }
     }
@@ -554,8 +579,8 @@ export class ElementReviewApp {
         this.setText(this.refs.programTimerPrefix, this.t("programTimerPrefix"));
         this.setText(this.refs.recordTimerValue, this.formatRecordingTimerDisplay(this.currentRecordSeconds()));
         this.setText(this.refs.programTimerDisplay, this.formatProgramTimerDisplay(this.currentProgramTimerElapsedSeconds?.() ?? 0));
-        this.setText(this.refs.halfwayToggleLabel, this.t("halfwayToggleLabel"));
-        this.setAriaLabel(this.refs.halfwayToggle, this.t("halfwayToggleAria"));
+        this.updateProgramStartButtons();
+        this.updateReplayJumpHalfwayButton();
 
         if (this.editToggleWrap) {
             this.setText(this.editToggleWrap.querySelector(".editToggleLabel"), this.t("editToggleLabel"));
@@ -650,6 +675,9 @@ export class ElementReviewApp {
         this.refs.confirmCancel?.addEventListener("click", () => this.hideConfirm(false));
         this.refs.recordRefreshBtn?.addEventListener("click", () => window.location.reload());
         this.refs.replayRefreshBtn?.addEventListener("click", () => window.location.reload());
+        this.refs.recordProgramStartBtn?.addEventListener("click", () => this.startProgramTimer());
+        this.refs.replayProgramStartBtn?.addEventListener("click", () => this.startProgramTimer());
+        this.refs.replayJumpToHalfwayBtn?.addEventListener("click", () => this.shortcuts.jumpToHalfway());
         const bindLanguageSelect = (select) => {
             select?.addEventListener("change", () => {
                 this.setLanguage(select.value).catch((err) => {
@@ -668,24 +696,11 @@ export class ElementReviewApp {
             if (!this.state) return;
 
             if (this.state.mode === "record") {
-                // The record-side main button advances through:
-                // 1. start recording
-                // 2. optionally start the program timer
-                // 3. stop recording
                 if (!this.state.isRecording) {
-                    if (this.isStartPending || this.state.isArming) {
-                        if (this.isHalfwayTrackingEnabled()) {
-                            this.pendingRecordShortcut = "timer";
-                        }
-                        return;
-                    }
+                    if (this.isStartPending || this.state.isArming) return;
                     this.startRecording().catch(alert);
-                } else if (!this.isHalfwayTrackingEnabled()) {
-                    this.stopRecording().catch(alert);
-                } else if (this.hasProgramTimerStarted()) {
-                    this.stopRecording().catch(alert);
                 } else {
-                    this.startProgramTimer();
+                    this.stopRecording().catch(alert);
                 }
                 return;
             }
@@ -1207,7 +1222,7 @@ export class ElementReviewApp {
             });
 
             this.sessionInfoPayload = payload;
-            this.syncHalfwayToggleFromConfig(this.appConfig);
+            this.syncHalfwayUi();
             this.updateUI();
 
             if (signature === this.elementMetaSig) {
@@ -1277,6 +1292,9 @@ export class ElementReviewApp {
         this.programTimerStartOffsetSeconds = null;
         this.programTimerStopOffsetSeconds = null;
         this.programTimerRunning = false;
+        this.hasReplayProgramStartOverride = false;
+        this.recordProgramStartLockedOut = false;
+        this.recordProgramStartWasPressed = false;
     }
 
     clearPendingRecordShortcut() {
@@ -1291,12 +1309,78 @@ export class ElementReviewApp {
     }
 
     startProgramTimer() {
-        if (this.state?.mode !== "record" || !this.state?.isRecording) return;
+        if (!this.hasHalfwayTimeAvailable()) return;
 
-        this.programTimerStartOffsetSeconds = this.currentRecordSeconds();
+        if (this.state?.mode === "record") {
+            if (!this.canSetProgramStartInRecord()) return;
+
+            this.programTimerStartOffsetSeconds = this.currentRecordSeconds();
+            this.programTimerStopOffsetSeconds = null;
+            this.programTimerRunning = true;
+            this.recordProgramStartWasPressed = true;
+            this.updateProgramTimerUI();
+            this.updateHalfwayTimeValue();
+            this.timeline.draw();
+            this.renderClipList();
+            return;
+        }
+
+        if (this.state?.mode !== "replay") return;
+
+        const replayTime = this.replay.replayUiSeconds(this.refs.replayVideo?.currentTime || 0);
+        this.programTimerStartOffsetSeconds = Number.isFinite(replayTime) ? replayTime : 0;
         this.programTimerStopOffsetSeconds = null;
-        this.programTimerRunning = true;
+        this.programTimerRunning = false;
+        this.hasReplayProgramStartOverride = true;
         this.updateProgramTimerUI();
+        this.updateHalfwayTimeValue();
+        this.timeline.draw();
+        this.renderClipList();
+        this.replay.updateReplayTimerAndSpeed();
+    }
+
+    canSetProgramStartInRecord() {
+        if (!this.hasHalfwayTimeAvailable()) return false;
+        if (this.state?.mode !== "record") return false;
+        if (!this.state?.isRecording || this.isStopPending) return false;
+        return !this.hasProgramTimerStarted() && !this.recordProgramStartLockedOut;
+    }
+
+    updateProgramStartButtons() {
+        const showHalfwayControls = this.hasHalfwayTimeAvailable();
+        const configs = [
+            [this.refs.recordProgramStartBtn, this.canSetProgramStartInRecord(), "timer"],
+            [
+                this.refs.replayProgramStartBtn,
+                this.state?.mode === "replay" && showHalfwayControls,
+                this.hasProgramTimerStarted() ? "timerRestart" : "timer",
+            ],
+        ];
+
+        for (const [button, enabled, imageKind] of configs) {
+            if (!button) continue;
+            button.closest(".recordActionCol")?.classList.toggle("hidden", !showHalfwayControls);
+            button.innerHTML = this.t("mainStartTimerHtml");
+            button.setAttribute("aria-label", this.t("mainStartTimerAria"));
+            button.title = this.t("mainStartTimerAria");
+            button.disabled = !enabled;
+            this.applyButtonImage(button, imageKind);
+        }
+    }
+
+    updateReplayJumpHalfwayButton() {
+        const button = this.refs.replayJumpToHalfwayBtn;
+        if (!button) return;
+
+        const enabled =
+            this.state?.mode === "replay" &&
+            this.hasHalfwayTimeAvailable() &&
+            this.hasProgramTimerStarted();
+        button.closest(".recordActionCol")?.classList.toggle("hidden", !this.hasHalfwayTimeAvailable());
+        button.disabled = !enabled;
+        button.setAttribute("aria-label", this.t("shortcutActionH"));
+        button.title = this.t("shortcutActionH");
+        this.applyButtonImage(button, "jumpHalfway");
     }
 
     async flushPendingRecordShortcut() {
@@ -1305,29 +1389,23 @@ export class ElementReviewApp {
         if (!this.pendingRecordShortcut) return;
 
         const pending = this.pendingRecordShortcut;
-        if (this.isHalfwayTrackingEnabled() && !this.hasProgramTimerStarted()) {
+        this.clearPendingRecordShortcut();
+
+        if (pending === "timer") {
             this.startProgramTimer();
         }
 
-        this.clearPendingRecordShortcut();
-
-        if (pending === "clip" && (this.hasProgramTimerStarted() || !this.isHalfwayTrackingEnabled())) {
+        if (pending === "clip") {
             await this.toggleClip();
         }
     }
 
     handleProgramTimerShortcut() {
-        if (!this.isHalfwayTrackingEnabled()) return;
         if (this.state?.mode !== "record" || this.isStopPending) return;
 
         this.clearPendingRecordShortcut();
 
         if (this.state?.isRecording) {
-            if (this.hasProgramTimerStarted()) {
-                this.stopRecording().catch(console.error);
-                return;
-            }
-
             this.startProgramTimer();
             return;
         }
@@ -1342,21 +1420,17 @@ export class ElementReviewApp {
     handleRecordSpaceShortcut() {
         if (this.state?.mode !== "record" || this.isStopPending) return;
 
-        if (this.state?.isRecording && this.hasProgramTimerStarted()) {
+        if (this.state?.isRecording) {
+            // Space is the primary recording clip control and must never depend
+            // on halfway timing or Set Start state.
             this.clearPendingRecordShortcut();
             this.toggleClip().catch(console.error);
             return;
         }
 
-        if (!this.isHalfwayTrackingEnabled() && (this.isStartPending || this.state?.isArming)) {
+        if (this.isStartPending || this.state?.isArming) {
             this.pendingRecordShortcut = "clip";
             return;
-        }
-
-        if ((this.isStartPending || this.state?.isArming) && this.pendingRecordShortcut === "timer") {
-            // If Space arrives just before recording or the program timer is
-            // fully ready, carry that intent forward instead of dropping it.
-            this.pendingRecordShortcut = "clip";
         }
     }
 
@@ -1391,7 +1465,8 @@ export class ElementReviewApp {
     }
 
     getHalfwaySeconds() {
-        if (!this.isHalfwayTrackingEnabled()) return null;
+        if (!this.hasHalfwayTimeAvailable()) return null;
+
         const seconds = this.getSessionInfoTimeSeconds(this.sessionInfoPayload, "segmentProgHalfTime");
         return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
     }
@@ -1589,7 +1664,7 @@ export class ElementReviewApp {
             const saved = await apiPost("/api/appconfig", this.appConfig);
             this.appConfig = saved;
             this.syncLanguageFromConfig(saved);
-            this.syncHalfwayToggleFromConfig(saved);
+            this.syncHalfwayUi();
             this.preloadButtonImages();
         } catch (err) {
             this.appConfig = { ...baseConfig, Language: previousLanguage };
@@ -1611,7 +1686,7 @@ export class ElementReviewApp {
             const config = await apiGet(`/api/appconfig?ts=${Date.now()}`);
             this.appConfig = config;
             this.syncLanguageFromConfig(config);
-            this.syncHalfwayToggleFromConfig(config);
+            this.syncHalfwayUi();
 
             if (config?.DemoMode) {
                 this.setReplayPingStatus("encoder", "disabled");
@@ -1679,9 +1754,11 @@ export class ElementReviewApp {
     }
 
     hasHalfwayMarker() {
-        if (!this.isHalfwayTrackingEnabled()) return false;
         const halfwaySeconds = this.getHalfwaySeconds();
         if (!Number.isFinite(halfwaySeconds) || halfwaySeconds <= 0) return false;
+        if (!this.hasProgramTimerStarted()) return false;
+
+        if (this.state?.mode === "replay") return true;
 
         if (this.programTimerRunning) {
             return this.currentProgramTimerElapsedSeconds() >= halfwaySeconds;
@@ -1774,44 +1851,6 @@ export class ElementReviewApp {
             this.state?.mode === "record" && !!this.state?.isRecording && !this.hasProgramTimerStarted()
         );
         programTimerCard?.classList.toggle("stateRunning", this.hasProgramTimerStarted());
-    }
-
-    async setHalfwayTrackingEnabled(on) {
-        const nextValue = !!on;
-        const canChange =
-            this.state?.mode !== "record" ||
-            (!this.state?.isRecording && !this.isStartPending && !this.state?.isArming);
-
-        if (!canChange) {
-            this.syncHalfwayToggleFromConfig(this.appConfig);
-            return;
-        }
-
-        const baseConfig = this.appConfig ?? await apiGet(`/api/appconfig?ts=${Date.now()}`);
-        const previousValue = this.getHalfwayEnabledValue(baseConfig);
-        if (previousValue === nextValue) {
-            this.syncHalfwayToggleFromConfig(baseConfig);
-            return;
-        }
-
-        this.isSavingHalfwaySetting = true;
-        this.appConfig = { ...baseConfig, HalfwayEnabled: nextValue };
-        this.syncHalfwayToggleFromConfig(this.appConfig);
-        this.updateUI();
-
-        try {
-            const saved = await apiPost("/api/appconfig", this.appConfig);
-            this.appConfig = saved;
-            this.syncLanguageFromConfig(saved);
-            this.syncHalfwayToggleFromConfig(saved);
-        } catch (err) {
-            this.appConfig = { ...baseConfig, HalfwayEnabled: previousValue };
-            this.syncHalfwayToggleFromConfig(this.appConfig);
-            throw err;
-        } finally {
-            this.isSavingHalfwaySetting = false;
-            this.updateUI();
-        }
     }
 
     elementOuterHeight(node) {
@@ -2281,7 +2320,7 @@ export class ElementReviewApp {
         const inRecord = this.state?.mode === "record";
         const recording = !!this.state?.isRecording;
         const open = recording && this.state?.openClipStartSeconds != null;
-        const canStartClip = recording && (open || !this.isHalfwayTrackingEnabled() || this.hasProgramTimerStarted());
+        const canStartClip = recording;
         const canUndo = recording && !!this.state?.canUndoClipAction;
         const canRedo = recording && !!this.state?.canRedoClipAction;
 
@@ -2338,7 +2377,7 @@ export class ElementReviewApp {
 
         const inRecord = uiMode === "record";
         const recording = !!this.state.isRecording;
-        const showProgramTimer = inRecord && this.isHalfwayTrackingEnabled();
+        const showProgramTimer = inRecord;
         const programTimerCol = this.refs.programTimerCard?.parentElement ?? null;
 
         if (this.refs.replayProgramTimeIndicator) {
@@ -2358,9 +2397,7 @@ export class ElementReviewApp {
             } else {
                 this.setMainButtonVisual(
                     recording
-                        ? (this.isHalfwayTrackingEnabled()
-                            ? (this.hasProgramTimerStarted() ? "stop" : "timer")
-                            : "stop")
+                        ? "stop"
                         : "start"
                 );
             }
@@ -2395,19 +2432,8 @@ export class ElementReviewApp {
         }
 
         this.updateRecordClipButtonsUI();
-        const halfwayCanChange =
-            uiMode === "record" &&
-            !recording &&
-            !this.isStartPending &&
-            !arming &&
-            !this.isSavingHalfwaySetting &&
-            this.hasHalfwayTimeAvailable();
-        if (this.refs.halfwayToggleWrap) {
-            this.refs.halfwayToggleWrap.classList.toggle("isDisabled", !halfwayCanChange);
-        }
-        if (this.refs.halfwayToggle) {
-            this.refs.halfwayToggle.disabled = !halfwayCanChange;
-        }
+        this.updateProgramStartButtons();
+        this.updateReplayJumpHalfwayButton();
         this.updateHalfwayTimeValue();
         this.updateProgramTimerUI();
         this.renderClipList();
@@ -2445,10 +2471,20 @@ export class ElementReviewApp {
 
         if (!prevRecording && this.state.isRecording) {
             this.resetProgramTimerState();
-            if (!this.isHalfwayTrackingEnabled()) {
-                this.programTimerStartOffsetSeconds = 0;
+        }
+
+        if (!this.state.isRecording && !this.hasReplayProgramStartOverride) {
+            if (Number.isFinite(Number(this.state.programTimerStartOffsetSeconds))) {
+                this.programTimerStartOffsetSeconds = Number(this.state.programTimerStartOffsetSeconds);
+                this.programTimerStopOffsetSeconds = Number.isFinite(Number(this.state.recordingDurationSeconds))
+                    ? Number(this.state.recordingDurationSeconds)
+                    : this.programTimerStopOffsetSeconds;
+                this.programTimerRunning = false;
+            } else if (this.state.mode === "record") {
+                this.programTimerStartOffsetSeconds = null;
                 this.programTimerStopOffsetSeconds = null;
-                this.programTimerRunning = true;
+                this.programTimerRunning = false;
+                this.recordProgramStartWasPressed = false;
             }
         }
 
@@ -2557,7 +2593,10 @@ export class ElementReviewApp {
                 this.stopProgramTimer(uiElapsedSeconds);
             }
 
-            const nextState = await apiPost("/api/record/stop", { uiElapsedSeconds });
+            const programTimerStartOffsetSeconds = Number.isFinite(Number(this.programTimerStartOffsetSeconds))
+                ? Number(this.programTimerStartOffsetSeconds)
+                : null;
+            const nextState = await apiPost("/api/record/stop", { uiElapsedSeconds, programTimerStartOffsetSeconds });
 
             this.localRecStartPerf = null;
             this.replay.stopReverse();
@@ -2586,7 +2625,10 @@ export class ElementReviewApp {
         if (this.isClipPending || this.isStartPending || this.isStopPending) return;
 
         const isStartingClip = this.state?.openClipStartSeconds == null;
-        if (isStartingClip && !this.hasProgramTimerStarted()) return;
+        const lockedOutForThisClip = isStartingClip && !this.hasProgramTimerStarted();
+        if (lockedOutForThisClip) {
+            this.recordProgramStartLockedOut = true;
+        }
 
         this.suppressOpenClipPlaceholder = false;
         this.pendingOpenClipSlotIndex = isStartingClip ? this.getNextAvailableClipSlotIndex() : null;
@@ -2615,6 +2657,11 @@ export class ElementReviewApp {
 
             const nextState = await apiPost("/api/record/clipToggle", { nowSeconds: now });
             this.applyStatusUpdate(nextState);
+        } catch (err) {
+            if (lockedOutForThisClip) {
+                this.recordProgramStartLockedOut = false;
+            }
+            throw err;
         } finally {
             this.isClipPending = false;
             this.pendingOpenClipSlotIndex = null;

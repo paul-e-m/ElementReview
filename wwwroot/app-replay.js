@@ -578,7 +578,7 @@ export class ReplayController {
         if (!inReplay) return;
 
         const total = this.getReplayTotalSeconds();
-        const zeroOffset = this.app.isHalfwayTrackingEnabled?.()
+        const zeroOffset = this.app.hasProgramTimerStarted?.()
             ? Number(this.app.programTimerStartOffsetSeconds ?? 0)
             : 0;
         const timelineZero = Number.isFinite(zeroOffset) && zeroOffset > 0 ? zeroOffset : 0;

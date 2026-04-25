@@ -48,7 +48,4 @@ public class AppConfig
 
     [JsonPropertyOrder(14)]
     public string SavedVideosFolder { get; set; } = "C:/Event_Videos";
-
-    [JsonPropertyOrder(15)]
-    public bool? HalfwayEnabled { get; set; } = true;
 }

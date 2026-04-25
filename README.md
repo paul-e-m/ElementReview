@@ -8,7 +8,7 @@ ElementReview is a Windows desktop recording and replay tool for figure skating 
 - `ffmpeg` / `ffprobe` for recording
 - MediaMTX for live RTSP relay into the browser UI
 
-The current app version is `v0.4.3-alpha`.
+The current app version is `v0.5.0`.
 
 ## What It Does
 
@@ -19,7 +19,7 @@ ElementReview is built around a fast record-to-review workflow:
 3. mark element clips while the skater is performing
 4. stop recording and switch straight into replay mode
 5. trim, split, insert, or delete replay clips
-6. expose the replay locally or over the LAN for judge review
+6. expose the replay locally or over the LAN for panel review
 
 Current operator features include:
 
@@ -29,8 +29,28 @@ Current operator features include:
 - replay playback, scrubbing, looping, zoom, and frame stepping
 - replay clip editing
 - English/French UI switching from the main control bar
-- a separate remote replay page at `judge.html` (more to be added)
+- a feature-rich remote replay panel at `panel.html`
 - saved-video export into a metadata-based folder structure
+- recording shortcuts: `R` starts/stops recording, `Space` starts/stops clips, and `S` sets/resets the program start when halfway timing is active
+
+## Remote Panel
+
+`panel.html` is the remote replay client for panel review or other trusted LAN viewers.
+
+Common forms:
+
+```text
+http://localhost:5050/panel.html
+http://localhost:5050/panel.html?0
+http://localhost:5050/panel.html?2
+http://localhost:5050/panel.html?2&autoplay=false&loop=false
+```
+
+- `panel.html` and `panel.html?0` open full panel mode with the element rail.
+- `panel.html?N` opens element clip `N` directly.
+- Clicking an element clip in the panel autoplays it, even if playback was paused.
+- The panel shows a session info bar when replay clips are available.
+- The panel timer overlay appears above clip blocks and remains translucent so the clip underneath is still visible.
 
 ## Saved Video Export
 
@@ -58,7 +78,7 @@ Folder and file names are built from `SessionInfo.json`.
 - [Services/SessionManager.cs] owns in-memory session and clip state.
 - [wwwroot/index.html] is the main operator UI.
 - [wwwroot/config.html] is the settings window.
-- [wwwroot/judge.html] is a remote replay page.
+- [wwwroot/panel.html] is the remote replay panel.
 
 The local server listens on:
 
@@ -75,7 +95,7 @@ http://localhost:5050
 
 ## Runtime Requirements
 
-To copmpile the app, you need:
+To compile the app, you need:
 
 - Windows
 - .NET 10 SDK
@@ -118,6 +138,7 @@ The app currently reads and writes these canonical `AppConfig` fields:
 - `DemoMode`
 - `RtspUrl`
 - `SourceFps`
+- `RtspTransportProtocol`
 - `UseHardwareEncodingWhenAvailable`
 - `RecordingGop`
 - `CSSLink`
@@ -126,7 +147,6 @@ The app currently reads and writes these canonical `AppConfig` fields:
 - `CSSServerHost`
 - `SaveVideos`
 - `SavedVideosFolder`
-- `HalfwayEnabled`
 
 Notes:
 
@@ -180,6 +200,15 @@ The app uses `SessionInfo.json` data for:
 - replay review flags: `elements[n].review`
 - saved-video folder naming: `categoryName`, `categoryDiscipline`, `categoryFlight`, `segmentName`
 - saved-video file naming: `competitorLastName`, `competitorFirstName`, `competitorClub`, `competitorSection`
+
+Halfway/program timing controls are shown only when all of these are true:
+
+- `categoryName` is `Senior`
+- `categoryDiscipline` is `Women` or `Men`
+- `segmentName` is `Free Program` or `Short Program`
+- `segmentProgHalfTime` contains a valid positive time
+
+When those conditions are not met, Set/Reset Start, Jump to Halfway, halfway display, halfway marker, and the `H` halfway shortcut are hidden or inactive.
 
 Unknown extra properties are ignored by the current app.
 

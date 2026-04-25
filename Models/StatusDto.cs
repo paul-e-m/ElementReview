@@ -10,6 +10,8 @@ public class StatusDto
 
     // Filled after recording stops so replay clients know the full recording length.
     public double? RecordingDurationSeconds { get; set; }
+    public double? ProgramTimerStartOffsetSeconds { get; set; }
+    public string ReplayMediaToken { get; set; } = "";
 
     public List<ClipSegment> Clips { get; set; } = new();
     public double? OpenClipStartSeconds { get; set; }
