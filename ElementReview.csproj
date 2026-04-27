@@ -23,8 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="PanelReplay\**\*.cs" />
-    <EmbeddedResource Remove="PanelReplay\**\*" />
-    <None Remove="PanelReplay\**\*" />
+    <Compile Remove="JudgeVideoReview\**\*.cs" />
+    <EmbeddedResource Remove="JudgeVideoReview\**\*" />
+    <None Remove="JudgeVideoReview\**\*" />
   </ItemGroup>
 </Project>
