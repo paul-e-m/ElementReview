@@ -29,25 +29,27 @@ Current operator features include:
 - replay playback, scrubbing, looping, zoom, and frame stepping
 - replay clip editing
 - English/French UI switching from the main control bar
-- a separate Panel Replay app for remote panel review
+- a separate Judge Video Replay app for remote judge/referee review
 - demand-driven PRC replay caching
 - saved-video export into a metadata-based folder structure
 - recording shortcuts: `R` starts/stops recording, `Space` starts/stops clips, and `S` sets/resets the program start when halfway timing is active
 
-## Remote Panel
+## Judge Video Replay
 
-The Panel Replay app is the remote replay client for panel review or other trusted LAN viewers. It packages its own static UI under `PanelReplay/wwwroot` and connects to the ElementReview backend API over the LAN.
+`JudgeVideoReplay.exe` is the remote replay client for judges, the referee, or other trusted LAN viewers. It packages its own static UI under `JudgeVideoReview/wwwroot` and connects to the ElementReview backend API over the LAN.
+
+The same executable can be used by both judges and the referee. Referee timing functionality is available when the event/session data supports it, and the `Enable timer controls` setting can be turned off for judge stations that only need video replay.
 
 Common forms:
 
 ```text
-panel-replay.exe
-panel-replay.exe with a configured Server IP address
+JudgeVideoReplay.exe
+JudgeVideoReplay.exe with a configured Server IP address
 ```
 
 - The panel starts in a rail/menu view. Element buttons play only their clipped region once, without looping.
 - Element buttons are clickable immediately. When a judge clicks a clip, the PRC downloads and caches only the needed video chunks.
-- The final rail button is `ENTIRE RECORDING`. It appears only when replay media is available and opens the full-video timeline with clip markers.
+- The final rail button is `FULL RECORDING`. It appears only when replay media is available and opens the full-video timeline with clip markers.
 - Cached chunks are reused, so repeated playback of the same region does not download the same bytes again.
 - The panel shows a session info bar when replay clips are available.
 - The panel timer overlay appears above clip blocks and remains translucent so the clip underneath is still visible.
@@ -78,13 +80,13 @@ Folder and file names are built from `SessionInfo.json`.
 - [shell/Program.cs] starts the local web server and native shell.
 - [shell/MainForm.cs] hosts the main operator UI in WebView2.
 - [AppServer.cs] serves static files and the local HTTP API.
-- [PanelReplay/PanelReplay.csproj] builds the separate panel-review executable.
+- [JudgeVideoReview/JudgeVideoReview.csproj] builds the separate `JudgeVideoReplay.exe` executable.
 - [Services/RecorderManager.cs] manages recording, replay-file generation, and saved-video export.
 - [Services/MediaMtxManager.cs] runs MediaMTX for RTSP relay.
 - [Services/SessionManager.cs] owns in-memory session and clip state.
 - [wwwroot/index.html] is the main operator UI.
 - [wwwroot/config.html] is the settings window.
-- [PanelReplay/wwwroot/panel.html] is the panel app UI.
+- [JudgeVideoReview/wwwroot/panel.html] is the panel app UI.
 
 The local server listens on:
 
@@ -136,8 +138,8 @@ Bundled files under `data\` are used as fallbacks for development and packaging 
 
 During recording, ElementReview produces two replay MP4 files in parallel:
 
-- `current-high-res.mp4`: the main operator replay file, encoded at the configured low GOP for responsive seeking in `index.html`.
-- `current-low-res.mp4`: the Panel Review and saved-video file, encoded as 720p/30 fps, GOP 60, and 2500k video bitrate. When `SaveVideos` is enabled, AAC audio from the source is included for saved copies; PRCs keep playback muted.
+- `current-high-res.mp4`: the main operator replay file, encoded with `highresVideoGop` for responsive seeking in `index.html`.
+- `current-low-res.mp4`: the Judge Video Replay and saved-video file, encoded as 720p/30 fps with the configured `lowresVideoGop` and `lowresVideoBitrate` values. When `SaveVideos` is enabled, AAC audio from the source is included for saved copies; PRCs keep playback muted.
 
 When `UseHardwareEncodingWhenAvailable` is enabled and a supported encoder is available, both replay files use hardware encoding. Otherwise both files use software encoding.
 
@@ -153,7 +155,9 @@ The app currently reads and writes these canonical `AppConfig` fields:
 - `SourceFps`
 - `RtspTransportProtocol`
 - `UseHardwareEncodingWhenAvailable`
-- `RecordingGop`
+- `highresVideoGop`
+- `lowresVideoGop`
+- `lowresVideoBitrate`
 - `CSSLink`
 - `DatabaseLocation`
 - `EventId`
@@ -166,6 +170,9 @@ Notes:
 - `SaveVideos` is forced off when `DemoMode` is on.
 - `UiZoomPercent` is shared by the shell and settings window.
 - `Language` is switched live in the main operator UI.
+- `highresVideoGop` controls the high-res/operator replay video GOP and defaults to `10`.
+- `lowresVideoGop` controls the low-res PRC/saved-video GOP and defaults to `60`.
+- `lowresVideoBitrate` is stored in kbps and defaults to `2500`.
 
 ## SessionInfo Shape
 

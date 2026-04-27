@@ -1,6 +1,6 @@
 using System.Windows.Forms;
 
-namespace PanelReplay;
+namespace JudgeVideoReview;
 
 internal static class Program
 {

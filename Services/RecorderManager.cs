@@ -149,6 +149,7 @@ public class RecorderManager
                 throw new FileNotFoundException("Missing tools/ffmpeg.exe", ffmpegExe);
 
             var highResGop = GetConfiguredGop(cfg);
+            var lowResGop = GetConfiguredLowResGop(cfg);
             var encoderName = ResolveEncoderName(ffmpegExe, cfg, highResGop);
             var inputArgs = BuildInputArgs(cfg, demoStartSeconds);
 
@@ -156,7 +157,7 @@ public class RecorderManager
                 $"-hide_banner -loglevel warning -nostats -stats_period 0.1 -progress pipe:1 -y " +
                 inputArgs +
                 BuildHighResOutputArgs(encoderName, highResGop) +
-                BuildLowResOutputArgs(encoderName, cfg.SaveVideos);
+                BuildLowResOutputArgs(encoderName, cfg.SaveVideos, cfg.LowresVideoBitrate, lowResGop);
 
             var psi = new ProcessStartInfo
             {
@@ -303,7 +304,17 @@ public class RecorderManager
     // Encoder selection and capability probing
     private static int GetConfiguredGop(AppConfig cfg)
     {
-        var gop = cfg.RecordingGop;
+        return ClampGop(cfg.HighresVideoGop, 10);
+    }
+
+    private static int GetConfiguredLowResGop(AppConfig cfg)
+    {
+        return ClampGop(cfg.LowresVideoGop, 60);
+    }
+
+    private static int ClampGop(int gop, int fallback)
+    {
+        if (gop < 1) gop = fallback;
         if (gop < 1) gop = 1;
         if (gop > 1000) gop = 1000;
         return gop;
@@ -532,18 +543,21 @@ public class RecorderManager
         };
     }
 
-    private string BuildLowResOutputArgs(string encoderName, bool includeAudio)
+    private string BuildLowResOutputArgs(string encoderName, bool includeAudio, int bitrateKbps, int gop)
     {
         var audioArgs = includeAudio
             ? "-map 0:a:0? -c:a aac -b:a 128k "
             : "-an ";
+        var safeBitrateKbps = bitrateKbps > 0 ? bitrateKbps : 2500;
+        var bufferKbps = safeBitrateKbps * 2;
+        var safeGop = ClampGop(gop, 60);
 
         return
             "-map 0:v:0 " +
             audioArgs +
             "-vf scale=-2:720,fps=30 " +
-            BuildEncodedCodecArgs(encoderName, 60) +
-            "-b:v 2500k -maxrate 2500k -bufsize 5000k " +
+            BuildEncodedCodecArgs(encoderName, safeGop) +
+            $"-b:v {safeBitrateKbps}k -maxrate {safeBitrateKbps}k -bufsize {bufferKbps}k " +
             "-movflags +faststart " +
             "-avoid_negative_ts make_zero " +
             $"\"{_lowResTempFile}\" ";

@@ -1,6 +1,6 @@
 using Microsoft.Web.WebView2.Core;
 
-namespace PanelReplay;
+namespace JudgeVideoReview;
 
 internal static class WebViewEnvironmentProvider
 {

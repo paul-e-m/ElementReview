@@ -5,7 +5,7 @@ VisualStudioVersion = 18.2.11415.280 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ElementReview", "ElementReview.csproj", "{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PanelReplay", "PanelReplay\PanelReplay.csproj", "{F1E45890-E227-4C3A-A4F9-D37E6469FA62}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JudgeVideoReview", "JudgeVideoReview\JudgeVideoReview.csproj", "{F1E45890-E227-4C3A-A4F9-D37E6469FA62}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

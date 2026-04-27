@@ -67,6 +67,18 @@ public static class AppServer
         {
             cfg ??= new AppConfig();
             cfg.RtspTransportProtocol = NormalizeRtspTransportProtocol(cfg.RtspTransportProtocol);
+            if (cfg.LowresVideoBitrate <= 0)
+            {
+                cfg.LowresVideoBitrate = 2500;
+            }
+            if (cfg.LowresVideoGop < 1)
+            {
+                cfg.LowresVideoGop = 60;
+            }
+            if (cfg.HighresVideoGop < 1)
+            {
+                cfg.HighresVideoGop = 10;
+            }
 
             var cssLink = string.IsNullOrWhiteSpace(cfg.CSSLink) ? "None" : cfg.CSSLink.Trim();
             cfg.CSSLink =
@@ -154,9 +166,24 @@ public static class AppServer
             try
             {
                 var json = File.ReadAllText(path);
-                cachedConfig = NormalizeConfig(JsonSerializer.Deserialize<AppConfig>(json, jsonOpts));
+                var shouldWriteDefaults =
+                    IsMissingOrBlankConfigProperty(json, "highresVideoGop") ||
+                    IsMissingOrBlankConfigProperty(json, "lowresVideoBitrate") ||
+                    IsMissingOrBlankConfigProperty(json, "lowresVideoGop");
+                var loadedConfig = JsonSerializer.Deserialize<AppConfig>(json, jsonOpts);
+                if (loadedConfig != null &&
+                    IsMissingOrBlankConfigProperty(json, "highresVideoGop") &&
+                    TryReadConfigIntProperty(json, "RecordingGop", out var legacyGop))
+                {
+                    loadedConfig.HighresVideoGop = legacyGop;
+                }
+                cachedConfig = NormalizeConfig(loadedConfig);
                 cachedConfigWriteUtc = writeUtc;
                 cachedConfigExists = true;
+                if (shouldWriteDefaults)
+                {
+                    SaveConfig(cachedConfig);
+                }
                 return cachedConfig;
             }
             catch
@@ -220,6 +247,59 @@ public static class AppServer
             if (string.IsNullOrWhiteSpace(incoming.RtspTransportProtocol))
                 incoming.RtspTransportProtocol = existing.RtspTransportProtocol;
             return incoming;
+        }
+
+        static bool IsMissingOrBlankConfigProperty(string json, string propertyName)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+                foreach (var property in document.RootElement.EnumerateObject())
+                {
+                    if (!string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    return property.Value.ValueKind == JsonValueKind.String &&
+                        string.IsNullOrWhiteSpace(property.Value.GetString());
+                }
+
+                return true;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        static bool TryReadConfigIntProperty(string json, string propertyName, out int value)
+        {
+            value = 0;
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+                foreach (var property in document.RootElement.EnumerateObject())
+                {
+                    if (!string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    if (property.Value.ValueKind == JsonValueKind.Number)
+                    {
+                        return property.Value.TryGetInt32(out value);
+                    }
+
+                    if (property.Value.ValueKind == JsonValueKind.String)
+                    {
+                        return int.TryParse(property.Value.GetString(), out value);
+                    }
+
+                    return false;
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
         }
 
         static string? GetCssHelperExeName(AppConfig cfg)

@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 
-namespace PanelReplay;
+namespace JudgeVideoReview;
 
 internal sealed class ReplayMediaCacheServer : IDisposable
 {

@@ -6,7 +6,7 @@ ElementReview exposes a local HTTP API used by:
 
 - the main operator UI in `index.html`
 - the settings window in `config.html`
-- the separate Panel Replay app in `PanelReplay/wwwroot/panel.html`
+- the separate Judge Video Replay app in `JudgeVideoReview/wwwroot/panel.html`
 - trusted local or LAN clients
 
 Base URL:
@@ -33,7 +33,7 @@ Common status codes:
 
 ### AppConfig
 
-`GET /api/appconfig` and `POST /api/appconfig` use PascalCase property names:
+`GET /api/appconfig` and `POST /api/appconfig` mostly use PascalCase property names. The low-res bitrate field uses the lower-case name shown below:
 
 ```json
 {
@@ -45,7 +45,9 @@ Common status codes:
   "SourceFps": 30,
   "RtspTransportProtocol": "UDP",
   "UseHardwareEncodingWhenAvailable": true,
-  "RecordingGop": 10,
+  "highresVideoGop": 10,
+  "lowresVideoBitrate": 2500,
+  "lowresVideoGop": 60,
   "CSSLink": "Legacy",
   "DatabaseLocation": "localhost",
   "EventId": "",
@@ -186,12 +188,15 @@ Returns the current `AppConfig` object in PascalCase.
 
 ### POST `/api/appconfig`
 
-Saves the supplied `AppConfig` and returns the normalized result in PascalCase.
+Saves the supplied `AppConfig` and returns the normalized result.
 
 Notes:
 
 - `SaveVideos` is forced off in demo mode.
 - `SavedVideosFolder` is defaulted if blank.
+- Missing or invalid `lowresVideoBitrate` defaults to `2500` kbps.
+- Missing or invalid `highresVideoGop` defaults to `10`.
+- Missing or invalid `lowresVideoGop` defaults to `60`.
 
 ### GET `/api/appinfo`
 
@@ -307,24 +312,24 @@ Streams the current replay MP4 with range support.
 Query options:
 
 - no query string or `?kind=high-res`: high-res operator replay file
-- `?kind=low-res`: low-res Panel Review and saved-video replay file
+- `?kind=low-res`: low-res Judge Video Replay and saved-video replay file
 - `v=<ReplayMediaToken>`: required for low-res replay requests
 
 Low-res requests should include the current replay media token as `v=<ReplayMediaToken>`. If the token is stale, the server returns `404 Not Found`.
 
 Operator high-res replay requests are served directly. PRC low-res requests are demand-driven and enter the PRC transfer path. The backend does not preload, throttle, or cap concurrent PRC transfers.
 
-ElementReview records both files while the recording is in progress. `current-high-res.mp4` is encoded with the configured `RecordingGop`; `current-low-res.mp4` is encoded as 720p/30 fps with GOP 60 and 2500k video bitrate. When `SaveVideos` is enabled, the low-res file also includes AAC audio from the source for saved copies; PRCs keep playback muted. When `UseHardwareEncodingWhenAvailable` is enabled and supported hardware is available, both files use the same hardware encoder. Otherwise both use software encoding.
+ElementReview records both files while the recording is in progress. `current-high-res.mp4` is encoded with the configured `highresVideoGop`, which is the high-res/operator replay GOP; `current-low-res.mp4` is encoded as 720p/30 fps with the configured `lowresVideoGop` and `lowresVideoBitrate` values. When `SaveVideos` is enabled, the low-res file also includes AAC audio from the source for saved copies; PRCs keep playback muted. When `UseHardwareEncodingWhenAvailable` is enabled and supported hardware is available, both files use the same hardware encoder. Otherwise both use software encoding.
 
-## Panel Replay App
+## Judge Video Replay App
 
-The remote panel UI is packaged in the separate Panel Replay app under `PanelReplay/wwwroot`. It loads locally inside `panel-replay.exe` and uses the ElementReview backend API endpoints `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
+The remote panel UI is packaged in the separate Judge Video Replay app under `JudgeVideoReview/wwwroot`. It loads locally inside `JudgeVideoReplay.exe` and uses the ElementReview backend API endpoints `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
 
 Common forms:
 
 ```text
-panel-replay.exe
-panel-replay.exe with a configured Server IP address
+JudgeVideoReplay.exe
+JudgeVideoReplay.exe with a configured Server IP address
 ```
 
 Query options:
@@ -338,14 +343,14 @@ Panel behavior:
 - element rail buttons 1-12 represent clipped element regions
 - element rail buttons are clickable immediately
 - clicking an element clip autoplays that clipped region once and then stops
-- the `ENTIRE RECORDING` rail button appears when replay media is available and opens the full-video timeline with blue numbered clip markers
+- the `FULL RECORDING` rail button appears when replay media is available and opens the full-video timeline with blue numbered clip markers
 - PRCs cache chunks on demand as playback or seeking requests them
 - cached chunks are reused, so repeated playback of the same region does not download the same bytes again
 - full panel mode shows a session info bar when replay clips are available
 - the session info bar includes the category, discipline, flight, segment, competitor name, and a refresh button
 - the panel timer range is drawn above element clip blocks and remains translucent
 
-`judge.html` has been removed; use the Panel Replay app for remote replay.
+`judge.html` has been removed; use the Judge Video Replay app for remote replay.
 
 ## Replay Editing
 

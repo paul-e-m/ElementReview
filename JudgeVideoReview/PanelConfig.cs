@@ -1,4 +1,4 @@
-namespace PanelReplay;
+namespace JudgeVideoReview;
 
 internal sealed class PanelConfig
 {

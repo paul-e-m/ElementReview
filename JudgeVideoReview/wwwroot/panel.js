@@ -4,11 +4,11 @@
     // whether replay media is available, which clip should be shown, and which
     // replay-file token is safe to request from the server.
     const BASE = readApiBase();
-    const IS_PANEL_REPLAY_HOST = readPanelReplayHostFlag();
+    const IS_JUDGE_VIDEO_REVIEW_HOST = readJudgeVideoReviewHostFlag();
     const END_EPS = 0.02;
     const REPLAY_POLL_INTERVAL_MS = 2500;
     const RAIL_ELEMENT_ROWS = 12;
-    const ENTIRE_RECORDING_LABEL = "ENTIRE RECORDING";
+    const FULL_RECORDING_LABEL = "FULL RECORDING";
     const TIMELINE_INTERVALS_SECONDS = [0.1, 0.5, 1, 5, 15, 30, 60];
     const EMPTY_STATE_WAITING_FOR_SERVER = "WAITING FOR VIDEO REPLAY SERVER / EN ATTENTE DU SERVEUR DE RELECTURE VIDEO";
     const EMPTY_STATE_NO_CLIPS = "WAITING FOR VIDEO DATA / EN ATTENTE DES DONNEES VIDEO";
@@ -101,7 +101,7 @@
     };
 
     const panelTranslations = window.PANEL_I18N || {};
-    const panelHostBridge = IS_PANEL_REPLAY_HOST && window.chrome && window.chrome.webview ? window.chrome.webview : null;
+    const panelHostBridge = IS_JUDGE_VIDEO_REVIEW_HOST && window.chrome && window.chrome.webview ? window.chrome.webview : null;
     const panelHostRequests = new Map();
     let panelHostRequestId = 0;
     let panelSettingsLanguage = "en";
@@ -134,9 +134,9 @@
         return raw.trim().replace(/\/+$/, "");
     }
 
-    function readPanelReplayHostFlag() {
+    function readJudgeVideoReviewHostFlag() {
         const params = new URLSearchParams(location.search || "");
-        return params.get("panelReplay") === "true" || location.hostname === "panel-replay.local";
+        return params.get("judgeVideoReview") === "true" || location.hostname === "judge-video-review.local";
     }
 
     function postPanelHostRequest(action, payload = null) {
@@ -376,6 +376,17 @@
         hideStopwatchVisuals(true);
     }
 
+    function shouldShowTimeline() {
+        return !!state.clip;
+    }
+
+    function syncTimelineVisibility() {
+        const visible = shouldShowTimeline();
+        dom.timelineArea?.classList.toggle("hidden", !visible);
+        dom.timelineArea?.setAttribute("aria-hidden", visible ? "false" : "true");
+        return visible;
+    }
+
     function setEmptyState(active, message = EMPTY_STATE_NO_CLIPS) {
         const wasActive = !!dom.emptyState && !dom.emptyState.classList.contains("hidden");
         if (dom.emptyStateMessage) {
@@ -457,7 +468,8 @@
             : 0;
 
         const totalWidth = topRow.clientWidth || topRow.getBoundingClientRect().width || 0;
-        const timelineHeight = timelineArea.offsetHeight || 32;
+        const timelineVisible = !timelineArea.classList.contains("hidden");
+        const timelineHeight = timelineVisible ? (timelineArea.offsetHeight || 32) : 0;
         const transportHeight = transportRow.offsetHeight || 150;
         const totalHeight = topRow.clientHeight || topRow.getBoundingClientRect().height || 0;
         const videoWidth = Math.max(0, totalWidth - railWidth - (isMenuVisible ? columnGap : 0));
@@ -561,6 +573,10 @@
     }
 
     function buildShowAllClip() {
+        if (!state.replayMediaToken) {
+            return null;
+        }
+
         const recordingEnd = maxRecordingTime();
         if (!Number.isFinite(recordingEnd) || recordingEnd <= END_EPS) {
             return null;
@@ -836,21 +852,17 @@
         state.scrubPreviewTimeSeconds = clamped;
         state.stopAtClipEnd = clamped <= clip.endSeconds - END_EPS;
 
-        if (Math.abs((dom.video.currentTime || 0) - clamped) > 0.01) {
-            dom.video.currentTime = clamped;
-        }
-
         syncVideoUI();
     }
 
     function beginTimelineScrub(event) {
-        if (!state.clip || event.button !== 0) return;
+        if (!state.clip || !shouldShowTimeline() || event.button !== 0) return;
 
         state.seekToken++;
         state.seekInFlight = false;
         state.isScrubbing = true;
         state.scrubPointerId = event.pointerId;
-        state.scrubResumePlayback = !dom.video.paused;
+        state.scrubResumePlayback = false;
         state.suppressNextTimelineClick = true;
         pausePlaybackForScrub();
         dom.timelineArea.setPointerCapture?.(event.pointerId);
@@ -1323,6 +1335,12 @@
     }
 
     function drawTimeline() {
+        if (!syncTimelineVisibility()) {
+            clearTimelineSurface();
+            requestAnimationFrame(layoutVideoArea);
+            return;
+        }
+
         dom.timelineTicks.innerHTML = "";
         dom.timelineLabels.innerHTML = "";
         if (dom.elementMarkers) {
@@ -1475,7 +1493,7 @@
 
         const entireCode = document.createElement("div");
         entireCode.className = "elementRailCode";
-        entireCode.textContent = ENTIRE_RECORDING_LABEL;
+        entireCode.textContent = FULL_RECORDING_LABEL;
 
         entireInfo.appendChild(entireCode);
         entireButton.appendChild(entireInfo);
@@ -1791,6 +1809,8 @@
     });
 
     dom.timelineArea.addEventListener("click", async event => {
+        if (!shouldShowTimeline()) return;
+
         if (state.suppressNextTimelineClick) {
             state.suppressNextTimelineClick = false;
             return;

@@ -4,12 +4,12 @@ using System.Drawing;
 using System.Text.Json;
 using System.Windows.Forms;
 
-namespace PanelReplay;
+namespace JudgeVideoReview;
 
 public sealed class PanelMainForm : Form
 {
-    private const string SettingsVirtualHost = "panel-replay.local";
-    private const string AssetVersion = "20260426-demand1";
+    private const string SettingsVirtualHost = "judge-video-review.local";
+    private const string AssetVersion = "20260426-scrubfreeze1";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -25,7 +25,7 @@ public sealed class PanelMainForm : Form
 
     public PanelMainForm()
     {
-        Text = "Panel Replay";
+        Text = "Judge Video Replay";
         StartPosition = FormStartPosition.CenterScreen;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(900, 650);
@@ -44,7 +44,7 @@ public sealed class PanelMainForm : Form
 
     private static string BuildRemotePanelUrl(PanelConfig config)
     {
-        var url = $"https://{SettingsVirtualHost}/panel.html?0&v={AssetVersion}&panelReplay=true";
+        var url = $"https://{SettingsVirtualHost}/panel.html?0&v={AssetVersion}&judgeVideoReview=true";
         return config.TimerEnabled ? url + "&timer=true" : url;
     }
 
@@ -68,7 +68,7 @@ public sealed class PanelMainForm : Form
             MessageBox.Show(
                 this,
                 "WebView2 could not be initialized.\r\n\r\n" + ex.Message,
-                "Panel Replay",
+                "Judge Video Replay",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }

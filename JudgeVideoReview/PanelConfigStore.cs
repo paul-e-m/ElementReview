@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace PanelReplay;
+namespace JudgeVideoReview;
 
 internal static class PanelConfigStore
 {
@@ -12,7 +12,7 @@ internal static class PanelConfigStore
 
     public static string AppDataRoot => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "PanelReview");
+        "JudgeVideoReview");
 
     public static string ConfigPath => Path.Combine(AppDataRoot, "panelConfig.json");
     public static string ReplayMediaDirectory => Path.Combine(AppDataRoot, "media");

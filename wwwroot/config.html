@@ -665,11 +665,29 @@
 
                         <div class="row">
                             <div class="labelBlock">
-                                <label for="RecordingGop" data-i18n="gop">GOP</label>
-                                <div class="help" data-i18n="gopHelp">Keyframe interval used while recording.</div>
+                                <label for="highresVideoGop" data-i18n="highresVideoGop">High-res Video GOP</label>
+                                <div class="help" data-i18n="highresVideoGopHelp">Keyframe interval for the Element Review operator high-res replay video.</div>
                             </div>
 
-                            <input id="RecordingGop" name="RecordingGop" class="fieldWidthSmall" type="number" min="1" step="1" />
+                            <input id="highresVideoGop" name="highresVideoGop" class="fieldWidthSmall" type="number" min="1" step="1" />
+                        </div>
+
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="lowresVideoGop" data-i18n="lowresVideoGop">Low-res Video GOP</label>
+                                <div class="help" data-i18n="lowresVideoGopHelp">Keyframe interval for panel replay clients and saved-video 720p files.</div>
+                            </div>
+
+                            <input id="lowresVideoGop" name="lowresVideoGop" class="fieldWidthSmall" type="number" min="1" step="1" />
+                        </div>
+
+                        <div class="row">
+                            <div class="labelBlock">
+                                <label for="lowresVideoBitrate" data-i18n="lowresVideoBitrate">Low-res Video Bitrate (kbps)</label>
+                                <div class="help" data-i18n="lowresVideoBitrateHelp">Bitrate (kbpps) for panel replay clients and saved-video 720p files.</div>
+                            </div>
+
+                            <input id="lowresVideoBitrate" name="lowresVideoBitrate" class="fieldWidthSmall" type="number" min="0" step="100" />
                         </div>
 
                         <div class="row">
@@ -743,7 +761,9 @@
             "SourceFps",
             "RtspTransportProtocol",
             "UseHardwareEncodingWhenAvailable",
-            "RecordingGop",
+            "highresVideoGop",
+            "lowresVideoGop",
+            "lowresVideoBitrate",
             "ClipMarkerAdvanceMsec",
             "UiZoomPercent",
             "DatabaseLocation",
@@ -759,7 +779,9 @@
 
         const numberFields = [
             "SourceFps",
-            "RecordingGop",
+            "highresVideoGop",
+            "lowresVideoGop",
+            "lowresVideoBitrate",
             "ClipMarkerAdvanceMsec",
             "UiZoomPercent"
         ];

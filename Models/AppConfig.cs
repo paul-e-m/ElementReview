@@ -28,24 +28,33 @@ public class AppConfig
     [JsonPropertyOrder(7)]
     public bool UseHardwareEncodingWhenAvailable { get; set; } = true;
 
+    [JsonPropertyName("highresVideoGop")]
     [JsonPropertyOrder(8)]
-    public int RecordingGop { get; set; } = 10;
+    public int HighresVideoGop { get; set; } = 10;
 
+    [JsonPropertyName("lowresVideoBitrate")]
     [JsonPropertyOrder(9)]
-    public string CSSLink { get; set; } = "Legacy";
+    public int LowresVideoBitrate { get; set; } = 2500;
 
     [JsonPropertyOrder(10)]
-    public string DatabaseLocation { get; set; } = "localhost";
+    [JsonPropertyName("lowresVideoGop")]
+    public int LowresVideoGop { get; set; } = 60;
 
     [JsonPropertyOrder(11)]
-    public string EventId { get; set; } = "";
+    public string CSSLink { get; set; } = "Legacy";
 
     [JsonPropertyOrder(12)]
-    public string CSSServerHost { get; set; } = "";
+    public string DatabaseLocation { get; set; } = "localhost";
 
     [JsonPropertyOrder(13)]
-    public bool SaveVideos { get; set; } = false;
+    public string EventId { get; set; } = "";
 
     [JsonPropertyOrder(14)]
+    public string CSSServerHost { get; set; } = "";
+
+    [JsonPropertyOrder(15)]
+    public bool SaveVideos { get; set; } = false;
+
+    [JsonPropertyOrder(16)]
     public string SavedVideosFolder { get; set; } = "C:/Event_Videos";
 }
