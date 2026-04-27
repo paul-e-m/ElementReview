@@ -21,4 +21,10 @@
     <Content Include="data\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="tools\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="PanelReplay\**\*.cs" />
+    <EmbeddedResource Remove="PanelReplay\**\*" />
+    <None Remove="PanelReplay\**\*" />
+  </ItemGroup>
 </Project>

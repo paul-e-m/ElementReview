@@ -7,6 +7,8 @@
     --railWidth: 240px;
     --playBtnW: 104px;
     --playBtnH: 48px;
+    --stopwatchBtnSize: calc(var(--playBtnH) * 1.08);
+    --timingPresetBtnSize: calc(var(--playBtnH) * 0.85);
     --transportBtnBlue: #3f66bf;
     --transportBtnBlueDark: #2d4d99;
     --transportBtnBorder: rgba(214, 227, 255, 0.34);
@@ -26,7 +28,7 @@ body {
 body {
     margin: 0;
     padding: 12px;
-    font-family: system-ui, Segoe UI, Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
 }
@@ -77,11 +79,11 @@ body {
     height: 34px;
     max-width: none;
     padding: 6px 10px;
-    background: #314784;
+    background: #3F51B5;
     color: #FFFFFF;
     border: 0;
     border-radius: 0;
-    font: 450 15px/1.1 system-ui, Segoe UI, Arial, sans-serif;
+    font: 450 15px/1.1 "Segoe UI", Arial, sans-serif;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -100,7 +102,54 @@ body {
     white-space: nowrap;
 }
 
-.panelSessionRefreshBtn {
+.panelServerStatus {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #fff;
+    pointer-events: auto;
+}
+
+.panelServerStatusLabel {
+    font: 450 15px/1.1 "Segoe UI", Arial, sans-serif;
+}
+
+.replayPingDot {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: #7a8698;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.14);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font: 700 9px/1 "Segoe UI", Arial, sans-serif;
+    text-transform: uppercase;
+    text-shadow: 0 0 1px rgba(0,0,0,0.55);
+    user-select: none;
+}
+
+.replayPingDot.green {
+    background: #2fa84f;
+}
+
+.replayPingDot.yellow {
+    background: #d6a316;
+}
+
+.replayPingDot.red {
+    background: #e34b3f;
+}
+
+.replayPingDot.idle {
+    background: #7a8698;
+}
+
+.panelSessionRefreshBtn,
+.panelSessionSettingsBtn {
     width: 24px;
     height: 24px;
     padding: 0;
@@ -118,22 +167,244 @@ body {
     transition: background-color 120ms ease, color 120ms ease, opacity 120ms ease, filter 120ms ease, transform 120ms ease;
 }
 
-.panelSessionRefreshBtn:hover {
+.panelSessionSettingsBtn {
+    width: 24px;
+    height: 24px;
+}
+
+.panelSessionRefreshBtn:hover,
+.panelSessionSettingsBtn:hover {
     background: rgba(255,255,255,0.14);
     color: #fff;
     opacity: 1;
     filter: brightness(1.18);
 }
 
-.panelSessionRefreshBtn:active {
+.panelSessionRefreshBtn:active,
+.panelSessionSettingsBtn:active {
     transform: rotate(-24deg);
 }
 
-.panelSessionRefreshIcon {
+.panelSessionRefreshIcon,
+.panelSessionSettingsIcon {
     width: 14px;
     height: 14px;
     display: block;
     object-fit: contain;
+}
+
+.panelSessionSettingsIcon {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+.panelSessionLogoBtn {
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0.9;
+    transition: background-color 120ms ease, opacity 120ms ease, filter 120ms ease;
+}
+
+.panelSessionLogoBtn:hover {
+    background: rgba(255,255,255,0.14);
+    opacity: 1;
+    filter: brightness(1.15);
+}
+
+.panelSessionLogoIcon {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.brandOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #52679f;
+    cursor: pointer;
+}
+
+.brandOverlayLogo {
+    width: 400px;
+    max-width: calc(100vw - 48px);
+    height: auto;
+    display: block;
+}
+
+.brandOverlayMessage {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 18px;
+    color: #ffffff;
+    font: 500 12px/1.25 "Segoe UI", Arial, sans-serif;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.panelSettingsOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 11000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    background: rgba(12, 17, 34, 0.72);
+}
+
+.panelSettingsDialog {
+    width: min(680px, calc(100vw - 44px));
+    max-height: calc(100vh - 44px);
+    overflow: auto;
+    background: #f7f7fa;
+    color: #1d1d1f;
+    border-radius: 8px;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.42);
+}
+
+.panelSettingsHeader {
+    min-height: 52px;
+    padding: 0 14px;
+    background: #3F51B5;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.panelSettingsHeader h2 {
+    margin: 0;
+    font: 700 20px/1.15 "Segoe UI", Arial, sans-serif;
+}
+
+.panelSettingsLanguage {
+    min-width: 118px;
+    min-height: 31px;
+    border: 1px solid rgba(255,255,255,0.55);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    font: 500 13px/1 "Segoe UI", Arial, sans-serif;
+}
+
+.panelSettingsLanguage option {
+    color: #1d1d1f;
+    background: #fff;
+}
+
+.panelSettingsBody {
+    padding: 12px;
+}
+
+.panelSettingsSection {
+    border: 1px solid #d8d8df;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.panelSettingsSection h3 {
+    margin: 0;
+    padding: 10px 12px;
+    background: #eeeef2;
+    border-bottom: 1px solid #d8d8df;
+    font: 700 16px/1.2 "Segoe UI", Arial, sans-serif;
+}
+
+.panelSettingsField,
+.panelSettingsToggle {
+    min-height: 62px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: minmax(190px, 280px) minmax(190px, 1fr);
+    gap: 12px;
+    align-items: center;
+    font: 700 14px/1.2 "Segoe UI", Arial, sans-serif;
+}
+
+.panelSettingsField input[type="text"] {
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 9px;
+    border: 1px solid #c9c9d0;
+    border-radius: 4px;
+    color: #1d1d1f;
+    font: 13px/1.2 "Segoe UI", Arial, sans-serif;
+}
+
+.panelSettingsToggle {
+    border-top: 1px solid #ededf0;
+}
+
+.panelSettingsToggle small {
+    display: block;
+    margin-top: 4px;
+    color: #666a72;
+    font: 400 12px/1.35 "Segoe UI", Arial, sans-serif;
+}
+
+.panelSettingsToggle input {
+    justify-self: start;
+    width: 22px;
+    height: 22px;
+}
+
+.panelSettingsFooter {
+    padding: 10px 12px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #d8d8df;
+    background: #fff;
+}
+
+.panelSettingsStatus {
+    margin-right: auto;
+    color: #666a72;
+    font: 500 13px/1.2 "Segoe UI", Arial, sans-serif;
+}
+
+.panelSettingsStatus.ok {
+    color: #247a39;
+}
+
+.panelSettingsStatus.error {
+    color: #c73228;
+}
+
+.panelSettingsSaveBtn {
+    min-width: 96px;
+    min-height: 34px;
+    padding: 7px 14px;
+    border: 0;
+    border-radius: 4px;
+    color: #fff;
+    font: 700 13px/1 "Segoe UI", Arial, sans-serif;
+    cursor: pointer;
+}
+
+.panelSettingsSaveBtn {
+    background: #3F51B5;
 }
 
 .panelShell.withMenu .videoPane {
@@ -404,10 +675,12 @@ body {
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-}
-
-.stopwatchTextBtn {
-    width: 124px;
+    opacity: 1;
+    visibility: visible;
+    transition:
+        opacity 160ms ease,
+        transform 160ms ease,
+        visibility 0s linear 0s;
 }
 
 .panelShell.withMenu .stopwatchBtn {
@@ -417,21 +690,44 @@ body {
     transform: none;
 }
 
+.stopwatchBtn.isTimerControlHidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-50%) scale(0.96);
+    transition:
+        opacity 140ms ease,
+        transform 140ms ease,
+        visibility 0s linear 140ms;
+}
+
+.panelShell.withMenu .stopwatchBtn.isTimerControlHidden {
+    transform: scale(0.96);
+}
+
+.timingPresetButtons {
+    position: absolute;
+    left: calc(var(--stopwatchBtnSize) + 6px);
+    top: 50%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transform: translateY(-50%);
+}
+
+.panelShell.withMenu .timingPresetButtons {
+    position: absolute;
+    left: calc(var(--stopwatchBtnSize) + 6px);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
 .panelShell.withMenu .relativeIndicator {
     position: static;
     grid-column: 3;
     justify-self: end;
     min-width: 0;
     transform: none;
-}
-
-.stopwatchBtnLabel {
-    color: #eef4ff;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: 0.03em;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
 }
 
 .stopwatchBtn.isActive {
@@ -473,6 +769,21 @@ button:disabled {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.transportBtn.stopwatchBtn {
+    width: var(--stopwatchBtnSize);
+    height: var(--stopwatchBtnSize);
+    border-radius: 50%;
+}
+
+.stopwatchBtnIcon {
+    width: 62%;
+    height: 62%;
+    object-fit: contain;
+    pointer-events: none;
+    transform: translateY(-2px);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
 }
 
 .transportBtnLabel {
@@ -529,6 +840,30 @@ button:disabled {
     text-transform: none;
 }
 
+.transportBtn.timingPresetBtn {
+    width: var(--timingPresetBtnSize);
+    height: var(--timingPresetBtnSize);
+    border-radius: 50%;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 32%, rgba(0, 0, 0, 0.1) 100%),
+        linear-gradient(180deg, #4ddc5a 0%, #21963a 100%);
+    border-color: rgba(148, 255, 192, 0.72);
+}
+
+.timingPresetBtn .transportBtnLabel {
+    font-size: 17px;
+}
+
+.transportBtn.timingPresetBtn:hover:not(:disabled) {
+    transform: none;
+    filter: brightness(1.12);
+}
+
+.transportBtn.timingPresetBtn:active:not(:disabled) {
+    transform: none;
+    filter: brightness(1.04);
+}
+
 .transportBtn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow:
@@ -577,9 +912,9 @@ button:disabled {
 .elementRailButton,
 .elementRailPlaceholder {
     width: 100%;
-    height: calc(100% / 12);
+    height: calc(100% / 13);
     min-height: 0;
-    flex: 0 0 calc(100% / 12);
+    flex: 0 0 calc(100% / 13);
 }
 
 .elementRailButton {
@@ -598,15 +933,20 @@ button:disabled {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.elementRailButton.isSelected {
+.elementRailButton:disabled {
+    cursor: default;
+    opacity: 1;
+}
+
+.elementRailButton[aria-pressed="true"] {
     background: #d5dae2;
     border-color: rgba(86, 97, 112, 0.42);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
     color: #253241;
 }
 
-.elementRailButton.isSelected .elementRailNum,
-.elementRailButton.isSelected .elementRailCode {
+.elementRailButton[aria-pressed="true"] .elementRailNum,
+.elementRailButton[aria-pressed="true"] .elementRailCode {
     color: #253241;
 }
 
@@ -615,15 +955,29 @@ button:disabled {
     font-weight: 600;
 }
 
-.elementRailButton.isSelected.isReview .elementRailCode {
+.elementRailButton[aria-pressed="true"].isReview .elementRailCode {
     color: #c62828;
 }
 
 .elementRailPlaceholder {
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: #52679f;
+    background: #000080;
     opacity: 0.58;
+}
+
+.elementRailEntireButton {
+    margin-top: auto;
+    background: #26344f;
+    justify-content: center;
+    padding-left: 8px;
+    text-align: center;
+}
+
+.elementRailEntireButton .elementRailCode {
+    font-size: 13px;
+    white-space: normal;
+    text-align: center;
 }
 
 .elementRailNum {
@@ -649,7 +1003,8 @@ button:disabled {
 }
 
 .elementRailCode {
-    font-weight: 400;
+    font-family: "Segoe UI Semibold", "Segoe UI", Arial, sans-serif;
+    font-weight: 600;
     font-size: 15px;
     line-height: 1.1;
     white-space: nowrap;
@@ -672,33 +1027,16 @@ button:disabled {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
     max-width: 720px;
     text-align: center;
 }
 
 .emptyStateMessage {
     color: #ffffff;
-    font-size: 34px;
+    font-size: 20px;
     line-height: 1.2;
-    font-weight: 500;
-}
-
-.emptyStateRefreshBtn {
-    min-width: 180px;
-    height: 56px;
-    padding: 0 24px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.42);
-    background: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
-    font-size: 22px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.emptyStateRefreshBtn:hover {
-    background: rgba(255, 255, 255, 0.28);
+    font-weight: 700;
+    letter-spacing: 0;
 }
 
 @media (max-width: 960px) {
@@ -766,6 +1104,11 @@ button:disabled {
         transform: none;
     }
 
+    .panelShell:not(.withMenu) .timingPresetButtons {
+        position: static;
+        transform: none;
+    }
+
     .panelShell:not(.withMenu) .relativeIndicator {
         position: static;
         min-width: 0;
@@ -777,19 +1120,10 @@ button:disabled {
         font-size: 17px;
     }
 
-    .emptyState {
-        font-size: 26px;
-    }
-
     .emptyStateMessage {
-        font-size: 26px;
-    }
-
-    .emptyStateRefreshBtn {
-        min-width: 150px;
-        height: 48px;
         font-size: 18px;
     }
+
 }
 
 @media (max-width: 760px) {
@@ -867,11 +1201,4 @@ button:disabled {
         font-size: 13px;
     }
 
-    .stopwatchBtnLabel {
-        font-size: 12px;
-    }
-
-    .stopwatchTextBtn {
-        width: 86px;
-    }
 }

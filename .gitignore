@@ -2,6 +2,8 @@ bin/
 obj/
 .vs/
 tools/
+artifacts/
+*.csproj.user
 *.mp4
 data/demovideo.mp4
 GetSessionInfo_LegacyCSS.exe

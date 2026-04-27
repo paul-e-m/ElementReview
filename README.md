@@ -29,32 +29,37 @@ Current operator features include:
 - replay playback, scrubbing, looping, zoom, and frame stepping
 - replay clip editing
 - English/French UI switching from the main control bar
-- a feature-rich remote replay panel at `panel.html`
+- a separate Panel Replay app for remote panel review
+- demand-driven PRC replay caching
 - saved-video export into a metadata-based folder structure
 - recording shortcuts: `R` starts/stops recording, `Space` starts/stops clips, and `S` sets/resets the program start when halfway timing is active
 
 ## Remote Panel
 
-`panel.html` is the remote replay client for panel review or other trusted LAN viewers.
+The Panel Replay app is the remote replay client for panel review or other trusted LAN viewers. It packages its own static UI under `PanelReplay/wwwroot` and connects to the ElementReview backend API over the LAN.
 
 Common forms:
 
 ```text
-http://localhost:5050/panel.html
-http://localhost:5050/panel.html?0
-http://localhost:5050/panel.html?2
-http://localhost:5050/panel.html?2&autoplay=false&loop=false
+panel-replay.exe
+panel-replay.exe with a configured Server IP address
 ```
 
-- `panel.html` and `panel.html?0` open full panel mode with the element rail.
-- `panel.html?N` opens element clip `N` directly.
-- Clicking an element clip in the panel autoplays it, even if playback was paused.
+- The panel starts in a rail/menu view. Element buttons play only their clipped region once, without looping.
+- Element buttons are clickable immediately. When a judge clicks a clip, the PRC downloads and caches only the needed video chunks.
+- The final rail button is `ENTIRE RECORDING`. It appears only when replay media is available and opens the full-video timeline with clip markers.
+- Cached chunks are reused, so repeated playback of the same region does not download the same bytes again.
 - The panel shows a session info bar when replay clips are available.
 - The panel timer overlay appears above clip blocks and remains translucent so the clip underneath is still visible.
 
+PRC transfer behavior is coordinated by the ElementReview backend:
+
+- Element Review operator high-res replay requests never enter the PRC transfer path.
+- PRC low-res on-demand chunk requests enter the PRC transfer path.
+
 ## Saved Video Export
 
-When `SaveVideos` is enabled in `appconfig.json`, completed recordings are copied under:
+When `SaveVideos` is enabled in `appconfig.json`, completed recordings are exported from the low-res replay file under:
 
 ```text
 SavedVideosFolder/
@@ -73,12 +78,13 @@ Folder and file names are built from `SessionInfo.json`.
 - [shell/Program.cs] starts the local web server and native shell.
 - [shell/MainForm.cs] hosts the main operator UI in WebView2.
 - [AppServer.cs] serves static files and the local HTTP API.
+- [PanelReplay/PanelReplay.csproj] builds the separate panel-review executable.
 - [Services/RecorderManager.cs] manages recording, replay-file generation, and saved-video export.
 - [Services/MediaMtxManager.cs] runs MediaMTX for RTSP relay.
 - [Services/SessionManager.cs] owns in-memory session and clip state.
 - [wwwroot/index.html] is the main operator UI.
 - [wwwroot/config.html] is the settings window.
-- [wwwroot/panel.html] is the remote replay panel.
+- [PanelReplay/wwwroot/panel.html] is the panel app UI.
 
 The local server listens on:
 
@@ -123,10 +129,17 @@ Important files:
 - `appconfig.json`
 - `SessionInfo.json`
 - `demovideo.mp4`
-- `current-encoded.mp4`
-- `current-copied.mp4`
+- `current-high-res.mp4`
+- `current-low-res.mp4`
 
 Bundled files under `data\` are used as fallbacks for development and packaging when the local copies do not exist.
+
+During recording, ElementReview produces two replay MP4 files in parallel:
+
+- `current-high-res.mp4`: the main operator replay file, encoded at the configured low GOP for responsive seeking in `index.html`.
+- `current-low-res.mp4`: the Panel Review and saved-video file, encoded as 720p/30 fps, GOP 60, and 2500k video bitrate. When `SaveVideos` is enabled, AAC audio from the source is included for saved copies; PRCs keep playback muted.
+
+When `UseHardwareEncodingWhenAvailable` is enabled and a supported encoder is available, both replay files use hardware encoding. Otherwise both files use software encoding.
 
 ## App Configuration
 

@@ -4,8 +4,13 @@ Compiling instructions:
 2. cd into source directory (e.g. cd "P:\pCloud Sync\Data Specialist\Current ElementReview-dev")
 3. Run this command in Powershell:
 
+ELEMENT REVIEW:
 cd "P:\pCloud Sync\Data Specialist\Current ElementReview-dev"
 dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true
+
+PANEL REVIEW:
+cd "P:\pCloud Sync\Data Specialist\Current ElementReview-dev"
+dotnet publish .\PanelReplay\PanelReplay.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true
 
 The executable binary will be located in \bin\release\net10.0\win-x64\publish\
 

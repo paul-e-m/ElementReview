@@ -22,10 +22,10 @@ public class RecorderManager
     private readonly string _toolsDir;
     private readonly string _dataDir;
 
-    private readonly string _encodedFile;
-    private readonly string _encodedTempFile;
-    private readonly string _copiedFile;
-    private readonly string _copiedTempFile;
+    private readonly string _highResFile;
+    private readonly string _highResTempFile;
+    private readonly string _lowResFile;
+    private readonly string _lowResTempFile;
 
     private readonly SessionManager _session;
 
@@ -44,22 +44,22 @@ public class RecorderManager
         _dataDir = AppPaths.LocalDataDir;
         Directory.CreateDirectory(_dataDir);
 
-        _encodedFile = AppPaths.LocalEncodedVideoPath;
-        _encodedTempFile = AppPaths.LocalEncodedTempVideoPath;
-        _copiedFile = AppPaths.LocalCopiedVideoPath;
-        _copiedTempFile = AppPaths.LocalCopiedTempVideoPath;
+        _highResFile = AppPaths.LocalHighResVideoPath;
+        _highResTempFile = AppPaths.LocalHighResTempVideoPath;
+        _lowResFile = AppPaths.LocalLowResVideoPath;
+        _lowResTempFile = AppPaths.LocalLowResTempVideoPath;
 
         _session = session;
     }
 
     // Legacy property names retained for existing callers inside the app.
-    public string OutputFilePath => _encodedFile;
-    public string TempFilePath => _encodedTempFile;
+    public string OutputFilePath => _highResFile;
+    public string TempFilePath => _highResTempFile;
 
-    public string EncodedOutputFilePath => _encodedFile;
-    public string EncodedTempFilePath => _encodedTempFile;
-    public string CopiedOutputFilePath => _copiedFile;
-    public string CopiedTempFilePath => _copiedTempFile;
+    public string HighResOutputFilePath => _highResFile;
+    public string HighResTempFilePath => _highResTempFile;
+    public string LowResOutputFilePath => _lowResFile;
+    public string LowResTempFilePath => _lowResTempFile;
 
     public bool IsRecording
     {
@@ -141,22 +141,22 @@ public class RecorderManager
             if (IsRecording) return true;
 
             CancelStartMonitor_NoLock();
-            TryDelete(_encodedTempFile);
-            TryDelete(_copiedTempFile);
+            TryDelete(_highResTempFile);
+            TryDelete(_lowResTempFile);
 
             var ffmpegExe = Path.Combine(_toolsDir, "ffmpeg.exe");
             if (!File.Exists(ffmpegExe))
                 throw new FileNotFoundException("Missing tools/ffmpeg.exe", ffmpegExe);
 
-            var gop = GetConfiguredGop(cfg);
-            var encoderName = ResolveEncoderName(ffmpegExe, cfg, gop);
+            var highResGop = GetConfiguredGop(cfg);
+            var encoderName = ResolveEncoderName(ffmpegExe, cfg, highResGop);
             var inputArgs = BuildInputArgs(cfg, demoStartSeconds);
 
             var args =
                 $"-hide_banner -loglevel warning -nostats -stats_period 0.1 -progress pipe:1 -y " +
                 inputArgs +
-                BuildEncodedOutputArgs(encoderName, gop) +
-                BuildCopiedOutputArgs();
+                BuildHighResOutputArgs(encoderName, highResGop) +
+                BuildLowResOutputArgs(encoderName, cfg.SaveVideos);
 
             var psi = new ProcessStartInfo
             {
@@ -491,7 +491,7 @@ public class RecorderManager
     private static string GetRtspTransportArgument(AppConfig cfg)
         => string.Equals(cfg.RtspTransportProtocol, "TCP", StringComparison.OrdinalIgnoreCase) ? "tcp" : "udp";
 
-    private string BuildEncodedOutputArgs(string encoderName, int gop)
+    private string BuildHighResOutputArgs(string encoderName, int gop)
     {
         return
             "-map 0:v:0 " +
@@ -499,7 +499,7 @@ public class RecorderManager
             BuildEncodedCodecArgs(encoderName, gop) +
             "-movflags +faststart " +
             "-avoid_negative_ts make_zero " +
-            $"\"{_encodedTempFile}\" ";
+            $"\"{_highResTempFile}\" ";
     }
 
     private static string BuildEncodedCodecArgs(string encoderName, int gop)
@@ -532,18 +532,21 @@ public class RecorderManager
         };
     }
 
-    private string BuildCopiedOutputArgs()
+    private string BuildLowResOutputArgs(string encoderName, bool includeAudio)
     {
-        // Keep the source GOP by copying video directly.
-        // Audio is encoded to AAC so the saved MP4 stays browser-friendly.
+        var audioArgs = includeAudio
+            ? "-map 0:a:0? -c:a aac -b:a 128k "
+            : "-an ";
+
         return
-            "-map 0:v:0 -map 0:a? " +
-            "-c:v copy " +
-            "-c:a aac " +
-            "-b:a 128k " +
+            "-map 0:v:0 " +
+            audioArgs +
+            "-vf scale=-2:720,fps=30 " +
+            BuildEncodedCodecArgs(encoderName, 60) +
+            "-b:v 2500k -maxrate 2500k -bufsize 5000k " +
             "-movflags +faststart " +
             "-avoid_negative_ts make_zero " +
-            $"\"{_copiedTempFile}\" ";
+            $"\"{_lowResTempFile}\" ";
     }
 
     // Stop/finalize helpers and replay asset management
@@ -579,10 +582,10 @@ public class RecorderManager
 
         FinalizeRecordingFiles();
 
-        var dur = await ProbeDurationSecondsAsync(_encodedFile);
+        var dur = await ProbeDurationSecondsAsync(_highResFile);
         _session.OnRecordingStopped(dur, uiElapsedSeconds, programTimerStartOffsetSeconds);
 
-        SaveRecordingCopyIfNeeded(cfg);
+        SaveRecordingIfNeeded(cfg);
 
         return dur;
     }
@@ -624,8 +627,8 @@ public class RecorderManager
 
     private void FinalizeRecordingFiles()
     {
-        MoveTempToFinal(_encodedTempFile, _encodedFile);
-        MoveTempToFinal(_copiedTempFile, _copiedFile);
+        MoveTempToFinal(_highResTempFile, _highResFile);
+        MoveTempToFinal(_lowResTempFile, _lowResFile);
     }
 
     private static void MoveTempToFinal(string tempPath, string finalPath)
@@ -698,15 +701,13 @@ public class RecorderManager
     }
 
     // Saved-video export helpers
-    private void SaveRecordingCopyIfNeeded(AppConfig cfg)
+    private void SaveRecordingIfNeeded(AppConfig cfg)
     {
         _session.SetSavedMarkerJsonPath(null);
 
         if (!cfg.SaveVideos) return;
 
-        var sourceVideoPath = File.Exists(_copiedFile)
-            ? _copiedFile
-            : _encodedFile;
+        var sourceVideoPath = _lowResFile;
 
         if (!File.Exists(sourceVideoPath)) return;
 

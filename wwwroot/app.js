@@ -25,10 +25,15 @@ export class ElementReviewApp {
             recordSessionEncoderDot: el("recordSessionEncoderDot"),
             recordSessionCssDot: el("recordSessionCssDot"),
             recordRefreshBtn: el("recordRefreshBtn"),
+            recordSettingsBtn: el("recordSettingsBtn"),
+            recordLogoBtn: el("recordLogoBtn"),
             replaySessionEncoderLabel: el("replaySessionEncoderLabel"),
             replaySessionEncoderDot: el("replaySessionEncoderDot"),
             replaySessionCssDot: el("replaySessionCssDot"),
             replayRefreshBtn: el("replayRefreshBtn"),
+            replaySettingsBtn: el("replaySettingsBtn"),
+            replayLogoBtn: el("replayLogoBtn"),
+            brandOverlay: el("brandOverlay"),
             leftControls: el("leftControls"),
             replayElementsLabel: el("replayElementsLabel"),
             replayElementsValue: el("replayElementsValue"),
@@ -64,7 +69,6 @@ export class ElementReviewApp {
             reviewTimerEl: el("reviewTimer"),
             recordShortcutHint: el("recordShortcutHint"),
             replayShortcutHint: el("replayShortcutHint"),
-            settingsBtn: el("settingsBtn"),
             recLamp: el("recLamp"),
             liveFrame: el("liveFrame"),
             liveWrap: el("liveWrap"),
@@ -119,6 +123,7 @@ export class ElementReviewApp {
         this.isClipPending = false;
         this.isDeletePending = false;
         this.isSavingLanguage = false;
+        this.lastStatusRenderSignature = "";
         this.lastRecordStartRequestPerf = 0;
         this.pendingOpenClipSlotIndex = null;
         this.suppressOpenClipPlaceholder = false;
@@ -222,7 +227,6 @@ export class ElementReviewApp {
             }
             this.updateClipTimerUI();
             this.updateProgramTimerUI();
-            this.renderClipList();
         }, 60);
 
         this.replay.startRafLoop();
@@ -557,7 +561,8 @@ export class ElementReviewApp {
 
     applyStaticTranslations() {
         this.setAriaLabel(this.refs.clipList, this.t("elementsListAria"));
-        this.setTitleAndAria(this.refs.settingsBtn, this.t("settings"));
+        this.setTitleAndAria(this.refs.recordSettingsBtn, this.t("settings"));
+        this.setTitleAndAria(this.refs.replaySettingsBtn, this.t("settings"));
         this.setTitleAndAria(this.refs.recordRefreshBtn, this.t("refreshAria"));
         this.setTitleAndAria(this.refs.replayRefreshBtn, this.t("refreshAria"));
         for (const select of [this.refs.recordLanguageSelect, this.refs.replayLanguageSelect]) {
@@ -645,6 +650,46 @@ export class ElementReviewApp {
         this.updateUI();
     }
 
+    pendingUiSignature() {
+        return JSON.stringify({
+            start: !!this.isStartPending,
+            stop: !!this.isStopPending,
+            clip: !!this.isClipPending,
+            delete: !!this.isDeletePending,
+            openSlot: this.pendingOpenClipSlotIndex ?? null,
+            suppressOpen: !!this.suppressOpenClipPlaceholder,
+            recordStartLocked: !!this.recordProgramStartLockedOut,
+            recordShortcut: this.pendingRecordShortcut ?? null,
+        });
+    }
+
+    statusRenderSignature(state) {
+        if (!state) return "";
+
+        const clips = Array.isArray(state.clips)
+            ? state.clips
+            : (Array.isArray(state.Clips) ? state.Clips : []);
+
+        return JSON.stringify({
+            mode: state.mode ?? state.Mode ?? "",
+            arming: !!(state.isArming ?? state.IsArming),
+            recording: !!(state.isRecording ?? state.IsRecording),
+            duration: state.recordingDurationSeconds ?? state.RecordingDurationSeconds ?? null,
+            programStart: state.programTimerStartOffsetSeconds ?? state.ProgramTimerStartOffsetSeconds ?? null,
+            replayToken: state.replayMediaToken ?? state.ReplayMediaToken ?? "",
+            openClipStart: state.openClipStartSeconds ?? state.OpenClipStartSeconds ?? null,
+            canUndo: !!(state.canUndoClipAction ?? state.CanUndoClipAction),
+            canRedo: !!(state.canRedoClipAction ?? state.CanRedoClipAction),
+            fps: state.sourceFps ?? state.SourceFps ?? null,
+            clips: clips.map((clip) => ({
+                i: clip.index ?? clip.Index ?? null,
+                a: clip.startSeconds ?? clip.StartSeconds ?? null,
+                b: clip.endSeconds ?? clip.EndSeconds ?? null,
+                r: !!(clip.everMarkedForReview ?? clip.EverMarkedForReview),
+            })),
+        });
+    }
+
     isSuppressedFocusTarget(target) {
         if (!(target instanceof HTMLElement)) return false;
         return target.matches("button, input, video");
@@ -675,6 +720,11 @@ export class ElementReviewApp {
         this.refs.confirmCancel?.addEventListener("click", () => this.hideConfirm(false));
         this.refs.recordRefreshBtn?.addEventListener("click", () => window.location.reload());
         this.refs.replayRefreshBtn?.addEventListener("click", () => window.location.reload());
+        this.refs.recordSettingsBtn?.addEventListener("click", () => window.open("config.html", "_blank"));
+        this.refs.replaySettingsBtn?.addEventListener("click", () => window.open("config.html", "_blank"));
+        this.refs.recordLogoBtn?.addEventListener("click", () => this.showBrandOverlay());
+        this.refs.replayLogoBtn?.addEventListener("click", () => this.showBrandOverlay());
+        this.refs.brandOverlay?.addEventListener("click", () => this.hideBrandOverlay());
         this.refs.recordProgramStartBtn?.addEventListener("click", () => this.startProgramTimer());
         this.refs.replayProgramStartBtn?.addEventListener("click", () => this.startProgramTimer());
         this.refs.replayJumpToHalfwayBtn?.addEventListener("click", () => this.shortcuts.jumpToHalfway());
@@ -742,6 +792,7 @@ export class ElementReviewApp {
             if (empty) {
                 this.replay.clearElementLoop();
                 this.setSelectedClipIdx(null);
+                this.renderClipList();
                 this.timeline.draw();
                 this.replay.updateReplayTimerAndSpeed();
                 return;
@@ -1221,10 +1272,6 @@ export class ElementReviewApp {
                 halfwaySeconds: Number.isFinite(nextHalfwaySeconds) && nextHalfwaySeconds > 0 ? nextHalfwaySeconds : null,
             });
 
-            this.sessionInfoPayload = payload;
-            this.syncHalfwayUi();
-            this.updateUI();
-
             if (signature === this.elementMetaSig) {
                 return;
             }
@@ -1233,10 +1280,9 @@ export class ElementReviewApp {
             this.elementMeta = nextMap;
             this.sessionInfoText = nextSessionInfoText;
             this.elementMetaVersion++;
-
-            this.renderClipList();
-            this.updateSessionInfoOverlay();
-            this.updateReplayStatusPanel();
+            this.sessionInfoPayload = payload;
+            this.syncHalfwayUi();
+            this.updateUI();
         } catch {
             // Polling will retry on the next cycle.
         }
@@ -1306,6 +1352,16 @@ export class ElementReviewApp {
             this.programTimerStartOffsetSeconds != null &&
             Number.isFinite(Number(this.programTimerStartOffsetSeconds))
         );
+    }
+
+    showBrandOverlay() {
+        this.refs.brandOverlay?.classList.remove("hidden");
+        this.refs.brandOverlay?.setAttribute("aria-hidden", "false");
+    }
+
+    hideBrandOverlay() {
+        this.refs.brandOverlay?.classList.add("hidden");
+        this.refs.brandOverlay?.setAttribute("aria-hidden", "true");
     }
 
     startProgramTimer() {
@@ -2147,7 +2203,13 @@ export class ElementReviewApp {
         const halfwayMarkerAnchorIndex = this.getHalfwayMarkerAnchorIndex();
         const openClipPlaceholderIndex = this.getOpenClipPlaceholderIndex();
         const loopingClipIdx = this.getLoopingClipIndex();
-        key += `|meta:${this.elementMetaVersion}|halfway:${halfwayMarkerAnchorIndex ?? "none"}|open:${openClipPlaceholderIndex ?? "none"}|loop:${loopingClipIdx ?? "none"}`;
+        const selectedStartMs = Number.isFinite(this.selectedClipSeg?.startSeconds)
+            ? Math.round(this.selectedClipSeg.startSeconds * 1000)
+            : "none";
+        const selectedEndMs = Number.isFinite(this.selectedClipSeg?.endSeconds)
+            ? Math.round(this.selectedClipSeg.endSeconds * 1000)
+            : "none";
+        key += `|meta:${this.elementMetaVersion}|halfway:${halfwayMarkerAnchorIndex ?? "none"}|open:${openClipPlaceholderIndex ?? "none"}|loop:${loopingClipIdx ?? "none"}|selected:${this.selectedClipIdx ?? "none"}:${selectedStartMs}-${selectedEndMs}|hint:${this.t("shortcutRailHint")}`;
 
         if (clipList.dataset.key === key) return;
         clipList.dataset.key = key;
@@ -2208,6 +2270,11 @@ export class ElementReviewApp {
         this.addHalfwayMarkerClasses(slot, index, halfwayMarkerAnchorIndex);
         if (index === openClipPlaceholderIndex) {
             this.appendClipListEntryContent(slot, index, "Clipping...");
+        } else if (index === 15) {
+            const hint = document.createElement("div");
+            hint.className = "clipSlotShortcutHint";
+            hint.textContent = this.t("shortcutRailHint");
+            slot.appendChild(hint);
         }
         return slot;
     }
@@ -2413,10 +2480,10 @@ export class ElementReviewApp {
         } else {
             this.setMainButtonVisual("next");
 
-            // Replay always uses the encoded file in the main operator UI.
-            // Remote clients use the smaller copied replay asset instead.
+            // Replay always uses the high-res file in the main operator UI.
+            // Remote clients use the lower-bandwidth low-res replay asset instead.
             if (!this.refs.replayVideo.src || !this.refs.replayVideo.src.includes("/api/recording/file")) {
-                this.refs.replayVideo.src = `/api/recording/file?kind=encoded&ts=${Date.now()}`;
+                this.refs.replayVideo.src = `/api/recording/file?kind=high-res&ts=${Date.now()}`;
                 this.refs.replayVideo.load();
                 this.replay.resetZoom();
             }
@@ -2455,6 +2522,8 @@ export class ElementReviewApp {
 
     applyStatusUpdate(nextState) {
         const previousRecordSeconds = this.currentRecordSeconds();
+        const previousStatusRenderSignature = this.statusRenderSignature(this.state);
+        const previousPendingUiSignature = this.pendingUiSignature();
         const prevMode = this.state?.mode;
         const prevArming = this.state?.isArming;
         const prevRecording = this.state?.isRecording;
@@ -2524,7 +2593,19 @@ export class ElementReviewApp {
             this.clearPendingRecordShortcut();
         }
 
-        this.syncPendingUi();
+        const nextStatusRenderSignature = this.statusRenderSignature(this.state);
+        const nextPendingUiSignature = this.pendingUiSignature();
+        const needsRender =
+            previousStatusRenderSignature !== nextStatusRenderSignature ||
+            previousPendingUiSignature !== nextPendingUiSignature ||
+            this.lastStatusRenderSignature !== nextStatusRenderSignature;
+
+        if (needsRender) {
+            this.lastStatusRenderSignature = nextStatusRenderSignature;
+            this.syncPendingUi();
+        } else {
+            this.refreshBusyCursor();
+        }
 
         this.flushPendingRecordShortcut().catch(console.error);
 
@@ -2611,7 +2692,7 @@ export class ElementReviewApp {
             // triggered here. Entering replay mode already arms this once, but
             // that earlier load can complete before this fresh `ts=` reload.
             this.replay.autoLoopClip1 = true;
-            this.refs.replayVideo.src = `/api/recording/file?kind=encoded&ts=${Date.now()}`;
+            this.refs.replayVideo.src = `/api/recording/file?kind=high-res&ts=${Date.now()}`;
             this.refs.replayVideo.load();
 
             this.replay.resetZoom();

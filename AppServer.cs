@@ -92,6 +92,18 @@ public static class AppServer
             return cfg;
         }
 
+        static PanelConfig NormalizePanelConfig(PanelConfig? cfg)
+        {
+            cfg ??= new PanelConfig();
+            cfg.ServerIp = string.IsNullOrWhiteSpace(cfg.ServerIp)
+                ? "127.0.0.1"
+                : cfg.ServerIp.Trim();
+            cfg.Language = string.Equals(cfg.Language?.Trim(), "fr", StringComparison.OrdinalIgnoreCase)
+                ? "fr"
+                : "en";
+            return cfg;
+        }
+
         static string NormalizeRtspTransportProtocol(string? protocol)
         {
             return string.Equals(protocol?.Trim(), "TCP", StringComparison.OrdinalIgnoreCase)
@@ -111,6 +123,20 @@ public static class AppServer
             return version.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? version : $"v{version}";
         }
 
+        AppConfig? cachedConfig = null;
+        DateTime cachedConfigWriteUtc = DateTime.MinValue;
+        bool cachedConfigExists = false;
+
+        PanelConfig? cachedPanelConfig = null;
+        DateTime cachedPanelConfigWriteUtc = DateTime.MinValue;
+        bool cachedPanelConfigExists = false;
+
+        string? cachedSessionInfoPath = null;
+        DateTime cachedSessionInfoWriteUtc = DateTime.MinValue;
+        long cachedSessionInfoLength = -1;
+        JsonElement? cachedSessionInfoRoot = null;
+        Dictionary<int, bool>? cachedSessionInfoReviewFlags = null;
+
         AppConfig LoadConfig()
         {
             var path = AppPaths.LocalConfigPath;
@@ -121,10 +147,17 @@ public static class AppServer
                 return cfg;
             }
 
+            var writeUtc = File.GetLastWriteTimeUtc(path);
+            if (cachedConfig != null && cachedConfigExists && cachedConfigWriteUtc == writeUtc)
+                return cachedConfig;
+
             try
             {
                 var json = File.ReadAllText(path);
-                return NormalizeConfig(JsonSerializer.Deserialize<AppConfig>(json, jsonOpts));
+                cachedConfig = NormalizeConfig(JsonSerializer.Deserialize<AppConfig>(json, jsonOpts));
+                cachedConfigWriteUtc = writeUtc;
+                cachedConfigExists = true;
+                return cachedConfig;
             }
             catch
             {
@@ -138,6 +171,48 @@ public static class AppServer
             var path = AppPaths.LocalConfigPath;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(cfg, jsonOpts));
+            cachedConfig = cfg;
+            cachedConfigWriteUtc = File.GetLastWriteTimeUtc(path);
+            cachedConfigExists = true;
+        }
+
+        PanelConfig LoadPanelConfig()
+        {
+            var path = AppPaths.LocalPanelConfigPath;
+            if (!File.Exists(path))
+            {
+                var cfg = NormalizePanelConfig(new PanelConfig());
+                SavePanelConfig(cfg);
+                return cfg;
+            }
+
+            var writeUtc = File.GetLastWriteTimeUtc(path);
+            if (cachedPanelConfig != null && cachedPanelConfigExists && cachedPanelConfigWriteUtc == writeUtc)
+                return cachedPanelConfig;
+
+            try
+            {
+                var json = File.ReadAllText(path);
+                cachedPanelConfig = NormalizePanelConfig(JsonSerializer.Deserialize<PanelConfig>(json, jsonOpts));
+                cachedPanelConfigWriteUtc = writeUtc;
+                cachedPanelConfigExists = true;
+                return cachedPanelConfig;
+            }
+            catch
+            {
+                return NormalizePanelConfig(new PanelConfig());
+            }
+        }
+
+        void SavePanelConfig(PanelConfig cfg)
+        {
+            cfg = NormalizePanelConfig(cfg);
+            var path = AppPaths.LocalPanelConfigPath;
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonSerializer.Serialize(cfg, jsonOpts));
+            cachedPanelConfig = cfg;
+            cachedPanelConfigWriteUtc = File.GetLastWriteTimeUtc(path);
+            cachedPanelConfigExists = true;
         }
 
         static AppConfig MergeConfig(AppConfig existing, AppConfig incoming)
@@ -297,13 +372,19 @@ public static class AppServer
         app.MapGet("/api/status", (SessionManager session) =>
         {
             var cfg = LoadConfig();
-            return Results.Ok(session.GetStatus(cfg.SourceFps));
+            var status = session.GetStatus(cfg.SourceFps);
+            return Results.Ok(status);
         });
 
         app.MapGet("/api/appconfig", () =>
         {
             var cfg = LoadConfig();
             return Results.Json(cfg, jsonOpts);
+        });
+
+        app.MapGet("/api/panelconfig", () =>
+        {
+            return Results.Json(LoadPanelConfig(), jsonOpts);
         });
 
         app.MapGet("/api/appinfo", () =>
@@ -325,6 +406,12 @@ public static class AppServer
             return Results.Json(cfg, jsonOpts);
         });
 
+        app.MapPost("/api/panelconfig", (PanelConfig cfg) =>
+        {
+            SavePanelConfig(cfg);
+            return Results.Json(LoadPanelConfig(), jsonOpts);
+        });
+
         app.MapGet("/api/sessionInfo", (SessionManager session) =>
         {
             try
@@ -337,12 +424,30 @@ public static class AppServer
                 if (!File.Exists(path))
                     return Results.Ok(new { elements = new Dictionary<string, object>() });
 
-                var json = File.ReadAllText(path);
+                var fileInfo = new FileInfo(path);
+                if (cachedSessionInfoRoot.HasValue &&
+                    string.Equals(cachedSessionInfoPath, path, StringComparison.OrdinalIgnoreCase) &&
+                    cachedSessionInfoWriteUtc == fileInfo.LastWriteTimeUtc &&
+                    cachedSessionInfoLength == fileInfo.Length)
+                {
+                    session.UpdateReviewHistory(cachedSessionInfoReviewFlags);
+                    return Results.Json(cachedSessionInfoRoot.Value.Clone(), jsonOpts);
+                }
 
-                session.UpdateReviewHistory(SessionManager.ExtractReviewFlagsFromElementsJson(json));
+                var json = File.ReadAllText(path);
+                var reviewFlags = SessionManager.ExtractReviewFlagsFromElementsJson(json);
+
+                session.UpdateReviewHistory(reviewFlags);
 
                 using var doc = JsonDocument.Parse(json);
-                return Results.Json(doc.RootElement.Clone(), jsonOpts);
+                var root = doc.RootElement.Clone();
+                cachedSessionInfoPath = path;
+                cachedSessionInfoWriteUtc = fileInfo.LastWriteTimeUtc;
+                cachedSessionInfoLength = fileInfo.Length;
+                cachedSessionInfoRoot = root;
+                cachedSessionInfoReviewFlags = reviewFlags;
+
+                return Results.Json(root, jsonOpts);
             }
             catch
             {
@@ -592,44 +697,58 @@ public static class AppServer
         {
             recorder.StopIfRunning();
 
-            try { if (File.Exists(recorder.EncodedOutputFilePath)) File.Delete(recorder.EncodedOutputFilePath); } catch { }
-            try { if (File.Exists(recorder.EncodedTempFilePath)) File.Delete(recorder.EncodedTempFilePath); } catch { }
-            try { if (File.Exists(recorder.CopiedOutputFilePath)) File.Delete(recorder.CopiedOutputFilePath); } catch { }
-            try { if (File.Exists(recorder.CopiedTempFilePath)) File.Delete(recorder.CopiedTempFilePath); } catch { }
+            try { if (File.Exists(recorder.HighResOutputFilePath)) File.Delete(recorder.HighResOutputFilePath); } catch { }
+            try { if (File.Exists(recorder.HighResTempFilePath)) File.Delete(recorder.HighResTempFilePath); } catch { }
+            try { if (File.Exists(recorder.LowResOutputFilePath)) File.Delete(recorder.LowResOutputFilePath); } catch { }
+            try { if (File.Exists(recorder.LowResTempFilePath)) File.Delete(recorder.LowResTempFilePath); } catch { }
 
             session.ClearAll();
             var cfg = LoadConfig();
             return Results.Ok(session.GetStatus(cfg.SourceFps));
         });
 
-        app.MapGet("/api/recording/file", (HttpContext http, RecorderManager recorder, SessionManager session, string? kind, string? v) =>
+        app.MapGet("/api/recording/file", async (HttpContext http, RecorderManager recorder, SessionManager session, string? kind, string? v) =>
         {
             if (!session.IsReplayMediaAvailable())
-                return Results.NotFound("No replay clips currently available.");
+            {
+                http.Response.StatusCode = StatusCodes.Status404NotFound;
+                await http.Response.WriteAsync("No replay clips currently available.");
+                return;
+            }
 
-            var wantCopied = string.Equals(kind, "copied", StringComparison.OrdinalIgnoreCase);
-            if (wantCopied && !session.IsReplayMediaTokenCurrent(v))
-                return Results.NotFound("Replay media token is no longer current.");
+            var wantLowRes = string.Equals(kind, "low-res", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(kind, "lowres", StringComparison.OrdinalIgnoreCase);
+            if (wantLowRes && !session.IsReplayMediaTokenCurrent(v))
+            {
+                http.Response.StatusCode = StatusCodes.Status404NotFound;
+                await http.Response.WriteAsync("Replay media token is no longer current.");
+                return;
+            }
 
-            var path = wantCopied && File.Exists(recorder.CopiedOutputFilePath)
-                ? recorder.CopiedOutputFilePath
-                : recorder.EncodedOutputFilePath;
+            var path = wantLowRes
+                ? recorder.LowResOutputFilePath
+                : recorder.HighResOutputFilePath;
 
-            if (!File.Exists(path)) return Results.NotFound("No recording found.");
+            if (!File.Exists(path))
+            {
+                http.Response.StatusCode = StatusCodes.Status404NotFound;
+                await http.Response.WriteAsync("No recording found.");
+                return;
+            }
 
             var fileInfo = new FileInfo(path);
             var lastModified = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero);
             var entityTag = new EntityTagHeaderValue($"\"{fileInfo.Length:x}-{fileInfo.LastWriteTimeUtc.Ticks:x}\"");
-            http.Response.Headers[HeaderNames.CacheControl] = wantCopied
+            http.Response.Headers[HeaderNames.CacheControl] = wantLowRes
                 ? "private, max-age=31536000, immutable"
                 : "public, max-age=0, must-revalidate";
 
-            return Results.File(
+            await Results.File(
                 path,
                 contentType: "video/mp4",
                 lastModified: lastModified,
                 entityTag: entityTag,
-                enableRangeProcessing: true);
+                enableRangeProcessing: true).ExecuteAsync(http);
         });
 
         app.MapPost("/api/replay/delete", async (HttpRequest req, SessionManager session) =>
@@ -727,6 +846,11 @@ public static class AppServer
                 return Results.Ok(new { ok = true });
 
             return Results.BadRequest("Restart is only available when running the native shell app.");
+        });
+
+        app.MapPost("/api/panel/restart", () =>
+        {
+            return Results.Ok(new { ok = true });
         });
 
         app.MapGet("/api/hostping", async (string? host) =>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panel Replay Client</title>
+    <link rel="stylesheet" href="panel-styles.css?v=20260426-demand1" />
+</head>
+<body>
+    <div class="panelShell" id="panelShell">
+        <div class="panelLayout" id="panelTopRow">
+            <aside id="elementRail" class="elementRail hidden" aria-label="Elements"></aside>
+
+            <div id="videoPane" class="videoPane">
+                <div id="panelSessionInfo" class="panelSessionInfo hidden">
+                    <span id="panelSessionInfoText" class="panelSessionInfoText"></span>
+                    <span id="panelServerStatus" class="panelServerStatus" title="Server status" aria-label="Server status">
+                        <span class="panelServerStatusLabel">VRO</span>
+                        <span id="panelServerStatusDot" class="replayPingDot idle" aria-hidden="true"></span>
+                    </span>
+                    <button id="panelSessionRefreshBtn" class="panelSessionRefreshBtn" type="button" title="Refresh" aria-label="Refresh">
+                        <img class="panelSessionRefreshIcon" src="/img/buttons/refresh.png" alt="" draggable="false" />
+                    </button>
+                    <button id="panelSettingsBtn" class="panelSessionSettingsBtn" type="button" title="Settings" aria-label="Settings">
+                        <img class="panelSessionSettingsIcon" src="/img/buttons/settings.png?v=20260425-panelclean1" alt="" draggable="false" />
+                    </button>
+                    <button id="panelLogoBtn" class="panelSessionLogoBtn" type="button" title="Logo Screen" aria-label="Logo Screen">
+                        <img class="panelSessionLogoIcon" src="/img/logo.png" alt="" draggable="false" />
+                    </button>
+                </div>
+                <video id="v" class="panelVideo" playsinline muted preload="metadata"></video>
+                <div id="emptyState" class="emptyState hidden">
+                    <div class="emptyStateCard">
+                        <div id="emptyStateMessage" class="emptyStateMessage">There are no video clips currently available</div>
+                    </div>
+                </div>
+            </div>
+            <div id="timelineArea" class="timelineArea" aria-label="Video timeline">
+                <div id="timeline" class="timeline">
+                    <div id="stopwatchRange" class="stopwatchRange hidden"></div>
+                    <div id="elementMarkers" class="elementMarkers"></div>
+                    <div class="timelineClip">
+                        <div id="timelineTicks" class="timelineTicks"></div>
+                    </div>
+                    <div id="stopwatchMarker" class="stopwatchMarker hidden"></div>
+                    <div id="playhead" class="playhead"></div>
+                </div>
+                <div id="stopwatchIndicator" class="stopwatchIndicator hidden">00:00:00</div>
+                <div id="outOfClipIndicator" class="outOfClipIndicator hidden">-00:00:00</div>
+                <div id="timelineLabels" class="timelineLabels"></div>
+            </div>
+
+            <div id="transportRow" class="transportRow">
+                <button id="stopwatchBtn" class="transportBtn stopwatchBtn" type="button" disabled title="Timer On" aria-label="Timer On" aria-pressed="false">
+                    <img class="stopwatchBtnIcon" src="/img/buttons/stopwatch.png" alt="" draggable="false" />
+                </button>
+
+                <div id="timingPresetButtons" class="timingPresetButtons hidden" aria-label="Timing presets">
+                    <button class="transportBtn timingPresetBtn" type="button" data-timing-seconds="8" disabled title="Set timer to 8 seconds" aria-label="Set timer to 8 seconds">
+                        <span class="transportBtnLabel">8</span>
+                    </button>
+                    <button class="transportBtn timingPresetBtn" type="button" data-timing-seconds="10" disabled title="Set timer to 10 seconds" aria-label="Set timer to 10 seconds">
+                        <span class="transportBtnLabel">10</span>
+                    </button>
+                    <button class="transportBtn timingPresetBtn" type="button" data-timing-seconds="13" disabled title="Set timer to 13 seconds" aria-label="Set timer to 13 seconds">
+                        <span class="transportBtnLabel">13</span>
+                    </button>
+                </div>
+
+                <div class="transportButtons" aria-label="Playback controls">
+                    <button id="rew10" class="transportBtn jumpBtn" type="button" disabled title="Back 10 seconds" aria-label="Back 10 seconds">
+                        <span class="transportBtnLabel">-10s</span>
+                    </button>
+                    <button id="rew3" class="transportBtn jumpBtn" type="button" disabled title="Back 3 seconds" aria-label="Back 3 seconds">
+                        <span class="transportBtnLabel">-3s</span>
+                    </button>
+
+                    <button id="playPause" class="transportBtn iconBtn playPauseBtn isPlay" type="button" disabled title="Play" aria-label="Play">
+                        <span class="playPauseGlyph" aria-hidden="true"></span>
+                    </button>
+
+                    <button id="fwd3" class="transportBtn jumpBtn" type="button" disabled title="Forward 3 seconds" aria-label="Forward 3 seconds">
+                        <span class="transportBtnLabel">+3s</span>
+                    </button>
+                    <button id="fwd10" class="transportBtn jumpBtn" type="button" disabled title="Forward 10 seconds" aria-label="Forward 10 seconds">
+                        <span class="transportBtnLabel">+10s</span>
+                    </button>
+                </div>
+
+                <div id="relativeIndicator" class="relativeIndicator">0:00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="brandOverlay" class="brandOverlay hidden" aria-hidden="true">
+        <img class="brandOverlayLogo" src="/img/logo.png" alt="Element Review" draggable="false" />
+        <div class="brandOverlayMessage">CLICK ANYWHERE TO RETURN TO ELEMENT REVIEW / CLIQUEZ N'IMPORTE OÙ POUR REVENIR À ELEMENT REVIEW</div>
+    </div>
+
+    <div id="panelSettingsOverlay" class="panelSettingsOverlay hidden" aria-hidden="true">
+        <div class="panelSettingsDialog" role="dialog" aria-modal="true" aria-labelledby="panelSettingsTitle">
+            <div class="panelSettingsHeader">
+                <h2 id="panelSettingsTitle" data-panel-i18n="settings">Panel Settings</h2>
+                <select id="panelSettingsLanguage" class="panelSettingsLanguage" aria-label="Language">
+                    <option value="en" data-panel-i18n="languageEnglish">English</option>
+                    <option value="fr" data-panel-i18n="languageFrench">Francais</option>
+                </select>
+            </div>
+
+            <div class="panelSettingsBody">
+                <section class="panelSettingsSection">
+                    <h3 data-panel-i18n="connection">Connection</h3>
+                    <label class="panelSettingsField" for="panelSettingsServerIp">
+                        <span data-panel-i18n="serverIp">Server IP address (VRO laptop)</span>
+                        <input id="panelSettingsServerIp" type="text" spellcheck="false" />
+                    </label>
+                    <label class="panelSettingsToggle" for="panelSettingsTimerEnabled">
+                        <span>
+                            <strong data-panel-i18n="timerEnabled">Enable timer controls</strong>
+                            <small data-panel-i18n="timerEnabledHelp">Open the panel with the timer controls visible.</small>
+                        </span>
+                        <input id="panelSettingsTimerEnabled" type="checkbox" />
+                    </label>
+                </section>
+            </div>
+
+            <div class="panelSettingsFooter">
+                <div id="panelSettingsStatus" class="panelSettingsStatus"></div>
+                <button id="panelSettingsSaveBtn" class="panelSettingsSaveBtn" type="button" data-panel-i18n="saveAndClose">Save and Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="panel-i18n.js?v=20260425-panelclean1"></script>
+    <script src="panel.js?v=20260426-demand1"></script>
+</body>
+</html>

@@ -6,7 +6,7 @@ ElementReview exposes a local HTTP API used by:
 
 - the main operator UI in `index.html`
 - the settings window in `config.html`
-- the remote replay panel in `panel.html`
+- the separate Panel Replay app in `PanelReplay/wwwroot/panel.html`
 - trusted local or LAN clients
 
 Base URL:
@@ -306,40 +306,46 @@ Streams the current replay MP4 with range support.
 
 Query options:
 
-- no query string: encoded replay file
-- `?kind=copied`: copied replay file
+- no query string or `?kind=high-res`: high-res operator replay file
+- `?kind=low-res`: low-res Panel Review and saved-video replay file
+- `v=<ReplayMediaToken>`: required for low-res replay requests
 
-If the copied file does not exist, the server falls back to the encoded file.
+Low-res requests should include the current replay media token as `v=<ReplayMediaToken>`. If the token is stale, the server returns `404 Not Found`.
 
-## Remote Replay Panel
+Operator high-res replay requests are served directly. PRC low-res requests are demand-driven and enter the PRC transfer path. The backend does not preload, throttle, or cap concurrent PRC transfers.
 
-`GET /panel.html` serves the remote replay panel. It is a static client that uses `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
+ElementReview records both files while the recording is in progress. `current-high-res.mp4` is encoded with the configured `RecordingGop`; `current-low-res.mp4` is encoded as 720p/30 fps with GOP 60 and 2500k video bitrate. When `SaveVideos` is enabled, the low-res file also includes AAC audio from the source for saved copies; PRCs keep playback muted. When `UseHardwareEncodingWhenAvailable` is enabled and supported hardware is available, both files use the same hardware encoder. Otherwise both use software encoding.
+
+## Panel Replay App
+
+The remote panel UI is packaged in the separate Panel Replay app under `PanelReplay/wwwroot`. It loads locally inside `panel-replay.exe` and uses the ElementReview backend API endpoints `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
 
 Common forms:
 
 ```text
-/panel.html
-/panel.html?0
-/panel.html?2
-/panel.html?2&autoplay=false&loop=false
+panel-replay.exe
+panel-replay.exe with a configured Server IP address
 ```
 
 Query options:
 
-- `?0`: full panel mode with the element rail.
-- `?N`: open element clip `N` directly.
 - `autoplay=false` or `a=false`: disable initial autoplay.
 - `loop=false` or `l=false`: disable looping the selected clip.
 - `timer=true` or `tm=true`: show the panel timer control.
 
 Panel behavior:
 
-- clicking an element clip autoplays that clip
+- element rail buttons 1-12 represent clipped element regions
+- element rail buttons are clickable immediately
+- clicking an element clip autoplays that clipped region once and then stops
+- the `ENTIRE RECORDING` rail button appears when replay media is available and opens the full-video timeline with blue numbered clip markers
+- PRCs cache chunks on demand as playback or seeking requests them
+- cached chunks are reused, so repeated playback of the same region does not download the same bytes again
 - full panel mode shows a session info bar when replay clips are available
 - the session info bar includes the category, discipline, flight, segment, competitor name, and a refresh button
 - the panel timer range is drawn above element clip blocks and remains translucent
 
-`judge.html` has been removed; use `panel.html` for remote replay.
+`judge.html` has been removed; use the Panel Replay app for remote replay.
 
 ## Replay Editing
 

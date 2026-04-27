@@ -5,6 +5,8 @@ VisualStudioVersion = 18.2.11415.280 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ElementReview", "ElementReview.csproj", "{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PanelReplay", "PanelReplay\PanelReplay.csproj", "{F1E45890-E227-4C3A-A4F9-D37E6469FA62}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA3E2D9A-E222-8C87-6A81-F837BAA3A447}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1E45890-E227-4C3A-A4F9-D37E6469FA62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1E45890-E227-4C3A-A4F9-D37E6469FA62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1E45890-E227-4C3A-A4F9-D37E6469FA62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1E45890-E227-4C3A-A4F9-D37E6469FA62}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

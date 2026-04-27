@@ -12,7 +12,7 @@
     --clipStopRed: #ff1744;
     --undoOrange: #ff9800;
     --redoBlue: #4f8dff;
-    --emptyElementBg: #035F6B;
+    --emptyElementBg: #000080;
     /* Shared timeline geometry */
     --timelineBarH: 36px;
     --scrubThumbW: 12px;
@@ -55,7 +55,7 @@ html, body {
 
 body {
     margin: 0;
-    font-family: system-ui, Segoe UI, Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
 }
@@ -99,11 +99,11 @@ iframe:focus-visible,
     height: var(--sessionInfoH);
     max-width: none;
     padding: 6px 10px;
-    background: #314784;
+    background: #3F51B5;
     color: #FFFFFF;
     border: 0;
     border-radius: 0;
-    font: 450 15px/1.1 system-ui, Segoe UI, Arial, sans-serif;
+    font: 450 15px/1.1 "Segoe UI", Arial, sans-serif;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -139,12 +139,15 @@ iframe:focus-visible,
 }
 
 .sessionInfoStatusLabel {
-    font: 450 15px/1.1 system-ui, Segoe UI, Arial, sans-serif;
+    font: 450 15px/1.1 "Segoe UI", Arial, sans-serif;
 }
 
-.sessionInfoRefreshBtn {
+.sessionInfoRefreshBtn,
+.sessionInfoSettingsBtn {
     width: 24px;
     height: 24px;
+    max-width: 24px;
+    max-height: 24px;
     padding: 0;
     border: 0;
     border-radius: 50%;
@@ -157,10 +160,12 @@ iframe:focus-visible,
     pointer-events: auto;
     flex: 0 0 auto;
     opacity: 0.78;
+    overflow: hidden;
     transition: background-color 120ms ease, color 120ms ease, opacity 120ms ease, filter 120ms ease, transform 120ms ease;
 }
 
-.sessionInfoRefreshBtn:hover {
+.sessionInfoRefreshBtn:hover,
+.sessionInfoSettingsBtn:hover {
     background: rgba(255,255,255,0.14);
     color: #fff;
     opacity: 1;
@@ -171,12 +176,83 @@ iframe:focus-visible,
     transform: rotate(-24deg);
 }
 
-.sessionInfoRefreshIcon {
-    width: 14px;
-    height: 14px;
+.sessionInfoRefreshIcon,
+.sessionInfoSettingsIcon {
+    width: 14px !important;
+    height: 14px !important;
+    max-width: 14px !important;
+    max-height: 14px !important;
     display: block;
     object-fit: contain;
     pointer-events: none;
+    flex: 0 0 auto;
+}
+
+.sessionInfoSettingsIcon {
+    width: 20px !important;
+    height: 20px !important;
+    max-width: 20px !important;
+    max-height: 20px !important;
+}
+
+.sessionInfoLogoBtn {
+    width: auto;
+    height: 24px;
+    padding: 2px 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0.9;
+    transition: background-color 120ms ease, opacity 120ms ease, filter 120ms ease;
+}
+
+.sessionInfoLogoBtn:hover {
+    background: rgba(255,255,255,0.14);
+    opacity: 1;
+    filter: brightness(1.15);
+}
+
+.sessionInfoLogoIcon {
+    width: auto;
+    height: 20px;
+    display: block;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.brandOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #52679f;
+    cursor: pointer;
+}
+
+.brandOverlayLogo {
+    width: 400px;
+    max-width: calc(100vw - 48px);
+    height: auto;
+    display: block;
+}
+
+.brandOverlayMessage {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 18px;
+    color: #ffffff;
+    font: 500 12px/1.25 "Segoe UI", Arial, sans-serif;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0;
 }
 
 /* Replay mode: flush to top (no top padding) */
@@ -348,21 +424,6 @@ body.replayActive .clipList {
     min-width: 0;
     align-self: stretch;
     justify-self: stretch;
-}
-
-.recordSettingsHost {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.settingsBtn.btnImg {
-    width: 38px !important;
-    height: 38px !important;
-    align-self: center;
-    background-color: var(--solidBlue) !important;
-    background-image: url("img/buttons/settings.png");
 }
 
 /* Populated element box */
@@ -540,7 +601,8 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 
 /* Element Code */
 .clipBtnCode {
-    font-weight: 400;
+    font-family: "Segoe UI Semibold", "Segoe UI", Arial, sans-serif;
+    font-weight: 600;
     font-size: 15px;
     line-height: 1.1;
     white-space: nowrap;
@@ -571,11 +633,23 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     min-height: 0;
     border-radius: 4px;
     border: 1px solid rgba(255,255,255,0.1);
-    background: #52679f;
+    background: var(--emptyElementBg);
     opacity: 0.58;
     position: relative;
     z-index: 0;
     overflow: visible;
+}
+
+.clipSlotShortcutHint {
+    width: 100%;
+    height: 100%;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.54);
+    font: 500 11px/1.16 "Segoe UI", Arial, sans-serif;
+    text-align: center;
 }
 
 .clipSlotPending {
@@ -753,7 +827,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     background-repeat: no-repeat;
     background-position: right 12px center;
     color: #d7dbe1;
-    font: 600 14px/1 system-ui, Segoe UI, Arial, sans-serif;
+    font: 600 14px/1 "Segoe UI", Arial, sans-serif;
     cursor: pointer;
     box-shadow: none;
 }
@@ -956,7 +1030,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     background: transparent;
     border: 0;
     border-radius: 0;
-    font: 450 var(--recordStatusFontPx)/1 system-ui, Segoe UI, Arial, sans-serif;
+    font: 450 var(--recordStatusFontPx)/1 "Segoe UI", Arial, sans-serif;
     font-variant-numeric: tabular-nums;
     color: #b7becb;
     white-space: nowrap;
@@ -1485,7 +1559,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 .shortcutTitle {
     background: #1a61a8;
     color: #fff;
-    font: 700 20px/1.2 Arial, Helvetica, sans-serif;
+    font: 700 20px/1.2 "Segoe UI", Arial, sans-serif;
     padding: 16px 20px 10px;
 }
 
@@ -1493,7 +1567,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     background: #f5f5f5;
     color: #1d1d1f;
     border-bottom: 1px solid #c9c9c9;
-    font: 700 14px/1.2 Arial, Helvetica, sans-serif;
+    font: 700 14px/1.2 "Segoe UI", Arial, sans-serif;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     padding: 10px 20px;
@@ -1524,7 +1598,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     left: 12px;
     background: #ffffff;
     color: #1d1d1f;
-    font: 700 14px/1.2 Arial, Helvetica, sans-serif;
+    font: 700 14px/1.2 "Segoe UI", Arial, sans-serif;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     padding: 0 8px;
@@ -1554,32 +1628,6 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     white-space: nowrap;
 }
 
-.shortcutFooter .settingsBtn.btnImg {
-    position: relative;
-    background-color: #f5f5f5 !important;
-    background-image: none !important;
-    border: 1px solid #c9c9c9 !important;
-    border-radius: 6px !important;
-    padding: 4px !important;
-}
-
-.shortcutFooter .settingsBtn.btnImg::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-color: #1a61a8;
-    -webkit-mask-image: url("img/buttons/settings.png");
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    -webkit-mask-size: contain;
-    mask-image: url("img/buttons/settings.png");
-    mask-repeat: no-repeat;
-    mask-position: center;
-    mask-size: contain;
-    transform: scale(1.5);
-    transform-origin: center;
-}
-
 .shortcutRow {
     display: contents;
 }
@@ -1593,12 +1641,12 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
 
 .shortcutKey {
     color: #1a61a8;
-    font: 700 14px/1.25 Arial, Helvetica, sans-serif;
+    font: 700 14px/1.25 "Segoe UI", Arial, sans-serif;
 }
 
 .shortcutAction {
     color: #1d1d1f;
-    font: 400 14px/1.3 Arial, Helvetica, sans-serif;
+    font: 400 14px/1.3 "Segoe UI", Arial, sans-serif;
 }
 
 @media (max-width: 900px) {
@@ -1709,7 +1757,7 @@ body.replayActive .clipBtn.isSelectedReplay.isReview .clipBtnCode {
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font: 700 9px/1 Arial, Helvetica, sans-serif;
+    font: 700 9px/1 "Segoe UI", Arial, sans-serif;
     text-transform: uppercase;
     text-align: center;
     text-shadow: 0 0 1px rgba(0,0,0,0.55);

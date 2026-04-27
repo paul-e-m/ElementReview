@@ -11,13 +11,14 @@ internal static class AppPaths
 
     public static string LocalDataDir => Path.Combine(LocalAppRootDir, "data");
     public static string LocalConfigPath => Path.Combine(LocalDataDir, "appconfig.json");
+    public static string LocalPanelConfigPath => Path.Combine(LocalDataDir, "panelConfig.json");
     public static string LocalElementsPath => Path.Combine(LocalDataDir, "SessionInfo.json");
     public static string LocalDemoVideoPath => Path.Combine(LocalDataDir, "demovideo.mp4");
     public static string LocalMediaMtxConfigPath => Path.Combine(LocalDataDir, "mediamtx.yml");
-    public static string LocalEncodedVideoPath => Path.Combine(LocalDataDir, "current-encoded.mp4");
-    public static string LocalEncodedTempVideoPath => Path.Combine(LocalDataDir, "current-encoded-recording.mp4");
-    public static string LocalCopiedVideoPath => Path.Combine(LocalDataDir, "current-copied.mp4");
-    public static string LocalCopiedTempVideoPath => Path.Combine(LocalDataDir, "current-copied-recording.mp4");
+    public static string LocalHighResVideoPath => Path.Combine(LocalDataDir, "current-high-res.mp4");
+    public static string LocalHighResTempVideoPath => Path.Combine(LocalDataDir, "current-high-res-recording.mp4");
+    public static string LocalLowResVideoPath => Path.Combine(LocalDataDir, "current-low-res.mp4");
+    public static string LocalLowResTempVideoPath => Path.Combine(LocalDataDir, "current-low-res-recording.mp4");
     public static string WebView2UserDataDir => Path.Combine(LocalAppRootDir, "WebView2");
 
     public static string DefaultSavedVideosFolder
