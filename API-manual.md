@@ -325,12 +325,7 @@ ElementReview records both files while the recording is in progress. `current-hi
 
 The remote panel UI is packaged in the separate Judge Video Replay app under `JudgeVideoReview/wwwroot`. It loads locally inside `JudgeVideoReplay.exe` and uses the ElementReview backend API endpoints `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
 
-Common forms:
-
-```text
-JudgeVideoReplay.exe
-JudgeVideoReplay.exe with a configured Server IP address
-```
+Run `JudgeVideoReplay.exe` on each judge or referee computer. In the app settings, set the Server IP address to the computer running ElementReview.
 
 Query options:
 
