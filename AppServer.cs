@@ -104,15 +104,16 @@ public static class AppServer
             return cfg;
         }
 
-        static PanelConfig NormalizePanelConfig(PanelConfig? cfg)
+        static JudgeVideoReplayConfig NormalizeJudgeVideoReplayConfig(JudgeVideoReplayConfig? cfg)
         {
-            cfg ??= new PanelConfig();
+            cfg ??= new JudgeVideoReplayConfig();
             cfg.ServerIp = string.IsNullOrWhiteSpace(cfg.ServerIp)
                 ? "127.0.0.1"
                 : cfg.ServerIp.Trim();
             cfg.Language = string.Equals(cfg.Language?.Trim(), "fr", StringComparison.OrdinalIgnoreCase)
                 ? "fr"
                 : "en";
+            cfg.UiZoomPercent = Math.Clamp(cfg.UiZoomPercent, 50, 150);
             return cfg;
         }
 
@@ -139,9 +140,9 @@ public static class AppServer
         DateTime cachedConfigWriteUtc = DateTime.MinValue;
         bool cachedConfigExists = false;
 
-        PanelConfig? cachedPanelConfig = null;
-        DateTime cachedPanelConfigWriteUtc = DateTime.MinValue;
-        bool cachedPanelConfigExists = false;
+        JudgeVideoReplayConfig? cachedJudgeVideoReplayConfig = null;
+        DateTime cachedJudgeVideoReplayConfigWriteUtc = DateTime.MinValue;
+        bool cachedJudgeVideoReplayConfigExists = false;
 
         string? cachedSessionInfoPath = null;
         DateTime cachedSessionInfoWriteUtc = DateTime.MinValue;
@@ -203,43 +204,43 @@ public static class AppServer
             cachedConfigExists = true;
         }
 
-        PanelConfig LoadPanelConfig()
+        JudgeVideoReplayConfig LoadJudgeVideoReplayConfig()
         {
-            var path = AppPaths.LocalPanelConfigPath;
+            var path = AppPaths.LocalJudgeVideoReplayConfigPath;
             if (!File.Exists(path))
             {
-                var cfg = NormalizePanelConfig(new PanelConfig());
-                SavePanelConfig(cfg);
+                var cfg = NormalizeJudgeVideoReplayConfig(new JudgeVideoReplayConfig());
+                SaveJudgeVideoReplayConfig(cfg);
                 return cfg;
             }
 
             var writeUtc = File.GetLastWriteTimeUtc(path);
-            if (cachedPanelConfig != null && cachedPanelConfigExists && cachedPanelConfigWriteUtc == writeUtc)
-                return cachedPanelConfig;
+            if (cachedJudgeVideoReplayConfig != null && cachedJudgeVideoReplayConfigExists && cachedJudgeVideoReplayConfigWriteUtc == writeUtc)
+                return cachedJudgeVideoReplayConfig;
 
             try
             {
                 var json = File.ReadAllText(path);
-                cachedPanelConfig = NormalizePanelConfig(JsonSerializer.Deserialize<PanelConfig>(json, jsonOpts));
-                cachedPanelConfigWriteUtc = writeUtc;
-                cachedPanelConfigExists = true;
-                return cachedPanelConfig;
+                cachedJudgeVideoReplayConfig = NormalizeJudgeVideoReplayConfig(JsonSerializer.Deserialize<JudgeVideoReplayConfig>(json, jsonOpts));
+                cachedJudgeVideoReplayConfigWriteUtc = writeUtc;
+                cachedJudgeVideoReplayConfigExists = true;
+                return cachedJudgeVideoReplayConfig;
             }
             catch
             {
-                return NormalizePanelConfig(new PanelConfig());
+                return NormalizeJudgeVideoReplayConfig(new JudgeVideoReplayConfig());
             }
         }
 
-        void SavePanelConfig(PanelConfig cfg)
+        void SaveJudgeVideoReplayConfig(JudgeVideoReplayConfig cfg)
         {
-            cfg = NormalizePanelConfig(cfg);
-            var path = AppPaths.LocalPanelConfigPath;
+            cfg = NormalizeJudgeVideoReplayConfig(cfg);
+            var path = AppPaths.LocalJudgeVideoReplayConfigPath;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(cfg, jsonOpts));
-            cachedPanelConfig = cfg;
-            cachedPanelConfigWriteUtc = File.GetLastWriteTimeUtc(path);
-            cachedPanelConfigExists = true;
+            cachedJudgeVideoReplayConfig = cfg;
+            cachedJudgeVideoReplayConfigWriteUtc = File.GetLastWriteTimeUtc(path);
+            cachedJudgeVideoReplayConfigExists = true;
         }
 
         static AppConfig MergeConfig(AppConfig existing, AppConfig incoming)
@@ -462,9 +463,9 @@ public static class AppServer
             return Results.Json(cfg, jsonOpts);
         });
 
-        app.MapGet("/api/panelconfig", () =>
+        app.MapGet("/api/judge-video-replay/config", () =>
         {
-            return Results.Json(LoadPanelConfig(), jsonOpts);
+            return Results.Json(LoadJudgeVideoReplayConfig(), jsonOpts);
         });
 
         app.MapGet("/api/appinfo", () =>
@@ -486,10 +487,10 @@ public static class AppServer
             return Results.Json(cfg, jsonOpts);
         });
 
-        app.MapPost("/api/panelconfig", (PanelConfig cfg) =>
+        app.MapPost("/api/judge-video-replay/config", (JudgeVideoReplayConfig cfg) =>
         {
-            SavePanelConfig(cfg);
-            return Results.Json(LoadPanelConfig(), jsonOpts);
+            SaveJudgeVideoReplayConfig(cfg);
+            return Results.Json(LoadJudgeVideoReplayConfig(), jsonOpts);
         });
 
         app.MapGet("/api/sessionInfo", (SessionManager session) =>
@@ -928,7 +929,7 @@ public static class AppServer
             return Results.BadRequest("Restart is only available when running the native shell app.");
         });
 
-        app.MapPost("/api/panel/restart", () =>
+        app.MapPost("/api/judge-video-replay/restart", () =>
         {
             return Results.Ok(new { ok = true });
         });

@@ -4,8 +4,8 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>0.5.0</Version>
-    <InformationalVersion>0.5.0</InformationalVersion>
+    <Version>0.5.1</Version>
+    <InformationalVersion>0.5.1</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -23,8 +23,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="JudgeVideoReplay\**\*.cs" />
+    <Compile Remove="JudgeViewReplay\**\*.cs" />
     <Compile Remove="JudgeVideoReview\**\*.cs" />
+    <EmbeddedResource Remove="JudgeVideoReplay\**\*" />
+    <EmbeddedResource Remove="JudgeViewReplay\**\*" />
     <EmbeddedResource Remove="JudgeVideoReview\**\*" />
+    <None Remove="JudgeVideoReplay\**\*" />
+    <None Remove="JudgeViewReplay\**\*" />
     <None Remove="JudgeVideoReview\**\*" />
   </ItemGroup>
 </Project>

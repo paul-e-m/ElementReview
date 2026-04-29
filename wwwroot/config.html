@@ -522,7 +522,7 @@
                                 </div>
                             </div>
 
-                            <input id="UiZoomPercent" name="UiZoomPercent" class="fieldWidthSmall" type="number" min="50" max="250" step="5" />
+                            <input id="UiZoomPercent" name="UiZoomPercent" class="fieldWidthSmall" type="number" min="50" max="150" step="5" />
                         </div>
 
                         <div class="row">
@@ -968,7 +968,7 @@
             let zoom = Math.round(numeric);
 
             if (zoom < 50) zoom = 50;
-            if (zoom > 250) zoom = 250;
+            if (zoom > 150) zoom = 150;
 
             return zoom;
         }

@@ -6,7 +6,7 @@ ElementReview exposes a local HTTP API used by:
 
 - the main operator UI in `index.html`
 - the settings window in `config.html`
-- the separate Judge Video Replay app in `JudgeVideoReview/wwwroot/panel.html`
+- the separate Judge Video Replay app in `JudgeVideoReplay/wwwroot/judge-video-replay.html`
 - trusted local or LAN clients
 
 Base URL:
@@ -323,7 +323,7 @@ ElementReview records both files while the recording is in progress. `current-hi
 
 ## Judge Video Replay App
 
-The remote panel UI is packaged in the separate Judge Video Replay app under `JudgeVideoReview/wwwroot`. It loads locally inside `JudgeVideoReplay.exe` and uses the ElementReview backend API endpoints `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
+The remote Judge Video Replay UI is packaged in the separate Judge Video Replay app under `JudgeVideoReplay/wwwroot`. It loads locally inside `JudgeVideoReplay.exe` and uses the ElementReview backend API endpoints `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
 
 Run `JudgeVideoReplay.exe` on each judge or referee computer. In the app settings, set the Server IP address to the computer running ElementReview.
 
@@ -331,19 +331,19 @@ Query options:
 
 - `autoplay=false` or `a=false`: disable initial autoplay.
 - `loop=false` or `l=false`: disable looping the selected clip.
-- `timer=true` or `tm=true`: show the panel timer control.
+- `timer=true` or `tm=true`: show the Judge Video Replay timer control.
 
-Panel behavior:
+Judge Video Replay behavior:
 
-- element rail buttons 1-12 represent clipped element regions
+- element rail buttons 1-15 represent clipped element regions
 - element rail buttons are clickable immediately
-- clicking an element clip autoplays that clipped region once and then stops
-- the `FULL RECORDING` rail button appears when replay media is available and opens the full-video timeline with blue numbered clip markers
+- clicking an element clip autoplays that clipped region on a loop
+- the video icon button beneath the element rail appears when replay media is available and opens the full-video timeline with blue numbered clip markers
 - PRCs cache chunks on demand as playback or seeking requests them
 - cached chunks are reused, so repeated playback of the same region does not download the same bytes again
-- full panel mode shows a session info bar when replay clips are available
+- full Judge Video Replay mode shows a session info bar when replay clips are available
 - the session info bar includes the category, discipline, flight, segment, competitor name, and a refresh button
-- the panel timer range is drawn above element clip blocks and remains translucent
+- the Judge Video Replay timer range is drawn above element clip blocks and remains translucent
 
 `judge.html` has been removed; use the Judge Video Replay app for remote replay.
 

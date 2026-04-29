@@ -36,18 +36,18 @@ Current operator features include:
 
 ## Judge Video Replay
 
-`JudgeVideoReplay.exe` is the remote replay client for judges and the referee. It packages its own static UI under `JudgeVideoReview/wwwroot` and connects to the ElementReview backend API over the LAN.
+`JudgeVideoReplay.exe` is the remote replay client for judges and the referee. It packages its own static UI under `JudgeVideoReplay/wwwroot` and connects to the ElementReview backend API over the LAN.
 
 The same executable can be used by both judges and the referee. Referee timing functionality is available. The `Enable timer controls` setting can be turned off for judge stations that only need video replay.
 
 Run `JudgeVideoReplay.exe` on each judge or referee computer. In the app settings, set the Server IP address to the computer running ElementReview (i.e., the VRO computer).
 
-- The panel starts in a rail/menu view. Element buttons play only their clipped region once, without looping.
+- Judge Video Replay starts in a rail/menu view. Element buttons loop their clipped region until playback is paused or another view is selected.
 - Element buttons are clickable immediately. When a judge clicks a clip, the Judge Video Replay client downloads and caches only the needed video chunks.
-- The final rail button is `FULL RECORDING`. It appears only when replay media is available and opens the full-video timeline with clip markers for reviewing portions of the performance outside the clipped elements. 
+- The video icon button beneath the element rail appears only when replay media is available and opens the full-video timeline with clip markers for reviewing portions of the performance outside the clipped elements.
 - Cached chunks are reused, so repeated playback of the same region does not download the same bytes again.
-- The panel shows a session info bar when replay clips are available.
-- The panel timer overlay appears above clip blocks and remains translucent so the clip underneath is still visible.
+- Judge Video Replay shows a session info bar when replay clips are available.
+- The Judge Video Replay timer overlay appears above clip blocks and remains translucent so the clip underneath is still visible.
 
 Judge Video Replay client transfer behaviour is coordinated by the ElementReview backend:
 
@@ -75,13 +75,13 @@ Folder and file names are built from `SessionInfo.json`.
 - [shell/Program.cs] starts the local web server and native shell.
 - [shell/MainForm.cs] hosts the main operator UI in WebView2.
 - [AppServer.cs] serves static files and the local HTTP API.
-- [JudgeVideoReview/JudgeVideoReview.csproj] builds the separate `JudgeVideoReplay.exe` executable.
+- [JudgeVideoReplay/JudgeVideoReplay.csproj] builds the separate `JudgeVideoReplay.exe` executable.
 - [Services/RecorderManager.cs] manages recording, replay-file generation, and saved-video export.
 - [Services/MediaMtxManager.cs] runs MediaMTX for RTSP relay.
 - [Services/SessionManager.cs] owns in-memory session and clip state.
 - [wwwroot/index.html] is the main operator UI.
 - [wwwroot/config.html] is the settings window.
-- [JudgeVideoReview/wwwroot/panel.html] is the panel app UI.
+- [JudgeVideoReplay/wwwroot/judge-video-replay.html] is the Judge Video Replay UI.
 
 The local server listens on:
 

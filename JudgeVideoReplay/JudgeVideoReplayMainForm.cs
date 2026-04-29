@@ -4,12 +4,12 @@ using System.Drawing;
 using System.Text.Json;
 using System.Windows.Forms;
 
-namespace JudgeVideoReview;
+namespace JudgeVideoReplay;
 
-public sealed class PanelMainForm : Form
+public sealed class JudgeVideoReplayMainForm : Form
 {
-    private const string SettingsVirtualHost = "judge-video-review.local";
-    private const string AssetVersion = "20260426-scrubfreeze1";
+    private const string SettingsVirtualHost = "judge-video-replay.local";
+    private const string AssetVersion = "20260428-jvrzoom1";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -23,7 +23,7 @@ public sealed class PanelMainForm : Form
     };
     private readonly ReplayMediaCacheServer _mediaCacheServer;
 
-    public PanelMainForm()
+    public JudgeVideoReplayMainForm()
     {
         Text = "Judge Video Replay";
         StartPosition = FormStartPosition.CenterScreen;
@@ -37,15 +37,15 @@ public sealed class PanelMainForm : Form
         };
 
         Controls.Add(_webView);
-        _mediaCacheServer = new ReplayMediaCacheServer(_apiClient, PanelConfigStore.Load);
+        _mediaCacheServer = new ReplayMediaCacheServer(_apiClient, JudgeVideoReplayConfigStore.Load);
         Load += async (_, _) => await InitializeWebViewAsync();
         FormClosed += (_, _) => _mediaCacheServer.Dispose();
     }
 
-    private static string BuildRemotePanelUrl(PanelConfig config)
+    private static string BuildJudgeVideoReplayUrl(JudgeVideoReplayConfig config)
     {
-        var url = $"https://{SettingsVirtualHost}/panel.html?0&v={AssetVersion}&judgeVideoReview=true";
-        return config.TimerEnabled ? url + "&timer=true" : url;
+        var url = $"https://{SettingsVirtualHost}/judge-video-replay.html?0&v={AssetVersion}&judgeVideoReplay=true";
+        return config.TimerEnabled ? url + "&timer=true" : url + "&timer=false";
     }
 
     private async Task InitializeWebViewAsync()
@@ -61,7 +61,9 @@ public sealed class PanelMainForm : Form
             _webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
             _webView.CoreWebView2.Settings.IsWebMessageEnabled = true;
             _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
-            await NavigatePanelAsync();
+            ApplyZoomFromConfig();
+            _webView.ZoomFactorChanged += (_, _) => SaveCurrentZoomToConfig();
+            await NavigateJudgeVideoReplayAsync();
         }
         catch (Exception ex)
         {
@@ -74,14 +76,41 @@ public sealed class PanelMainForm : Form
         }
     }
 
-    private async Task NavigatePanelAsync()
+    private async Task NavigateJudgeVideoReplayAsync()
     {
         if (_webView.CoreWebView2 == null) return;
-        var config = PanelConfigStore.Load();
-        _webView.CoreWebView2.Navigate(BuildRemotePanelUrl(config));
+        var config = JudgeVideoReplayConfigStore.Load();
+        ApplyZoomFromConfig(config);
+        _webView.CoreWebView2.Navigate(BuildJudgeVideoReplayUrl(config));
     }
 
-    private static Uri BuildBackendUri(PanelConfig config, string pathAndQuery)
+    private void ApplyZoomFromConfig(JudgeVideoReplayConfig? config = null)
+    {
+        config = JudgeVideoReplayConfigStore.Normalize(config ?? JudgeVideoReplayConfigStore.Load());
+        var nextZoom = config.UiZoomPercent / 100.0;
+        if (Math.Abs(_webView.ZoomFactor - nextZoom) > 0.001)
+        {
+            _webView.ZoomFactor = nextZoom;
+        }
+    }
+
+    private void SaveCurrentZoomToConfig()
+    {
+        try
+        {
+            var config = JudgeVideoReplayConfigStore.Load();
+            config.UiZoomPercent = Math.Clamp(
+                (int)Math.Round(_webView.ZoomFactor * 100.0),
+                JudgeVideoReplayConfigStore.MinUiZoomPercent,
+                JudgeVideoReplayConfigStore.MaxUiZoomPercent);
+            JudgeVideoReplayConfigStore.Save(config);
+        }
+        catch
+        {
+        }
+    }
+
+    private static Uri BuildBackendUri(JudgeVideoReplayConfig config, string pathAndQuery)
     {
         if (!pathAndQuery.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
         {
@@ -101,7 +130,7 @@ public sealed class PanelMainForm : Form
 
     private async Task<JsonElement> GetApiJsonAsync(string pathAndQuery)
     {
-        var targetUri = BuildBackendUri(PanelConfigStore.Load(), pathAndQuery);
+        var targetUri = BuildBackendUri(JudgeVideoReplayConfigStore.Load(), pathAndQuery);
         using var response = await _apiClient.GetAsync(targetUri);
         response.EnsureSuccessStatusCode();
         var text = await response.Content.ReadAsStringAsync();
@@ -139,7 +168,7 @@ public sealed class PanelMainForm : Form
 
             if (action == "loadConfig")
             {
-                PostSuccess(id, PanelConfigStore.Load());
+                PostSuccess(id, JudgeVideoReplayConfigStore.Load());
                 return;
             }
 
@@ -177,13 +206,14 @@ public sealed class PanelMainForm : Form
             if (action == "saveConfig" || action == "saveConfigAndReload")
             {
                 var payload = root.GetProperty("payload").GetRawText();
-                var incoming = JsonSerializer.Deserialize<PanelConfig>(payload, JsonOptions);
-                var saved = PanelConfigStore.Save(incoming);
+                var incoming = JsonSerializer.Deserialize<JudgeVideoReplayConfig>(payload, JsonOptions);
+                var saved = JudgeVideoReplayConfigStore.Save(incoming);
+                ApplyZoomFromConfig(saved);
                 PostSuccess(id, saved);
                 return;
             }
 
-            PostError(id, "Unknown panel action.");
+            PostError(id, "Unknown Judge Video Replay action.");
         }
         catch (Exception ex)
         {

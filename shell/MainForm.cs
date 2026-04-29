@@ -24,7 +24,7 @@ public sealed class MainForm : Form
     // These bounds keep both representations aligned across the shell and config page.
     private const int DefaultUiZoomPercent = 90;
     private const int MinUiZoomPercent = 50;
-    private const int MaxUiZoomPercent = 250;
+    private const int MaxUiZoomPercent = 150;
 
     private static readonly string AppConfigPath = AppPaths.LocalConfigPath;
     private static readonly JsonSerializerOptions AppConfigJsonOptions = new()

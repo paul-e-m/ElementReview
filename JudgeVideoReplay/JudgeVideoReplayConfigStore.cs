@@ -1,9 +1,13 @@
 using System.Text.Json;
 
-namespace JudgeVideoReview;
+namespace JudgeVideoReplay;
 
-internal static class PanelConfigStore
+internal static class JudgeVideoReplayConfigStore
 {
+    public const int DefaultUiZoomPercent = 100;
+    public const int MinUiZoomPercent = 50;
+    public const int MaxUiZoomPercent = 150;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -12,17 +16,17 @@ internal static class PanelConfigStore
 
     public static string AppDataRoot => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "JudgeVideoReview");
+        "JudgeVideoReplay");
 
-    public static string ConfigPath => Path.Combine(AppDataRoot, "panelConfig.json");
+    public static string ConfigPath => Path.Combine(AppDataRoot, "appconfig.json");
     public static string ReplayMediaDirectory => Path.Combine(AppDataRoot, "media");
     public static string WebView2UserDataDir => Path.Combine(AppDataRoot, "WebView2");
 
-    public static PanelConfig Load()
+    public static JudgeVideoReplayConfig Load()
     {
         if (!File.Exists(ConfigPath))
         {
-            var config = Normalize(new PanelConfig());
+            var config = Normalize(new JudgeVideoReplayConfig());
             Save(config);
             return config;
         }
@@ -30,15 +34,15 @@ internal static class PanelConfigStore
         try
         {
             var json = File.ReadAllText(ConfigPath);
-            return Normalize(JsonSerializer.Deserialize<PanelConfig>(json, JsonOptions));
+            return Normalize(JsonSerializer.Deserialize<JudgeVideoReplayConfig>(json, JsonOptions));
         }
         catch
         {
-            return Normalize(new PanelConfig());
+            return Normalize(new JudgeVideoReplayConfig());
         }
     }
 
-    public static PanelConfig Save(PanelConfig? config)
+    public static JudgeVideoReplayConfig Save(JudgeVideoReplayConfig? config)
     {
         config = Normalize(config);
         Directory.CreateDirectory(AppDataRoot);
@@ -46,15 +50,16 @@ internal static class PanelConfigStore
         return config;
     }
 
-    public static PanelConfig Normalize(PanelConfig? config)
+    public static JudgeVideoReplayConfig Normalize(JudgeVideoReplayConfig? config)
     {
-        config ??= new PanelConfig();
+        config ??= new JudgeVideoReplayConfig();
         config.ServerIp = string.IsNullOrWhiteSpace(config.ServerIp)
             ? "127.0.0.1"
             : config.ServerIp.Trim();
         config.Language = string.Equals(config.Language?.Trim(), "fr", StringComparison.OrdinalIgnoreCase)
             ? "fr"
             : "en";
+        config.UiZoomPercent = Math.Clamp(config.UiZoomPercent, MinUiZoomPercent, MaxUiZoomPercent);
         return config;
     }
 }

@@ -1374,6 +1374,7 @@ export class ElementReviewApp {
             this.programTimerStopOffsetSeconds = null;
             this.programTimerRunning = true;
             this.recordProgramStartWasPressed = true;
+            this.updateProgramStartButtons();
             this.updateProgramTimerUI();
             this.updateHalfwayTimeValue();
             this.timeline.draw();

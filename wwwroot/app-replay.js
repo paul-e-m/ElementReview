@@ -582,10 +582,11 @@ export class ReplayController {
             ? Number(this.app.programTimerStartOffsetSeconds ?? 0)
             : 0;
         const timelineZero = Number.isFinite(zeroOffset) && zeroOffset > 0 ? zeroOffset : 0;
-        const elapsedFromTimelineZero = Math.max(0, Number(uiTime || 0) - timelineZero);
+        const currentUiTime = Number(uiTime);
+        const elapsedFromTimelineZero = (Number.isFinite(currentUiTime) ? currentUiTime : 0) - timelineZero;
         indicator.textContent = this.formatProgramPlayTime(elapsedFromTimelineZero);
 
-        const fraction = total > 0 ? clamp(Number(uiTime || 0) / total, 0, 1) : 0;
+        const fraction = total > 0 ? clamp((Number.isFinite(currentUiTime) ? currentUiTime : 0) / total, 0, 1) : 0;
         indicator.style.left = `${fraction * 100}%`;
     }
 

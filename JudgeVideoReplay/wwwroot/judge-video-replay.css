@@ -1,7 +1,7 @@
 :root {
     --bg: #0b0f17;
-    --panel: #121a29;
-    --panelBorder: rgba(255, 255, 255, 0.08);
+    --judgeVideoReplaySurface: #121a29;
+    --judgeVideoReplayBorder: rgba(255, 255, 255, 0.08);
     --text: #eef6ff;
     --muted: #b9c7dd;
     --railWidth: 240px;
@@ -37,14 +37,14 @@ body {
     display: none !important;
 }
 
-.panelShell {
+.judgeVideoReplayShell {
     width: min(1380px, 100%);
     height: 100%;
     margin: 0 auto;
     position: relative;
 }
 
-.panelLayout {
+.judgeVideoReplayLayout {
     width: 100%;
     height: 100%;
     min-height: 0;
@@ -56,7 +56,7 @@ body {
     align-items: start;
 }
 
-.panelShell.withMenu .panelLayout {
+.judgeVideoReplayShell.withMenu .judgeVideoReplayLayout {
     grid-template-columns: var(--railWidth) minmax(0, 1fr);
 }
 
@@ -69,7 +69,7 @@ body {
     overflow: hidden;
 }
 
-.panelSessionInfo {
+.judgeVideoReplaySessionInfo {
     position: absolute;
     top: 0;
     left: 0;
@@ -94,7 +94,7 @@ body {
     gap: 12px;
 }
 
-.panelSessionInfoText {
+.judgeVideoReplaySessionInfoText {
     min-width: 0;
     flex: 1 1 auto;
     overflow: hidden;
@@ -102,17 +102,13 @@ body {
     white-space: nowrap;
 }
 
-.panelServerStatus {
+.judgeVideoReplayServerStatus {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     color: #fff;
     pointer-events: auto;
-}
-
-.panelServerStatusLabel {
-    font: 450 15px/1.1 "Segoe UI", Arial, sans-serif;
 }
 
 .replayPingDot {
@@ -148,8 +144,8 @@ body {
     background: #7a8698;
 }
 
-.panelSessionRefreshBtn,
-.panelSessionSettingsBtn {
+.judgeVideoReplaySessionRefreshBtn,
+.judgeVideoReplaySessionSettingsBtn {
     width: 24px;
     height: 24px;
     padding: 0;
@@ -167,39 +163,39 @@ body {
     transition: background-color 120ms ease, color 120ms ease, opacity 120ms ease, filter 120ms ease, transform 120ms ease;
 }
 
-.panelSessionSettingsBtn {
+.judgeVideoReplaySessionSettingsBtn {
     width: 24px;
     height: 24px;
 }
 
-.panelSessionRefreshBtn:hover,
-.panelSessionSettingsBtn:hover {
+.judgeVideoReplaySessionRefreshBtn:hover,
+.judgeVideoReplaySessionSettingsBtn:hover {
     background: rgba(255,255,255,0.14);
     color: #fff;
     opacity: 1;
     filter: brightness(1.18);
 }
 
-.panelSessionRefreshBtn:active,
-.panelSessionSettingsBtn:active {
+.judgeVideoReplaySessionRefreshBtn:active,
+.judgeVideoReplaySessionSettingsBtn:active {
     transform: rotate(-24deg);
 }
 
-.panelSessionRefreshIcon,
-.panelSessionSettingsIcon {
+.judgeVideoReplaySessionRefreshIcon,
+.judgeVideoReplaySessionSettingsIcon {
     width: 14px;
     height: 14px;
     display: block;
     object-fit: contain;
 }
 
-.panelSessionSettingsIcon {
+.judgeVideoReplaySessionSettingsIcon {
     width: 20px;
     height: 20px;
     pointer-events: none;
 }
 
-.panelSessionLogoBtn {
+.judgeVideoReplaySessionLogoBtn {
     width: 24px;
     height: 24px;
     padding: 2px;
@@ -215,13 +211,13 @@ body {
     transition: background-color 120ms ease, opacity 120ms ease, filter 120ms ease;
 }
 
-.panelSessionLogoBtn:hover {
+.judgeVideoReplaySessionLogoBtn:hover {
     background: rgba(255,255,255,0.14);
     opacity: 1;
     filter: brightness(1.15);
 }
 
-.panelSessionLogoIcon {
+.judgeVideoReplaySessionLogoIcon {
     max-width: 100%;
     max-height: 100%;
     display: block;
@@ -259,7 +255,7 @@ body {
     letter-spacing: 0;
 }
 
-.panelSettingsOverlay {
+.judgeVideoReplaySettingsOverlay {
     position: fixed;
     inset: 0;
     z-index: 11000;
@@ -270,17 +266,18 @@ body {
     background: rgba(12, 17, 34, 0.72);
 }
 
-.panelSettingsDialog {
+.judgeVideoReplaySettingsDialog {
     width: min(680px, calc(100vw - 44px));
     max-height: calc(100vh - 44px);
     overflow: auto;
     background: #f7f7fa;
     color: #1d1d1f;
+    font-family: Arial, Helvetica, sans-serif;
     border-radius: 8px;
     box-shadow: 0 18px 46px rgba(0, 0, 0, 0.42);
 }
 
-.panelSettingsHeader {
+.judgeVideoReplaySettingsHeader {
     min-height: 52px;
     padding: 0 14px;
     background: #3F51B5;
@@ -291,84 +288,89 @@ body {
     gap: 16px;
 }
 
-.panelSettingsHeader h2 {
+.judgeVideoReplaySettingsHeader h2 {
     margin: 0;
-    font: 700 20px/1.15 "Segoe UI", Arial, sans-serif;
+    font: 700 20px/1.15 Arial, Helvetica, sans-serif;
 }
 
-.panelSettingsLanguage {
+.judgeVideoReplaySettingsLanguage {
     min-width: 118px;
     min-height: 31px;
     border: 1px solid rgba(255,255,255,0.55);
     border-radius: 4px;
     background: rgba(255,255,255,0.14);
     color: #fff;
-    font: 500 13px/1 "Segoe UI", Arial, sans-serif;
+    font: 500 13px/1 Arial, Helvetica, sans-serif;
 }
 
-.panelSettingsLanguage option {
+.judgeVideoReplaySettingsLanguage option {
     color: #1d1d1f;
     background: #fff;
 }
 
-.panelSettingsBody {
+.judgeVideoReplaySettingsBody {
     padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.panelSettingsSection {
+.judgeVideoReplaySettingsSection {
     border: 1px solid #d8d8df;
     border-radius: 8px;
     background: #fff;
     overflow: hidden;
 }
 
-.panelSettingsSection h3 {
+.judgeVideoReplaySettingsSection h3 {
     margin: 0;
     padding: 10px 12px;
     background: #eeeef2;
     border-bottom: 1px solid #d8d8df;
-    font: 700 16px/1.2 "Segoe UI", Arial, sans-serif;
+    font: 700 16px/1.2 Arial, Helvetica, sans-serif;
 }
 
-.panelSettingsField,
-.panelSettingsToggle {
+.judgeVideoReplaySettingsField,
+.judgeVideoReplaySettingsToggle {
     min-height: 62px;
     padding: 10px 12px;
     display: grid;
     grid-template-columns: minmax(190px, 280px) minmax(190px, 1fr);
     gap: 12px;
     align-items: center;
-    font: 700 14px/1.2 "Segoe UI", Arial, sans-serif;
+    font: 700 14px/1.2 Arial, Helvetica, sans-serif;
 }
 
-.panelSettingsField input[type="text"] {
+.judgeVideoReplaySettingsField input[type="text"],
+.judgeVideoReplaySettingsField input[type="number"] {
     width: 100%;
     min-height: 32px;
     padding: 6px 9px;
     border: 1px solid #c9c9d0;
     border-radius: 4px;
     color: #1d1d1f;
-    font: 13px/1.2 "Segoe UI", Arial, sans-serif;
+    font: 13px/1.2 Arial, Helvetica, sans-serif;
 }
 
-.panelSettingsToggle {
+.judgeVideoReplaySettingsToggle {
     border-top: 1px solid #ededf0;
 }
 
-.panelSettingsToggle small {
+.judgeVideoReplaySettingsField small,
+.judgeVideoReplaySettingsToggle small {
     display: block;
     margin-top: 4px;
     color: #666a72;
-    font: 400 12px/1.35 "Segoe UI", Arial, sans-serif;
+    font: 400 12px/1.35 Arial, Helvetica, sans-serif;
 }
 
-.panelSettingsToggle input {
+.judgeVideoReplaySettingsToggle input {
     justify-self: start;
     width: 22px;
     height: 22px;
 }
 
-.panelSettingsFooter {
+.judgeVideoReplaySettingsFooter {
     padding: 10px 12px 12px;
     display: flex;
     align-items: center;
@@ -378,47 +380,47 @@ body {
     background: #fff;
 }
 
-.panelSettingsStatus {
+.judgeVideoReplaySettingsStatus {
     margin-right: auto;
     color: #666a72;
-    font: 500 13px/1.2 "Segoe UI", Arial, sans-serif;
+    font: 500 13px/1.2 Arial, Helvetica, sans-serif;
 }
 
-.panelSettingsStatus.ok {
+.judgeVideoReplaySettingsStatus.ok {
     color: #247a39;
 }
 
-.panelSettingsStatus.error {
+.judgeVideoReplaySettingsStatus.error {
     color: #c73228;
 }
 
-.panelSettingsSaveBtn {
+.judgeVideoReplaySettingsSaveBtn {
     min-width: 96px;
     min-height: 34px;
     padding: 7px 14px;
     border: 0;
     border-radius: 4px;
     color: #fff;
-    font: 700 13px/1 "Segoe UI", Arial, sans-serif;
+    font: 700 13px/1 Arial, Helvetica, sans-serif;
     cursor: pointer;
 }
 
-.panelSettingsSaveBtn {
+.judgeVideoReplaySettingsSaveBtn {
     background: #3F51B5;
 }
 
-.panelShell.withMenu .videoPane {
+.judgeVideoReplayShell.withMenu .videoPane {
     grid-column: 2;
 }
 
-.panelVideo {
+.judgeVideoReplayVideo {
     width: 100%;
     height: 100%;
     display: block;
     aspect-ratio: 16 / 9;
     object-fit: contain;
     background: #000;
-    border: 1px solid var(--panelBorder);
+    border: 1px solid var(--judgeVideoReplayBorder);
     border-radius: 12px 12px 0 0;
 }
 
@@ -431,7 +433,7 @@ body {
     user-select: none;
 }
 
-.panelShell.withMenu .timelineArea {
+.judgeVideoReplayShell.withMenu .timelineArea {
     grid-column: 2;
 }
 
@@ -625,11 +627,11 @@ body {
     margin-top: -6px;
 }
 
-.panelShell.withMenu .transportRow {
-    grid-column: 2;
+.judgeVideoReplayShell.withMenu .transportRow {
+    grid-column: 1 / 3;
     display: grid;
-    grid-template-columns: minmax(0, 124px) minmax(0, 1fr) minmax(0, 84px);
-    column-gap: 8px;
+    grid-template-columns: var(--railWidth) minmax(0, 124px) minmax(0, 1fr) minmax(0, 84px);
+    column-gap: 12px;
 }
 
 .relativeIndicator {
@@ -658,14 +660,14 @@ body {
     justify-content: center;
 }
 
-.panelShell.withMenu .transportButtons {
-    grid-column: 2;
+.judgeVideoReplayShell.withMenu .transportButtons {
+    grid-column: 3;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     justify-self: center;
     width: min(100%, calc((5 * var(--playBtnW)) + 32px));
 }
 
-.panelShell.withMenu .transportButtons .transportBtn {
+.judgeVideoReplayShell.withMenu .transportButtons .transportBtn {
     width: 100%;
     min-width: 0;
 }
@@ -683,9 +685,9 @@ body {
         visibility 0s linear 0s;
 }
 
-.panelShell.withMenu .stopwatchBtn {
+.judgeVideoReplayShell.withMenu .stopwatchBtn {
     position: static;
-    grid-column: 1;
+    grid-column: 2;
     justify-self: start;
     transform: none;
 }
@@ -701,7 +703,7 @@ body {
         visibility 0s linear 140ms;
 }
 
-.panelShell.withMenu .stopwatchBtn.isTimerControlHidden {
+.judgeVideoReplayShell.withMenu .stopwatchBtn.isTimerControlHidden {
     transform: scale(0.96);
 }
 
@@ -715,16 +717,16 @@ body {
     transform: translateY(-50%);
 }
 
-.panelShell.withMenu .timingPresetButtons {
+.judgeVideoReplayShell.withMenu .timingPresetButtons {
     position: absolute;
-    left: calc(var(--stopwatchBtnSize) + 6px);
+    left: calc(var(--railWidth) + 12px + var(--stopwatchBtnSize) + 6px);
     top: 50%;
     transform: translateY(-50%);
 }
 
-.panelShell.withMenu .relativeIndicator {
+.judgeVideoReplayShell.withMenu .relativeIndicator {
     position: static;
-    grid-column: 3;
+    grid-column: 4;
     justify-self: end;
     min-width: 0;
     transform: none;
@@ -875,7 +877,7 @@ button:disabled {
     transform: translateY(calc(-50% - 1px));
 }
 
-.panelShell.withMenu .stopwatchBtn:hover:not(:disabled) {
+.judgeVideoReplayShell.withMenu .stopwatchBtn:hover:not(:disabled) {
     transform: translateY(-1px);
 }
 
@@ -890,19 +892,27 @@ button:disabled {
     transform: translateY(calc(-50% + 1px));
 }
 
-.panelShell.withMenu .stopwatchBtn:active:not(:disabled) {
+.judgeVideoReplayShell.withMenu .stopwatchBtn:active:not(:disabled) {
     transform: translateY(1px);
 }
 
-.elementRail {
+.elementRailColumn {
     grid-column: 1;
     grid-row: 1;
     align-self: stretch;
     display: flex;
     flex-direction: column;
-    flex: 0 0 var(--railWidth);
     width: var(--railWidth);
     height: 100%;
+    min-height: 0;
+    background: transparent;
+}
+
+.elementRail {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
@@ -912,9 +922,9 @@ button:disabled {
 .elementRailButton,
 .elementRailPlaceholder {
     width: 100%;
-    height: calc(100% / 13);
+    height: calc(100% / 15);
     min-height: 0;
-    flex: 0 0 calc(100% / 13);
+    flex: 0 0 calc(100% / 15);
 }
 
 .elementRailButton {
@@ -966,20 +976,6 @@ button:disabled {
     opacity: 0.58;
 }
 
-.elementRailEntireButton {
-    margin-top: auto;
-    background: #26344f;
-    justify-content: center;
-    padding-left: 8px;
-    text-align: center;
-}
-
-.elementRailEntireButton .elementRailCode {
-    font-size: 13px;
-    white-space: normal;
-    text-align: center;
-}
-
 .elementRailNum {
     width: 26px;
     flex: 0 0 34px;
@@ -1010,6 +1006,48 @@ button:disabled {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.fullRecordingBtn {
+    padding: 0;
+    border-radius: 4px;
+    position: relative;
+}
+
+.judgeVideoReplayShell.withMenu .fullRecordingBtn {
+    grid-column: 1;
+    justify-self: center;
+}
+
+.fullRecordingBtn[aria-pressed="true"] {
+    background: #d5dae2;
+    border-color: rgba(86, 97, 112, 0.42);
+}
+
+.fullRecordingBtn[aria-pressed="true"] .fullRecordingIcon {
+    opacity: 0;
+}
+
+.fullRecordingBtn[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(37px, calc(var(--playBtnH) - 6px));
+    height: min(37px, calc(var(--playBtnH) - 6px));
+    background: var(--transportBtnBlue);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    -webkit-mask: url("/img/buttons/video_icon.png?v=20260428-jvrzoom1") center / contain no-repeat;
+    mask: url("/img/buttons/video_icon.png?v=20260428-jvrzoom1") center / contain no-repeat;
+}
+
+.fullRecordingIcon {
+    width: min(37px, calc(var(--playBtnH) - 6px));
+    height: min(37px, calc(var(--playBtnH) - 6px));
+    display: block;
+    object-fit: contain;
+    pointer-events: none;
 }
 
 .emptyState {
@@ -1044,40 +1082,41 @@ button:disabled {
         padding: 8px;
     }
 
-    .panelLayout {
+    .judgeVideoReplayLayout {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto auto auto;
         row-gap: 0;
     }
 
-    .panelShell.withMenu .panelLayout {
+    .judgeVideoReplayShell.withMenu .judgeVideoReplayLayout {
         grid-template-columns: clamp(96px, 24vw, var(--railWidth)) minmax(0, 1fr);
         grid-template-rows: auto auto auto;
     }
 
-    .panelShell.withMenu .elementRail {
+    .judgeVideoReplayShell.withMenu .elementRailColumn {
         grid-column: 1;
         grid-row: 1;
         width: 100%;
-        flex-basis: auto;
     }
 
-    .panelShell.withMenu .videoPane {
+    .judgeVideoReplayShell.withMenu .videoPane {
         grid-column: 2;
         grid-row: 1;
     }
 
-    .panelShell.withMenu .timelineArea {
+    .judgeVideoReplayShell.withMenu .timelineArea {
         grid-column: 2;
         grid-row: 2;
     }
 
-    .panelShell.withMenu .transportRow {
-        grid-column: 2;
+    .judgeVideoReplayShell.withMenu .transportRow {
+        grid-column: 1 / 3;
         grid-row: 3;
+        grid-template-columns: clamp(96px, 24vw, var(--railWidth)) minmax(0, 96px) minmax(0, 1fr) minmax(0, 76px);
+        column-gap: 8px;
     }
 
-    .panelVideo {
+    .judgeVideoReplayVideo {
         min-height: 0;
     }
 
@@ -1088,9 +1127,13 @@ button:disabled {
         margin-top: 0;
     }
 
-    .panelShell.withMenu .transportRow {
+    .judgeVideoReplayShell.withMenu .transportRow {
         min-height: 78px;
         margin-top: -6px;
+    }
+
+    .judgeVideoReplayShell.withMenu .timingPresetButtons {
+        left: calc(clamp(96px, 24vw, var(--railWidth)) + 8px + var(--stopwatchBtnSize) + 6px);
     }
 
     .transportButtons {
@@ -1099,17 +1142,17 @@ button:disabled {
         gap: 6px;
     }
 
-    .panelShell:not(.withMenu) .stopwatchBtn {
+    .judgeVideoReplayShell:not(.withMenu) .stopwatchBtn {
         position: static;
         transform: none;
     }
 
-    .panelShell:not(.withMenu) .timingPresetButtons {
+    .judgeVideoReplayShell:not(.withMenu) .timingPresetButtons {
         position: static;
         transform: none;
     }
 
-    .panelShell:not(.withMenu) .relativeIndicator {
+    .judgeVideoReplayShell:not(.withMenu) .relativeIndicator {
         position: static;
         min-width: 0;
         text-align: center;
@@ -1132,8 +1175,8 @@ button:disabled {
         --playBtnH: 40px;
     }
 
-    .panelShell.withMenu .transportRow {
-        grid-template-columns: minmax(0, 96px) minmax(0, 1fr) minmax(0, 62px);
+    .judgeVideoReplayShell.withMenu .transportRow {
+        grid-template-columns: clamp(96px, 24vw, var(--railWidth)) minmax(0, 76px) minmax(0, 1fr) minmax(0, 62px);
     }
 
     .transportButtons {
@@ -1177,14 +1220,18 @@ button:disabled {
         padding: 6px;
     }
 
-    .panelShell.withMenu .panelLayout {
+    .judgeVideoReplayShell.withMenu .judgeVideoReplayLayout {
         column-gap: 8px;
         grid-template-columns: clamp(76px, 24vw, 112px) minmax(0, 1fr);
     }
 
-    .panelShell.withMenu .transportRow {
+    .judgeVideoReplayShell.withMenu .transportRow {
         min-height: 58px;
-        grid-template-columns: minmax(0, 86px) minmax(0, 1fr) minmax(0, 46px);
+        grid-template-columns: clamp(76px, 24vw, 112px) minmax(0, 48px) minmax(0, 1fr) minmax(0, 46px);
+    }
+
+    .judgeVideoReplayShell.withMenu .timingPresetButtons {
+        left: calc(clamp(76px, 24vw, 112px) + 8px + var(--stopwatchBtnSize) + 6px);
     }
 
     .transportButtons {

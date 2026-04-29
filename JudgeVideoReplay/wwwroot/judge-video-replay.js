@@ -1,14 +1,13 @@
 (function () {
-    // Remote replay client used by panel.html.
+    // Remote replay client used by judge-video-replay.html.
     // It stays lightweight by treating /api/status as the source of truth for
     // whether replay media is available, which clip should be shown, and which
     // replay-file token is safe to request from the server.
     const BASE = readApiBase();
-    const IS_JUDGE_VIDEO_REVIEW_HOST = readJudgeVideoReviewHostFlag();
+    const IS_JUDGE_VIDEO_REPLAY_HOST = readJudgeVideoReplayHostFlag();
     const END_EPS = 0.02;
     const REPLAY_POLL_INTERVAL_MS = 2500;
-    const RAIL_ELEMENT_ROWS = 12;
-    const FULL_RECORDING_LABEL = "FULL RECORDING";
+    const RAIL_ELEMENT_ROWS = 15;
     const TIMELINE_INTERVALS_SECONDS = [0.1, 0.5, 1, 5, 15, 30, 60];
     const EMPTY_STATE_WAITING_FOR_SERVER = "WAITING FOR VIDEO REPLAY SERVER / EN ATTENTE DU SERVEUR DE RELECTURE VIDEO";
     const EMPTY_STATE_NO_CLIPS = "WAITING FOR VIDEO DATA / EN ATTENTE DES DONNEES VIDEO";
@@ -17,22 +16,24 @@
     const STOPWATCH_PLAYHEAD_CLASSES = ["isStopwatchPending", "isStopwatchPositive", "isStopwatchNegative"];
 
     const dom = {
-        shell: document.getElementById("panelShell"),
-        topRow: document.getElementById("panelTopRow"),
+        shell: document.getElementById("judgeVideoReplayShell"),
+        topRow: document.getElementById("judgeVideoReplayTopRow"),
+        elementRailColumn: document.getElementById("elementRailColumn"),
         videoPane: document.getElementById("videoPane"),
-        panelSessionInfo: document.getElementById("panelSessionInfo"),
-        panelSessionInfoText: document.getElementById("panelSessionInfoText"),
-        panelServerStatusDot: document.getElementById("panelServerStatusDot"),
-        panelSessionRefreshBtn: document.getElementById("panelSessionRefreshBtn"),
-        panelSettingsBtn: document.getElementById("panelSettingsBtn"),
-        panelLogoBtn: document.getElementById("panelLogoBtn"),
+        judgeVideoReplaySessionInfo: document.getElementById("judgeVideoReplaySessionInfo"),
+        judgeVideoReplaySessionInfoText: document.getElementById("judgeVideoReplaySessionInfoText"),
+        judgeVideoReplayServerStatusDot: document.getElementById("judgeVideoReplayServerStatusDot"),
+        judgeVideoReplaySessionRefreshBtn: document.getElementById("judgeVideoReplaySessionRefreshBtn"),
+        judgeVideoReplaySettingsBtn: document.getElementById("judgeVideoReplaySettingsBtn"),
+        judgeVideoReplayLogoBtn: document.getElementById("judgeVideoReplayLogoBtn"),
         brandOverlay: document.getElementById("brandOverlay"),
-        panelSettingsOverlay: document.getElementById("panelSettingsOverlay"),
-        panelSettingsLanguage: document.getElementById("panelSettingsLanguage"),
-        panelSettingsServerIp: document.getElementById("panelSettingsServerIp"),
-        panelSettingsTimerEnabled: document.getElementById("panelSettingsTimerEnabled"),
-        panelSettingsStatus: document.getElementById("panelSettingsStatus"),
-        panelSettingsSaveBtn: document.getElementById("panelSettingsSaveBtn"),
+        judgeVideoReplaySettingsOverlay: document.getElementById("judgeVideoReplaySettingsOverlay"),
+        judgeVideoReplaySettingsLanguage: document.getElementById("judgeVideoReplaySettingsLanguage"),
+        judgeVideoReplaySettingsServerIp: document.getElementById("judgeVideoReplaySettingsServerIp"),
+        judgeVideoReplaySettingsUiZoomPercent: document.getElementById("judgeVideoReplaySettingsUiZoomPercent"),
+        judgeVideoReplaySettingsTimerEnabled: document.getElementById("judgeVideoReplaySettingsTimerEnabled"),
+        judgeVideoReplaySettingsStatus: document.getElementById("judgeVideoReplaySettingsStatus"),
+        judgeVideoReplaySettingsSaveBtn: document.getElementById("judgeVideoReplaySettingsSaveBtn"),
         elementRail: document.getElementById("elementRail"),
         video: document.getElementById("v"),
         timelineArea: document.getElementById("timelineArea"),
@@ -55,7 +56,8 @@
         fwd3: document.getElementById("fwd3"),
         fwd10: document.getElementById("fwd10"),
         emptyState: document.getElementById("emptyState"),
-        emptyStateMessage: document.getElementById("emptyStateMessage")
+        emptyStateMessage: document.getElementById("emptyStateMessage"),
+        fullRecordingBtn: document.getElementById("fullRecordingBtn")
     };
 
     const state = {
@@ -100,19 +102,19 @@
         lastSessionInfoLoadMs: 0
     };
 
-    const panelTranslations = window.PANEL_I18N || {};
-    const panelHostBridge = IS_JUDGE_VIDEO_REVIEW_HOST && window.chrome && window.chrome.webview ? window.chrome.webview : null;
-    const panelHostRequests = new Map();
-    let panelHostRequestId = 0;
-    let panelSettingsLanguage = "en";
-    let panelSettingsConfig = {};
+    const judgeVideoReplayTranslations = window.JUDGE_VIDEO_REPLAY_I18N || {};
+    const judgeVideoReplayHostBridge = IS_JUDGE_VIDEO_REPLAY_HOST && window.chrome && window.chrome.webview ? window.chrome.webview : null;
+    const judgeVideoReplayHostRequests = new Map();
+    let judgeVideoReplayHostRequestId = 0;
+    let judgeVideoReplaySettingsLanguage = "en";
+    let judgeVideoReplaySettingsConfig = {};
 
-    panelHostBridge?.addEventListener("message", event => {
+    judgeVideoReplayHostBridge?.addEventListener("message", event => {
         const message = event.data || {};
-        const pending = panelHostRequests.get(message.id);
+        const pending = judgeVideoReplayHostRequests.get(message.id);
         if (!pending) return;
 
-        panelHostRequests.delete(message.id);
+        judgeVideoReplayHostRequests.delete(message.id);
         if (message.ok) {
             pending.resolve(message.data);
         } else {
@@ -134,19 +136,19 @@
         return raw.trim().replace(/\/+$/, "");
     }
 
-    function readJudgeVideoReviewHostFlag() {
+    function readJudgeVideoReplayHostFlag() {
         const params = new URLSearchParams(location.search || "");
-        return params.get("judgeVideoReview") === "true" || location.hostname === "judge-video-review.local";
+        return params.get("judgeVideoReplay") === "true" || location.hostname === "judge-video-replay.local";
     }
 
-    function postPanelHostRequest(action, payload = null) {
-        if (!panelHostBridge) return null;
+    function postJudgeVideoReplayHostRequest(action, payload = null) {
+        if (!judgeVideoReplayHostBridge) return null;
 
-        const id = ++panelHostRequestId;
+        const id = ++judgeVideoReplayHostRequestId;
         const promise = new Promise((resolve, reject) => {
-            panelHostRequests.set(id, { resolve, reject });
+            judgeVideoReplayHostRequests.set(id, { resolve, reject });
         });
-        panelHostBridge.postMessage({ id, action, payload });
+        judgeVideoReplayHostBridge.postMessage({ id, action, payload });
         return promise;
     }
 
@@ -168,7 +170,7 @@
     }
 
     async function fetchJson(path) {
-        const hostResponse = postPanelHostRequest("apiGet", { path });
+        const hostResponse = postJudgeVideoReplayHostRequest("apiGet", { path });
         if (hostResponse) {
             return await hostResponse;
         }
@@ -181,8 +183,8 @@
     }
 
     function setServerStatus(status) {
-        if (!dom.panelServerStatusDot) return;
-        dom.panelServerStatusDot.className = `replayPingDot ${status || "idle"}`;
+        if (!dom.judgeVideoReplayServerStatusDot) return;
+        dom.judgeVideoReplayServerStatusDot.className = `replayPingDot ${status || "idle"}`;
     }
 
     function isFiniteNumber(value) {
@@ -292,11 +294,11 @@
     function updateSessionInfoBar() {
         const emptyStateActive = Boolean(dom.emptyState && !dom.emptyState.classList.contains("hidden"));
         const text = emptyStateActive ? "" : (state.sessionInfoText || "");
-        if (dom.panelSessionInfoText) {
-            dom.panelSessionInfoText.textContent = text;
+        if (dom.judgeVideoReplaySessionInfoText) {
+            dom.judgeVideoReplaySessionInfoText.textContent = text;
         }
-        if (dom.panelSessionInfo) {
-            dom.panelSessionInfo.classList.toggle("hidden", !IS_PANEL_REPLAY_HOST && !(text || emptyStateActive));
+        if (dom.judgeVideoReplaySessionInfo) {
+            dom.judgeVideoReplaySessionInfo.classList.toggle("hidden", !IS_JUDGE_VIDEO_REPLAY_HOST && !(text || emptyStateActive));
         }
     }
 
@@ -335,7 +337,7 @@
             // those behaviors off.
             autoplay: readBooleanWithDefault(params.get("autoplay") ?? params.get("ap") ?? params.get("a"), true),
             loop: readBooleanWithDefault(params.get("loop") ?? params.get("lp") ?? params.get("l"), true),
-            timer: readBooleanWithDefault(params.get("timer") ?? params.get("tm"), false)
+            timer: readBooleanWithDefault(params.get("timer") ?? params.get("tm"), true)
         };
     }
 
@@ -354,8 +356,8 @@
         history.replaceState(null, "", next);
     }
 
-    function cleanupOldPanelMediaCache() {
-        const request = postPanelHostRequest("cleanupMediaCache");
+    function cleanupOldJudgeVideoReplayMediaCache() {
+        const request = postJudgeVideoReplayHostRequest("cleanupMediaCache");
         if (request) {
             request.catch(() => { });
         }
@@ -402,7 +404,7 @@
             clearVideoSource();
             clearTimelineSurface();
             if (!wasActive) {
-                cleanupOldPanelMediaCache();
+                cleanupOldJudgeVideoReplayMediaCache();
             }
         }
         requestAnimationFrame(layoutVideoArea);
@@ -436,7 +438,7 @@
         if (!dom.video) return;
         dom.video.pause();
         if (!state.replayMediaToken) return;
-        const mediaCache = postPanelHostRequest("cacheMedia", { token: state.replayMediaToken });
+        const mediaCache = postJudgeVideoReplayHostRequest("cacheMedia", { token: state.replayMediaToken });
         if (mediaCache) {
             const cached = await mediaCache;
             dom.video.src = `${cached.url}?v=${encodeURIComponent(state.replayMediaToken)}`;
@@ -457,14 +459,14 @@
         // Explicitly size the video row from the available space instead of
         // letting the video element grow freely. This keeps the timeline in its
         // own row even in very small windows.
-        const { topRow, videoPane, timelineArea, transportRow, elementRail } = dom;
+        const { topRow, videoPane, timelineArea, transportRow, elementRailColumn } = dom;
         if (!topRow || !videoPane || !timelineArea || !transportRow) return;
 
         const topRowStyles = getComputedStyle(topRow);
-        const isMenuVisible = state.wantMenu && !elementRail?.classList.contains("hidden");
+        const isMenuVisible = state.wantMenu && !elementRailColumn?.classList.contains("hidden");
         const columnGap = parseFloat(topRowStyles.columnGap || "0") || 0;
         const railWidth = isMenuVisible
-            ? (elementRail?.getBoundingClientRect().width || parseFloat(getComputedStyle(elementRail).width || "0") || 0)
+            ? (elementRailColumn?.getBoundingClientRect().width || parseFloat(getComputedStyle(elementRailColumn).width || "0") || 0)
             : 0;
 
         const totalWidth = topRow.clientWidth || topRow.getBoundingClientRect().width || 0;
@@ -483,8 +485,8 @@
         topRow.style.gridTemplateRows = `${Math.round(videoHeight)}px ${timelineHeight}px ${transportHeight}px`;
         videoPane.style.height = `${Math.round(videoHeight)}px`;
 
-        if (elementRail) {
-            elementRail.style.height = isMenuVisible ? `${Math.round(videoHeight)}px` : "";
+        if (elementRailColumn) {
+            elementRailColumn.style.height = isMenuVisible ? `${Math.round(videoHeight)}px` : "";
         }
     }
 
@@ -594,6 +596,10 @@
         return !!clip && Number(clip.index) === 0;
     }
 
+    function shouldAutoLoopCurrentClip() {
+        return !!state.clip && !isShowAllClip(state.clip) && (state.wantMenu || state.wantLoop);
+    }
+
     function firstAvailableClip() {
         return state.clips.slice().sort((a, b) => a.index - b.index)[0] ?? null;
     }
@@ -655,110 +661,115 @@
         dom.brandOverlay?.setAttribute("aria-hidden", "true");
     }
 
-    function normalizePanelSettingsLanguage(value) {
+    function normalizeJudgeVideoReplaySettingsLanguage(value) {
         return value === "fr" ? "fr" : "en";
     }
 
-    function panelSettingsText(key) {
-        return panelTranslations[panelSettingsLanguage]?.[key] ?? panelTranslations.en?.[key] ?? key;
+    function judgeVideoReplaySettingsText(key) {
+        return judgeVideoReplayTranslations[judgeVideoReplaySettingsLanguage]?.[key] ?? judgeVideoReplayTranslations.en?.[key] ?? key;
     }
 
-    function setPanelSettingsStatus(textOrKey, kind = "", translate = false) {
-        if (!dom.panelSettingsStatus) return;
-        dom.panelSettingsStatus.textContent = translate ? panelSettingsText(textOrKey) : textOrKey;
-        dom.panelSettingsStatus.className = `panelSettingsStatus ${kind}`.trim();
+    function setJudgeVideoReplaySettingsStatus(textOrKey, kind = "", translate = false) {
+        if (!dom.judgeVideoReplaySettingsStatus) return;
+        dom.judgeVideoReplaySettingsStatus.textContent = translate ? judgeVideoReplaySettingsText(textOrKey) : textOrKey;
+        dom.judgeVideoReplaySettingsStatus.className = `judgeVideoReplaySettingsStatus ${kind}`.trim();
     }
 
-    function applyPanelSettingsI18n() {
-        dom.panelSettingsOverlay?.querySelectorAll("[data-panel-i18n]").forEach(element => {
-            const key = element.getAttribute("data-panel-i18n");
+    function applyJudgeVideoReplaySettingsI18n() {
+        dom.judgeVideoReplaySettingsOverlay?.querySelectorAll("[data-judge-video-replay-i18n]").forEach(element => {
+            const key = element.getAttribute("data-judge-video-replay-i18n");
             if (!key) return;
-            element.textContent = panelSettingsText(key);
+            element.textContent = judgeVideoReplaySettingsText(key);
         });
-        if (dom.panelSettingsLanguage) {
-            dom.panelSettingsLanguage.value = panelSettingsLanguage;
-            dom.panelSettingsLanguage.setAttribute("aria-label", panelSettingsText("languageSelectorAria"));
+        if (dom.judgeVideoReplaySettingsLanguage) {
+            dom.judgeVideoReplaySettingsLanguage.value = judgeVideoReplaySettingsLanguage;
+            dom.judgeVideoReplaySettingsLanguage.setAttribute("aria-label", judgeVideoReplaySettingsText("languageSelectorAria"));
         }
     }
 
-    function writePanelSettingsForm(config) {
-        panelSettingsConfig = { ...config };
-        panelSettingsLanguage = normalizePanelSettingsLanguage(config?.Language ?? "en");
-        if (dom.panelSettingsServerIp) {
-            dom.panelSettingsServerIp.value = String(config?.ServerIp ?? "127.0.0.1");
+    function writeJudgeVideoReplaySettingsForm(config) {
+        judgeVideoReplaySettingsConfig = { ...config };
+        judgeVideoReplaySettingsLanguage = normalizeJudgeVideoReplaySettingsLanguage(config?.Language ?? "en");
+        if (dom.judgeVideoReplaySettingsServerIp) {
+            dom.judgeVideoReplaySettingsServerIp.value = String(config?.ServerIp ?? "127.0.0.1");
         }
-        if (dom.panelSettingsTimerEnabled) {
-            dom.panelSettingsTimerEnabled.checked = !!config?.TimerEnabled;
+        if (dom.judgeVideoReplaySettingsTimerEnabled) {
+            dom.judgeVideoReplaySettingsTimerEnabled.checked = !!config?.TimerEnabled;
         }
-        applyPanelSettingsI18n();
+        if (dom.judgeVideoReplaySettingsUiZoomPercent) {
+            dom.judgeVideoReplaySettingsUiZoomPercent.value = String(clamp(Number(config?.UiZoomPercent ?? 100), 50, 150));
+        }
+        applyJudgeVideoReplaySettingsI18n();
     }
 
-    function readPanelSettingsForm() {
+    function readJudgeVideoReplaySettingsForm() {
+        const zoomPercent = clamp(Math.round(Number(dom.judgeVideoReplaySettingsUiZoomPercent?.value || 100)), 50, 150);
         return {
-            ...panelSettingsConfig,
-            ServerIp: dom.panelSettingsServerIp?.value.trim() || "127.0.0.1",
-            TimerEnabled: !!dom.panelSettingsTimerEnabled?.checked,
-            Language: panelSettingsLanguage
+            ...judgeVideoReplaySettingsConfig,
+            ServerIp: dom.judgeVideoReplaySettingsServerIp?.value.trim() || "127.0.0.1",
+            TimerEnabled: !!dom.judgeVideoReplaySettingsTimerEnabled?.checked,
+            UiZoomPercent: zoomPercent,
+            Language: judgeVideoReplaySettingsLanguage
         };
     }
 
-    async function loadPanelSettings() {
-        setPanelSettingsStatus("loadingSettings", "", true);
-        const hostResponse = postPanelHostRequest("loadConfig");
+    async function loadJudgeVideoReplaySettings() {
+        setJudgeVideoReplaySettingsStatus("loadingSettings", "", true);
+        const hostResponse = postJudgeVideoReplayHostRequest("loadConfig");
         if (hostResponse) {
-            writePanelSettingsForm(await hostResponse);
-            setPanelSettingsStatus("settingsLoaded", "ok", true);
+            writeJudgeVideoReplaySettingsForm(await hostResponse);
+            setJudgeVideoReplaySettingsStatus("settingsLoaded", "ok", true);
             return;
         }
 
-        const response = await fetch("/api/panelconfig", { cache: "no-store" });
+        const response = await fetch("/api/judge-video-replay/config", { cache: "no-store" });
         if (!response.ok) throw new Error(await response.text());
-        writePanelSettingsForm(await response.json());
-        setPanelSettingsStatus("settingsLoaded", "ok", true);
+        writeJudgeVideoReplaySettingsForm(await response.json());
+        setJudgeVideoReplaySettingsStatus("settingsLoaded", "ok", true);
     }
 
-    async function savePanelSettings() {
-        setPanelSettingsStatus("savingSettings", "", true);
-        const config = readPanelSettingsForm();
-        const hostResponse = postPanelHostRequest("saveConfig", config);
+    async function saveJudgeVideoReplaySettings() {
+        setJudgeVideoReplaySettingsStatus("savingSettings", "", true);
+        const config = readJudgeVideoReplaySettingsForm();
+        const hostResponse = postJudgeVideoReplayHostRequest("saveConfig", config);
         if (hostResponse) {
             const saved = await hostResponse;
-            writePanelSettingsForm(saved);
-            applySavedPanelSettings(saved);
-            setPanelSettingsStatus("settingsSaved", "ok", true);
+            writeJudgeVideoReplaySettingsForm(saved);
+            applySavedJudgeVideoReplaySettings(saved);
+            setJudgeVideoReplaySettingsStatus("settingsSaved", "ok", true);
             return;
         }
 
-        const response = await fetch("/api/panelconfig", {
+        const response = await fetch("/api/judge-video-replay/config", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(config)
         });
         if (!response.ok) throw new Error(await response.text());
         const saved = await response.json();
-        writePanelSettingsForm(saved);
-        applySavedPanelSettings(saved);
-        setPanelSettingsStatus("settingsSaved", "ok", true);
+        writeJudgeVideoReplaySettingsForm(saved);
+        applySavedJudgeVideoReplaySettings(saved);
+        setJudgeVideoReplaySettingsStatus("settingsSaved", "ok", true);
     }
 
-    function applySavedPanelSettings(config) {
+    function applySavedJudgeVideoReplaySettings(config) {
         state.showTimerControl = !!config?.TimerEnabled;
         applyTimerControlVisibility();
     }
 
-    function showPanelSettings() {
-        dom.panelSettingsOverlay?.classList.remove("hidden");
-        dom.panelSettingsOverlay?.setAttribute("aria-hidden", "false");
-        applyPanelSettingsI18n();
-        void loadPanelSettings().catch(error => {
-            setPanelSettingsStatus(`${panelSettingsText("loadFailed")}: ${error?.message || error}`, "error");
+    function showJudgeVideoReplaySettings() {
+        dom.judgeVideoReplaySettingsOverlay?.classList.remove("hidden");
+        dom.judgeVideoReplaySettingsOverlay?.setAttribute("aria-hidden", "false");
+        applyJudgeVideoReplaySettingsI18n();
+        void loadJudgeVideoReplaySettings().catch(error => {
+            setJudgeVideoReplaySettingsStatus(`${judgeVideoReplaySettingsText("loadFailed")}: ${error?.message || error}`, "error");
         });
     }
 
-    function hidePanelSettings() {
-        dom.panelSettingsOverlay?.classList.add("hidden");
-        dom.panelSettingsOverlay?.setAttribute("aria-hidden", "true");
-        setPanelSettingsStatus("");
+    function hideJudgeVideoReplaySettings() {
+        dom.judgeVideoReplaySettingsOverlay?.classList.add("hidden");
+        dom.judgeVideoReplaySettingsOverlay?.setAttribute("aria-hidden", "true");
+        setJudgeVideoReplaySettingsStatus("");
     }
 
     function adjustTransportButtonOverlap() {
@@ -977,7 +988,7 @@
         state.showAllMode = false;
         state.selectedClipIndex = firstClip.index;
         state.clip = firstClip;
-        state.loopArmed = false;
+        state.loopArmed = shouldAutoLoopCurrentClip();
         drawTimeline();
         renderRail();
         await goToTime(firstClip.startSeconds, false);
@@ -1433,11 +1444,14 @@
 
     function renderRail() {
         dom.elementRail.innerHTML = "";
-        dom.elementRail.classList.toggle("hidden", !state.wantMenu);
+        dom.elementRailColumn?.classList.toggle("hidden", !state.wantMenu);
         dom.shell.classList.toggle("withMenu", state.wantMenu);
         updateSessionInfoBar();
 
-        if (!state.wantMenu) return;
+        if (!state.wantMenu) {
+            dom.fullRecordingBtn?.classList.add("hidden");
+            return;
+        }
 
         for (let index = 1; index <= RAIL_ELEMENT_ROWS; index++) {
             const clip = state.clipMap.get(index);
@@ -1473,32 +1487,11 @@
         }
 
         const showAllClip = buildShowAllClip();
-        if (!showAllClip) {
-            const placeholder = document.createElement("div");
-            placeholder.className = "elementRailPlaceholder";
-            dom.elementRail.appendChild(placeholder);
-            scrollSelectedRailIntoView();
-            requestAnimationFrame(layoutVideoArea);
-            return;
+        if (dom.fullRecordingBtn) {
+            dom.fullRecordingBtn.disabled = !showAllClip;
+            dom.fullRecordingBtn.classList.toggle("hidden", !showAllClip);
+            dom.fullRecordingBtn.setAttribute("aria-pressed", state.showAllMode ? "true" : "false");
         }
-
-        const entireButton = document.createElement("button");
-        entireButton.type = "button";
-        entireButton.className = "elementRailButton elementRailEntireButton";
-        entireButton.dataset.showAll = "true";
-        entireButton.setAttribute("aria-pressed", state.showAllMode ? "true" : "false");
-
-        const entireInfo = document.createElement("div");
-        entireInfo.className = "elementRailInfo";
-
-        const entireCode = document.createElement("div");
-        entireCode.className = "elementRailCode";
-        entireCode.textContent = FULL_RECORDING_LABEL;
-
-        entireInfo.appendChild(entireCode);
-        entireButton.appendChild(entireInfo);
-        dom.elementRail.appendChild(entireButton);
-
         scrollSelectedRailIntoView();
         requestAnimationFrame(layoutVideoArea);
     }
@@ -1507,6 +1500,7 @@
         if (state.clip) {
             const current = Number(dom.video.currentTime || 0);
             state.stopAtClipEnd = current <= state.clip.endSeconds - END_EPS;
+            state.loopArmed = shouldAutoLoopCurrentClip();
         }
 
         state.holdPauseVisual = false;
@@ -1587,7 +1581,7 @@
             state.showAllMode = false;
             state.selectedClipIndex = index;
             state.clip = targetClip;
-            state.loopArmed = false;
+            state.loopArmed = shouldAutoLoopCurrentClip();
             drawTimeline();
             renderRail();
             clearStopwatch();
@@ -1664,7 +1658,7 @@
         return codeMap[event.code] ?? null;
     }
 
-    function handlePanelShortcut(event) {
+    function handleJudgeVideoReplayShortcut(event) {
         if (event.defaultPrevented) return;
         if (event.repeat) return;
         if (event.altKey || event.ctrlKey || event.metaKey) return;
@@ -1723,7 +1717,7 @@
         dom.video.playbackRate = 1.0;
         drawTimeline();
         updateButtonDisabledState(true);
-        state.loopArmed = state.wantMenu ? false : state.wantLoop;
+        state.loopArmed = shouldAutoLoopCurrentClip();
         state.stopAtClipEnd = true;
 
         // Prime the player at the clip start so transport state, playhead, and
@@ -1842,15 +1836,6 @@
     });
 
     dom.elementRail.addEventListener("click", event => {
-        const showAllButton = event.target instanceof Element
-            ? event.target.closest(".elementRailButton[data-show-all='true']")
-            : null;
-        if (showAllButton instanceof HTMLButtonElement) {
-            if (showAllButton.disabled) return;
-            void activateShowAllView({ autoplay: false });
-            return;
-        }
-
         const button = event.target instanceof Element
             ? event.target.closest(".elementRailButton[data-clip-index]")
             : null;
@@ -1863,22 +1848,27 @@
         void selectClipByIndex(index, { autoplay: true });
     });
 
+    dom.fullRecordingBtn?.addEventListener("click", () => {
+        if (dom.fullRecordingBtn?.disabled) return;
+        void activateShowAllView({ autoplay: false });
+    });
+
     dom.playPause.addEventListener("click", togglePlayPause);
-    dom.panelSessionRefreshBtn?.addEventListener("click", () => window.location.reload());
-    dom.panelSettingsBtn?.addEventListener("click", showPanelSettings);
-    dom.panelSettingsSaveBtn?.addEventListener("click", () => {
-        void savePanelSettings().then(hidePanelSettings).catch(error => {
-            setPanelSettingsStatus(`${panelSettingsText("saveFailed")}: ${error?.message || error}`, "error");
+    dom.judgeVideoReplaySessionRefreshBtn?.addEventListener("click", () => window.location.reload());
+    dom.judgeVideoReplaySettingsBtn?.addEventListener("click", showJudgeVideoReplaySettings);
+    dom.judgeVideoReplaySettingsSaveBtn?.addEventListener("click", () => {
+        void saveJudgeVideoReplaySettings().then(hideJudgeVideoReplaySettings).catch(error => {
+            setJudgeVideoReplaySettingsStatus(`${judgeVideoReplaySettingsText("saveFailed")}: ${error?.message || error}`, "error");
         });
     });
-    dom.panelSettingsOverlay?.addEventListener("click", event => {
-        if (event.target === dom.panelSettingsOverlay) hidePanelSettings();
+    dom.judgeVideoReplaySettingsOverlay?.addEventListener("click", event => {
+        if (event.target === dom.judgeVideoReplaySettingsOverlay) hideJudgeVideoReplaySettings();
     });
-    dom.panelSettingsLanguage?.addEventListener("change", () => {
-        panelSettingsLanguage = normalizePanelSettingsLanguage(dom.panelSettingsLanguage.value);
-        applyPanelSettingsI18n();
+    dom.judgeVideoReplaySettingsLanguage?.addEventListener("change", () => {
+        judgeVideoReplaySettingsLanguage = normalizeJudgeVideoReplaySettingsLanguage(dom.judgeVideoReplaySettingsLanguage.value);
+        applyJudgeVideoReplaySettingsI18n();
     });
-    dom.panelLogoBtn?.addEventListener("click", showBrandOverlay);
+    dom.judgeVideoReplayLogoBtn?.addEventListener("click", showBrandOverlay);
     dom.brandOverlay?.addEventListener("click", hideBrandOverlay);
     dom.stopwatchBtn?.addEventListener("click", toggleStopwatch);
     dom.timingPresetButtons?.addEventListener("click", event => {
@@ -1894,10 +1884,10 @@
     dom.rew3.addEventListener("click", () => void goToTime((dom.video.currentTime || 0) - 3, !dom.video.paused, { allowOutOfClipIndicator: true }));
     dom.fwd3.addEventListener("click", () => void goToTime((dom.video.currentTime || 0) + 3, !dom.video.paused, { allowOutOfClipIndicator: true }));
     dom.fwd10.addEventListener("click", () => void goToTime((dom.video.currentTime || 0) + 10, !dom.video.paused, { allowOutOfClipIndicator: true }));
-    window.addEventListener("keydown", handlePanelShortcut);
+    window.addEventListener("keydown", handleJudgeVideoReplayShortcut);
     window.addEventListener("keydown", event => {
-        if (event.key === "Escape" && dom.panelSettingsOverlay && !dom.panelSettingsOverlay.classList.contains("hidden")) {
-            hidePanelSettings();
+        if (event.key === "Escape" && dom.judgeVideoReplaySettingsOverlay && !dom.judgeVideoReplaySettingsOverlay.classList.contains("hidden")) {
+            hideJudgeVideoReplaySettings();
         }
     });
 
@@ -1905,7 +1895,7 @@
         const options = readOptions();
 
         if (options.clipIndex == null || options.clipIndex < 0) {
-            alert("Invalid element number in URL. Example: panel.html, ?0, or ?2&autoplay=false&loop=false");
+            alert("Invalid element number in URL. Example: judge-video-replay.html, ?0, or ?2&autoplay=false&loop=false");
             return;
         }
 
@@ -1941,6 +1931,6 @@
 
     init().catch(error => {
         console.error(error);
-        alert(error?.message || "Panel replay client failed.");
+        alert(error?.message || "Judge Video Replay failed.");
     });
 })();

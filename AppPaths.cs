@@ -11,7 +11,8 @@ internal static class AppPaths
 
     public static string LocalDataDir => Path.Combine(LocalAppRootDir, "data");
     public static string LocalConfigPath => Path.Combine(LocalDataDir, "appconfig.json");
-    public static string LocalPanelConfigPath => Path.Combine(LocalDataDir, "panelConfig.json");
+    public static string LocalJudgeVideoReplayDataDir => Path.Combine(LocalDataDir, "JudgeVideoReplay");
+    public static string LocalJudgeVideoReplayConfigPath => Path.Combine(LocalJudgeVideoReplayDataDir, "appconfig.json");
     public static string LocalElementsPath => Path.Combine(LocalDataDir, "SessionInfo.json");
     public static string LocalDemoVideoPath => Path.Combine(LocalDataDir, "demovideo.mp4");
     public static string LocalMediaMtxConfigPath => Path.Combine(LocalDataDir, "mediamtx.yml");

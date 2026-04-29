@@ -1,6 +1,6 @@
 using System.Windows.Forms;
 
-namespace JudgeVideoReview;
+namespace JudgeVideoReplay;
 
 internal static class Program
 {
@@ -8,6 +8,6 @@ internal static class Program
     private static void Main()
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new PanelMainForm());
+        Application.Run(new JudgeVideoReplayMainForm());
     }
 }

@@ -1,6 +1,6 @@
 using Microsoft.Web.WebView2.Core;
 
-namespace JudgeVideoReview;
+namespace JudgeVideoReplay;
 
 internal static class WebViewEnvironmentProvider
 {
@@ -11,7 +11,7 @@ internal static class WebViewEnvironmentProvider
 
     private static async Task<CoreWebView2Environment> CreateSharedEnvironmentAsync()
     {
-        Directory.CreateDirectory(PanelConfigStore.WebView2UserDataDir);
-        return await CoreWebView2Environment.CreateAsync(userDataFolder: PanelConfigStore.WebView2UserDataDir);
+        Directory.CreateDirectory(JudgeVideoReplayConfigStore.WebView2UserDataDir);
+        return await CoreWebView2Environment.CreateAsync(userDataFolder: JudgeVideoReplayConfigStore.WebView2UserDataDir);
     }
 }

@@ -3,14 +3,14 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 
-namespace JudgeVideoReview;
+namespace JudgeVideoReplay;
 
 internal sealed class ReplayMediaCacheServer : IDisposable
 {
     private const int ChunkSize = 512 * 1024;
 
     private readonly HttpClient _httpClient;
-    private readonly Func<PanelConfig> _loadConfig;
+    private readonly Func<JudgeVideoReplayConfig> _loadConfig;
     private readonly HttpListener _listener = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _chunkLocks = new(StringComparer.OrdinalIgnoreCase);
@@ -18,13 +18,13 @@ internal sealed class ReplayMediaCacheServer : IDisposable
     private readonly SemaphoreSlim _remoteFetchGate = new(1, 1);
     private readonly Task _listenTask;
 
-    public ReplayMediaCacheServer(HttpClient httpClient, Func<PanelConfig> loadConfig)
+    public ReplayMediaCacheServer(HttpClient httpClient, Func<JudgeVideoReplayConfig> loadConfig)
     {
         _httpClient = httpClient;
         _loadConfig = loadConfig;
         Port = FindFreePort();
         BaseUrl = $"http://127.0.0.1:{Port}";
-        Directory.CreateDirectory(PanelConfigStore.ReplayMediaDirectory);
+        Directory.CreateDirectory(JudgeVideoReplayConfigStore.ReplayMediaDirectory);
         _listener.Prefixes.Add(BaseUrl + "/");
         _listener.Start();
         _listenTask = Task.Run(() => ListenAsync(_cts.Token));
@@ -47,12 +47,12 @@ internal sealed class ReplayMediaCacheServer : IDisposable
 
     public object CleanupOldMedia(TimeSpan maxAge)
     {
-        Directory.CreateDirectory(PanelConfigStore.ReplayMediaDirectory);
+        Directory.CreateDirectory(JudgeVideoReplayConfigStore.ReplayMediaDirectory);
 
         var cutoffUtc = DateTime.UtcNow - maxAge;
         var deleted = 0;
 
-        foreach (var directoryPath in Directory.GetDirectories(PanelConfigStore.ReplayMediaDirectory))
+        foreach (var directoryPath in Directory.GetDirectories(JudgeVideoReplayConfigStore.ReplayMediaDirectory))
         {
             try
             {
@@ -278,7 +278,7 @@ internal sealed class ReplayMediaCacheServer : IDisposable
         return (start, end);
     }
 
-    private static Uri BuildBackendUri(PanelConfig config, string pathAndQuery)
+    private static Uri BuildBackendUri(JudgeVideoReplayConfig config, string pathAndQuery)
     {
         var separatorIndex = pathAndQuery.IndexOf('?');
         var path = separatorIndex >= 0 ? pathAndQuery[..separatorIndex] : pathAndQuery;
@@ -298,7 +298,7 @@ internal sealed class ReplayMediaCacheServer : IDisposable
         => string.Concat((token ?? "").Where(char.IsLetterOrDigit));
 
     private static string GetTokenDirectory(string token)
-        => Path.Combine(PanelConfigStore.ReplayMediaDirectory, token);
+        => Path.Combine(JudgeVideoReplayConfigStore.ReplayMediaDirectory, token);
 
     private static string GetChunkPath(string token, long chunkIndex)
         => Path.Combine(GetTokenDirectory(token), $"chunk-{chunkIndex:D8}.bin");

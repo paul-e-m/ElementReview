@@ -4,11 +4,11 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>JudgeVideoReplay</AssemblyName>
-    <Version>0.5.0</Version>
-    <InformationalVersion>0.5.0</InformationalVersion>
+    <Version>0.5.1</Version>
+    <InformationalVersion>0.5.1</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <ApplicationIcon>$(MSBuildThisFileDirectory)JudgeVideoReview.ico</ApplicationIcon>
-    <Win32Icon>$(MSBuildThisFileDirectory)JudgeVideoReview.ico</Win32Icon>
+    <ApplicationIcon>$(MSBuildThisFileDirectory)JudgeVideoReplay.ico</ApplicationIcon>
+    <Win32Icon>$(MSBuildThisFileDirectory)JudgeVideoReplay.ico</Win32Icon>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
