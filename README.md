@@ -16,7 +16,7 @@ ElementReview is built around a fast record-to-review workflow:
 
 1. show a live RTSP feed or demo video
 2. start recording
-3. mark element clips while the skater is performing
+3. mark element clips while the skater/team is performing
 4. stop recording and switch straight into replay mode
 5. trim, split, insert, or delete replay clips
 6. expose the replay over the LAN for judge and referee review

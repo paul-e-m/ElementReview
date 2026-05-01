@@ -16,6 +16,7 @@ public sealed class SettingsForm : Form
         _pendingUrl = url;
 
         Text = "Element Review Settings";
+        Icon = AppWindowIcon.Extract() ?? Icon;
         StartPosition = FormStartPosition.CenterParent;
         MinimumSize = new Size(900, 650);
         Width = 1100;

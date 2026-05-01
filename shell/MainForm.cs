@@ -38,6 +38,7 @@ public sealed class MainForm : Form
         _app = app;
 
         Text = "Element Review";
+        Icon = AppWindowIcon.Extract() ?? Icon;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(1100, 750);
         Width = 1400;

@@ -26,6 +26,7 @@ public sealed class JudgeVideoReplayMainForm : Form
     public JudgeVideoReplayMainForm()
     {
         Text = "Judge Video Replay";
+        Icon = AppWindowIcon.Extract() ?? Icon;
         StartPosition = FormStartPosition.CenterScreen;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(900, 650);
