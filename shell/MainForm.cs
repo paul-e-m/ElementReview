@@ -95,6 +95,8 @@ public sealed class MainForm : Form
         {
             var webViewEnvironment = await WebViewEnvironmentProvider.GetAsync();
             await _webView.EnsureCoreWebView2Async(webViewEnvironment);
+            await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+                BuildOperatorTokenInjectionScript(AppServer.OperatorAuthToken));
 
             _webView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
 
@@ -148,9 +150,24 @@ public sealed class MainForm : Form
             return;
         }
 
-        _settingsForm = new SettingsForm(url ?? AppServer.SettingsPageUrl);
+        _settingsForm = new SettingsForm(url ?? AppServer.SettingsPageUrl, AppServer.OperatorAuthToken);
         _settingsForm.FormClosed += (_, _) => _settingsForm = null;
         _settingsForm.Show(this);
+    }
+
+    private static string BuildOperatorTokenInjectionScript(string token)
+    {
+        var tokenJson = JsonSerializer.Serialize(token ?? "");
+
+        return "(() => {\n" +
+            "  const host = window.location.hostname;\n" +
+            "  if (host !== \"127.0.0.1\" && host !== \"localhost\" && host !== \"::1\") return;\n" +
+            "  Object.defineProperty(window, \"__ELEMENT_REVIEW_OPERATOR_TOKEN\", {\n" +
+            "    value: " + tokenJson + ",\n" +
+            "    writable: false,\n" +
+            "    configurable: false\n" +
+            "  });\n" +
+            "})();";
     }
 
     private static bool IsSettingsUrl(string? url)

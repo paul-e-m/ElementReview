@@ -2,6 +2,7 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using System.Diagnostics;
 using System.Drawing;
+using System.Text.Json;
 using System.Windows.Forms;
 
 namespace ElementReview.Shell;
@@ -9,11 +10,13 @@ namespace ElementReview.Shell;
 public sealed class SettingsForm : Form
 {
     private readonly WebView2 _webView;
+    private readonly string _operatorAuthToken;
     private string _pendingUrl;
 
-    public SettingsForm(string url)
+    public SettingsForm(string url, string operatorAuthToken)
     {
         _pendingUrl = url;
+        _operatorAuthToken = operatorAuthToken;
 
         Text = "Element Review Settings";
         Icon = AppWindowIcon.Extract() ?? Icon;
@@ -46,6 +49,8 @@ public sealed class SettingsForm : Form
         {
             var webViewEnvironment = await WebViewEnvironmentProvider.GetAsync();
             await _webView.EnsureCoreWebView2Async(webViewEnvironment);
+            await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+                BuildOperatorTokenInjectionScript(_operatorAuthToken));
             _webView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
             _webView.CoreWebView2.WindowCloseRequested += (_, _) => BeginInvoke(new Action(Close));
             _webView.CoreWebView2.Navigate(_pendingUrl);
@@ -59,6 +64,21 @@ public sealed class SettingsForm : Form
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }
+    }
+
+    private static string BuildOperatorTokenInjectionScript(string token)
+    {
+        var tokenJson = JsonSerializer.Serialize(token ?? "");
+
+        return "(() => {\n" +
+            "  const host = window.location.hostname;\n" +
+            "  if (host !== \"127.0.0.1\" && host !== \"localhost\" && host !== \"::1\") return;\n" +
+            "  Object.defineProperty(window, \"__ELEMENT_REVIEW_OPERATOR_TOKEN\", {\n" +
+            "    value: " + tokenJson + ",\n" +
+            "    writable: false,\n" +
+            "    configurable: false\n" +
+            "  });\n" +
+            "})();";
     }
 
     private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)

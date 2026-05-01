@@ -830,14 +830,11 @@
         let cssServerPingInFlight = false;
         let rtspPingInFlight = false;
 
-        async function loadOperatorAuthToken() {
-            const response = await fetch("/api/operator/session", { cache: "no-store" });
-            if (!response.ok) {
-                throw new Error(await response.text());
+        function loadOperatorAuthToken() {
+            operatorAuthToken = String(window.__ELEMENT_REVIEW_OPERATOR_TOKEN || "");
+            if (!operatorAuthToken) {
+                throw new Error("Element Review operator token was not injected by the native shell.");
             }
-
-            const payload = await response.json();
-            operatorAuthToken = String(payload?.token || "");
         }
 
         function authHeaders(extraHeaders = {}) {
@@ -1569,7 +1566,8 @@
             stopHostPingPolling();
         });
 
-        loadOperatorAuthToken()
+        Promise.resolve()
+            .then(loadOperatorAuthToken)
             .then(loadConfig)
             .then(() => {
                 showPage();

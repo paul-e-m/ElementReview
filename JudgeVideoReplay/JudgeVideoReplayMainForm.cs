@@ -9,7 +9,6 @@ namespace JudgeVideoReplay;
 public sealed class JudgeVideoReplayMainForm : Form
 {
     private const string SettingsVirtualHost = "judge-video-replay.local";
-    private const string AssetVersion = "20260428-jvrzoom1";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -45,7 +44,7 @@ public sealed class JudgeVideoReplayMainForm : Form
 
     private static string BuildJudgeVideoReplayUrl(JudgeVideoReplayConfig config)
     {
-        var url = $"https://{SettingsVirtualHost}/judge-video-replay.html?0&v={AssetVersion}&judgeVideoReplay=true";
+        var url = $"https://{SettingsVirtualHost}/judge-video-replay.html?0&judgeVideoReplay=true";
         return config.TimerEnabled ? url + "&timer=true" : url + "&timer=false";
     }
 

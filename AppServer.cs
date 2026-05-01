@@ -22,6 +22,7 @@ public static class AppServer
     public const string LocalBaseUrl = "http://127.0.0.1:5050";
     public const string MainPageUrl = LocalBaseUrl + "/index.html";
     public const string SettingsPageUrl = LocalBaseUrl + "/config.html";
+    public static string OperatorAuthToken { get; private set; } = "";
 
     private static string ResolveContentRoot()
     {
@@ -63,7 +64,7 @@ public static class AppServer
             WriteIndented = true
         };
 
-        var operatorAuthToken = GenerateOperatorAuthToken();
+        OperatorAuthToken = GenerateOperatorAuthToken();
 
         static string GenerateOperatorAuthToken()
         {
@@ -123,9 +124,11 @@ public static class AppServer
             var providedToken = GetBearerToken(http.Request);
             if (string.IsNullOrWhiteSpace(providedToken)) return false;
 
-            return CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(providedToken),
-                Encoding.UTF8.GetBytes(operatorAuthToken));
+            var providedTokenBytes = Encoding.UTF8.GetBytes(providedToken);
+            var expectedTokenBytes = Encoding.UTF8.GetBytes(OperatorAuthToken);
+
+            return providedTokenBytes.Length == expectedTokenBytes.Length &&
+                CryptographicOperations.FixedTimeEquals(providedTokenBytes, expectedTokenBytes);
         }
 
         app.Use(async (http, next) =>
@@ -140,8 +143,7 @@ public static class AppServer
             }
 
             if (isLoopback &&
-                (string.Equals(path, "/api/operator/session", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(path, "/api/demoVideo", StringComparison.OrdinalIgnoreCase) ||
+                (string.Equals(path, "/api/demoVideo", StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(path, "/api/recording/file", StringComparison.OrdinalIgnoreCase) ||
                  !path.StartsWith("/api", StringComparison.OrdinalIgnoreCase)))
             {
@@ -562,15 +564,6 @@ public static class AppServer
             var cfg = LoadConfig();
             var status = session.GetStatus(cfg.SourceFps);
             return Results.Ok(status);
-        });
-
-        app.MapGet("/api/operator/session", (HttpContext http) =>
-        {
-            http.Response.Headers[HeaderNames.CacheControl] = "no-store";
-            return Results.Json(new
-            {
-                token = operatorAuthToken
-            }, jsonOpts);
         });
 
         app.MapGet("/api/appconfig", () =>

@@ -1,7 +1,7 @@
-import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js?v=20260501-operator-auth1";
-import { TimelineRenderer } from "./app-timeline.js?v=20260424-negativezero1";
-import { ReplayController } from "./app-replay.js?v=20260430-selected-pause1";
-import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260424-rstart-ssetstart1";
+import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js";
+import { TimelineRenderer } from "./app-timeline.js";
+import { ReplayController } from "./app-replay.js";
+import { ShortcutKeysController } from "./app-shortcut-keys.js";
 
 // ElementReviewApp coordinates the shared operator UI state in index.html.
 // Backend session data stays authoritative, while ReplayController manages replay-local interactions.
@@ -133,7 +133,6 @@ export class ElementReviewApp {
         this.appVersion = "v0.5.3";
         this.currentLanguage = "en";
         this.i18n = window.INDEX_I18N || {};
-        this.buttonAssetVersion = "20260424-rstart-ssetstart1";
         this.buttonImageUrlCache = new Map();
         this.buttonImageMetaCache = new Map();
         this.currentMainButtonKind = "start";
@@ -453,14 +452,13 @@ export class ElementReviewApp {
         }
     }
 
-    versionButtonImageUrl(path) {
-        if (!path || path.includes("?")) return path;
-        return `${path}?v=${this.buttonAssetVersion}`;
+    resolveButtonImageUrl(path) {
+        return path;
     }
 
     async loadButtonImageMeta(path) {
         if (!path) return null;
-        const url = this.versionButtonImageUrl(path);
+        const url = this.resolveButtonImageUrl(path);
         if (!this.buttonImageMetaCache.has(url)) {
             this.buttonImageMetaCache.set(url, new Promise((resolve) => {
                 const probe = new Image();

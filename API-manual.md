@@ -25,7 +25,7 @@ ElementReview listens on port `5050`, but access is split by purpose:
 - Judge Video Replay clients on the LAN can use only read-only replay endpoints.
 - Operator-only pages and API actions are restricted to loopback (`127.0.0.1` / `localhost`) and require a disposable per-session bearer token.
 
-The operator token is generated in memory when ElementReview starts. The local WebView operator UI fetches and attaches it automatically; installers and operators do not configure passwords, QR codes, or shared secrets.
+The operator token is generated in memory when ElementReview starts. The native ElementReview shell injects it directly into the local WebView before the operator pages load; installers and operators do not configure passwords, QR codes, or shared secrets. The token is not exposed by any API endpoint.
 
 External clients should not attempt to automate operator-only endpoints. They are intended for the local ElementReview UI only.
 
@@ -65,13 +65,7 @@ All other app pages and API endpoints are local-only. They must be called from t
 Authorization: Bearer <operator-session-token>
 ```
 
-The local operator UI obtains the token from:
-
-```text
-GET /api/operator/session
-```
-
-`/api/operator/session` is loopback-only and returns the current in-memory token. The token changes every time the ElementReview server restarts.
+The local operator UI receives the token from the native WebView shell at page startup. There is no API endpoint for retrieving the token, and the token changes every time the ElementReview server restarts.
 
 ## Canonical JSON Shapes
 
@@ -157,7 +151,6 @@ GET /api/operator/session
 | `GET` | `/api/status` | LAN read-only | Get current session status |
 | `GET` | `/api/sessionInfo` | LAN read-only | Read current SessionInfo payload |
 | `GET` | `/api/recording/file?kind=low-res&v=...` | LAN read-only | Stream the low-res replay MP4 |
-| `GET` | `/api/operator/session` | Loopback only | Get the disposable operator bearer token for the local UI |
 | `GET` | `/api/liveUrl` | Operator-only | Get the live-view URL for the operator UI |
 | `GET` | `/api/appconfig` | Operator-only | Read app configuration |
 | `POST` | `/api/appconfig` | Operator-only | Save app configuration |
@@ -180,24 +173,6 @@ GET /api/operator/session
 | `POST` | `/api/replay/trimOut` | Operator-only | Trim a clip end |
 | `POST` | `/api/app/restart` | Operator-only | Restart the native shell app |
 | `GET` | `/api/hostping` | Operator-only | Ping a host for settings diagnostics |
-
-## Operator Session
-
-### GET `/api/operator/session`
-
-Access: loopback only. This endpoint is intended for the local ElementReview operator UI.
-
-Returns the disposable in-memory bearer token used by operator-only API requests.
-
-Example:
-
-```json
-{
-  "token": "generated-session-token"
-}
-```
-
-The response is sent with `Cache-Control: no-store`. The token changes when the ElementReview server restarts.
 
 ## Live Video
 

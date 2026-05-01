@@ -31,42 +31,23 @@ export function isTypingTarget(target) {
   );
 }
 
-let operatorAuthTokenPromise = null;
-
-export async function getOperatorAuthToken() {
-  if (!operatorAuthTokenPromise) {
-    operatorAuthTokenPromise = fetch("/api/operator/session", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(await response.text());
-        const payload = await response.json();
-        return String(payload?.token || "");
-      });
-  }
-
-  return operatorAuthTokenPromise;
+export function getOperatorAuthToken() {
+  return String(window.__ELEMENT_REVIEW_OPERATOR_TOKEN || "");
 }
 
-async function authHeaders(extraHeaders = {}) {
-  const token = await getOperatorAuthToken();
-  return token
-    ? { ...extraHeaders, Authorization: `Bearer ${token}` }
-    : { ...extraHeaders };
-}
-
-async function fetchWithAuth(path, options = {}, retryOnUnauthorized = true) {
-  const response = await fetch(path, {
-    ...options,
-    headers: await authHeaders(options.headers || {}),
-  });
-
-  if (response.status !== 401 || !retryOnUnauthorized) {
-    return response;
+function authHeaders(extraHeaders = {}) {
+  const token = getOperatorAuthToken();
+  if (!token) {
+    throw new Error("Element Review operator token was not injected by the native shell.");
   }
 
-  operatorAuthTokenPromise = null;
+  return { ...extraHeaders, Authorization: `Bearer ${token}` };
+}
+
+async function fetchWithAuth(path, options = {}) {
   return fetch(path, {
     ...options,
-    headers: await authHeaders(options.headers || {}),
+    headers: authHeaders(options.headers || {}),
   });
 }
 
