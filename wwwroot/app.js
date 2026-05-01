@@ -1,4 +1,4 @@
-import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js";
+import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js?v=20260501-operator-auth1";
 import { TimelineRenderer } from "./app-timeline.js?v=20260424-negativezero1";
 import { ReplayController } from "./app-replay.js?v=20260430-selected-pause1";
 import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260424-rstart-ssetstart1";
@@ -130,7 +130,7 @@ export class ElementReviewApp {
 
         // Cache appconfig early so later interactions do not need an extra fetch.
         this.appConfig = null;
-        this.appVersion = "v0.5.2";
+        this.appVersion = "v0.5.3";
         this.currentLanguage = "en";
         this.i18n = window.INDEX_I18N || {};
         this.buttonAssetVersion = "20260424-rstart-ssetstart1";

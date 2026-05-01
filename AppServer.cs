@@ -4,8 +4,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
 using System.Diagnostics;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using ElementReview.Models;
 using ElementReview.Services;
@@ -54,14 +57,118 @@ public static class AppServer
 
         var app = builder.Build();
 
-        app.UseDefaultFiles();
-        app.UseStaticFiles();
-
         var jsonOpts = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             WriteIndented = true
         };
+
+        var operatorAuthToken = GenerateOperatorAuthToken();
+
+        static string GenerateOperatorAuthToken()
+        {
+            var bytes = RandomNumberGenerator.GetBytes(32);
+            return Convert.ToBase64String(bytes)
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+        }
+
+        static bool IsLoopbackRequest(HttpContext http)
+        {
+            var remoteIp = http.Connection.RemoteIpAddress;
+            if (remoteIp == null) return false;
+
+            if (IPAddress.IsLoopback(remoteIp)) return true;
+
+            return remoteIp.IsIPv4MappedToIPv6 &&
+                IPAddress.IsLoopback(remoteIp.MapToIPv4());
+        }
+
+        static string? GetBearerToken(HttpRequest request)
+        {
+            var authorization = request.Headers.Authorization.ToString();
+            const string bearerPrefix = "Bearer ";
+
+            return authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
+                ? authorization[bearerPrefix.Length..].Trim()
+                : null;
+        }
+
+        static bool IsHeadOrGet(HttpRequest request)
+        {
+            return HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method);
+        }
+
+        static bool IsJudgeReplayReadOnlyEndpoint(HttpContext http)
+        {
+            if (!IsHeadOrGet(http.Request)) return false;
+
+            var path = http.Request.Path.Value ?? "";
+            if (string.Equals(path, "/api/status", StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.Equals(path, "/api/sessionInfo", StringComparison.OrdinalIgnoreCase)) return true;
+
+            if (string.Equals(path, "/api/recording/file", StringComparison.OrdinalIgnoreCase))
+            {
+                var kind = http.Request.Query["kind"].ToString();
+                return string.Equals(kind, "low-res", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(kind, "lowres", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
+        bool HasValidOperatorToken(HttpContext http)
+        {
+            var providedToken = GetBearerToken(http.Request);
+            if (string.IsNullOrWhiteSpace(providedToken)) return false;
+
+            return CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(providedToken),
+                Encoding.UTF8.GetBytes(operatorAuthToken));
+        }
+
+        app.Use(async (http, next) =>
+        {
+            var isLoopback = IsLoopbackRequest(http);
+            var path = http.Request.Path.Value ?? "";
+
+            if (IsJudgeReplayReadOnlyEndpoint(http))
+            {
+                await next();
+                return;
+            }
+
+            if (isLoopback &&
+                (string.Equals(path, "/api/operator/session", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(path, "/api/demoVideo", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(path, "/api/recording/file", StringComparison.OrdinalIgnoreCase) ||
+                 !path.StartsWith("/api", StringComparison.OrdinalIgnoreCase)))
+            {
+                await next();
+                return;
+            }
+
+            if (!isLoopback)
+            {
+                http.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await http.Response.WriteAsync("This endpoint is only available on the Element Review computer.");
+                return;
+            }
+
+            if (!HasValidOperatorToken(http))
+            {
+                http.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                http.Response.Headers[HeaderNames.WWWAuthenticate] = "Bearer";
+                await http.Response.WriteAsync("Missing or invalid Element Review operator token.");
+                return;
+            }
+
+            await next();
+        });
+
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
 
         static AppConfig NormalizeConfig(AppConfig? cfg)
         {
@@ -455,6 +562,15 @@ public static class AppServer
             var cfg = LoadConfig();
             var status = session.GetStatus(cfg.SourceFps);
             return Results.Ok(status);
+        });
+
+        app.MapGet("/api/operator/session", (HttpContext http) =>
+        {
+            http.Response.Headers[HeaderNames.CacheControl] = "no-store";
+            return Results.Json(new
+            {
+                token = operatorAuthToken
+            }, jsonOpts);
         });
 
         app.MapGet("/api/appconfig", () =>

@@ -823,11 +823,28 @@
         const translations = window.CONFIG_I18N || {};
         let currentLanguage = "en";
         let serverConfig = {};
+        let operatorAuthToken = "";
 
         let hostPingIntervalId = null;
         let dbPingInFlight = false;
         let cssServerPingInFlight = false;
         let rtspPingInFlight = false;
+
+        async function loadOperatorAuthToken() {
+            const response = await fetch("/api/operator/session", { cache: "no-store" });
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const payload = await response.json();
+            operatorAuthToken = String(payload?.token || "");
+        }
+
+        function authHeaders(extraHeaders = {}) {
+            return operatorAuthToken
+                ? { ...extraHeaders, Authorization: `Bearer ${operatorAuthToken}` }
+                : { ...extraHeaders };
+        }
 
         function normalizeLanguage(value) {
             const lang = String(value ?? "").trim().toLowerCase();
@@ -1255,6 +1272,7 @@
             try {
                 const response = await fetch(`/api/hostping?host=${encodeURIComponent(host)}`, {
                     cache: "no-store",
+                    headers: authHeaders(),
                     signal: controller.signal
                 });
 
@@ -1389,7 +1407,10 @@
 
             for (let attempt = 0; attempt < 10; attempt++) {
                 try {
-                    const response = await fetch("/api/appconfig", { cache: "no-store" });
+                    const response = await fetch("/api/appconfig", {
+                        cache: "no-store",
+                        headers: authHeaders()
+                    });
                     if (!response.ok) {
                         throw new Error(await response.text());
                     }
@@ -1418,7 +1439,7 @@
 
             const response = await fetch("/api/appconfig", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: authHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify(config)
             });
 
@@ -1442,7 +1463,8 @@
 
             try {
                 const response = await fetch("/api/app/restart", {
-                    method: "POST"
+                    method: "POST",
+                    headers: authHeaders()
                 });
 
                 if (!response.ok) {
@@ -1547,7 +1569,8 @@
             stopHostPingPolling();
         });
 
-        loadConfig()
+        loadOperatorAuthToken()
+            .then(loadConfig)
             .then(() => {
                 showPage();
                 startHostPingPolling();

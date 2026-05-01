@@ -7,7 +7,6 @@ ElementReview exposes a local HTTP API used by:
 - the main operator UI in `index.html`
 - the settings window in `config.html`
 - the separate Judge Video Replay app in `JudgeVideoReplay/wwwroot/judge-video-replay.html`
-- trusted local or LAN clients
 
 Base URL:
 
@@ -15,7 +14,20 @@ Base URL:
 http://localhost:5050
 ```
 
-The API has no authentication layer. Treat it as a trusted local/LAN interface.
+Judge Video Replay clients use the ElementReview computer's LAN address, for example:
+
+```text
+http://192.168.6.10:5050
+```
+
+ElementReview listens on port `5050`, but access is split by purpose:
+
+- Judge Video Replay clients on the LAN can use only read-only replay endpoints.
+- Operator-only pages and API actions are restricted to loopback (`127.0.0.1` / `localhost`) and require a disposable per-session bearer token.
+
+The operator token is generated in memory when ElementReview starts. The local WebView operator UI fetches and attaches it automatically; installers and operators do not configure passwords, QR codes, or shared secrets.
+
+External clients should not attempt to automate operator-only endpoints. They are intended for the local ElementReview UI only.
 
 ## Response Conventions
 
@@ -27,7 +39,39 @@ Common status codes:
 
 - `200 OK`
 - `400 Bad Request`
+- `401 Unauthorized`: loopback operator request is missing the session bearer token
+- `403 Forbidden`: endpoint is restricted to the ElementReview computer
 - `404 Not Found`
+
+## Access Model
+
+### LAN Read-Only Endpoints
+
+The following endpoints are available to Judge Video Replay clients over the LAN:
+
+| Method | Path | Purpose |
+| - | - | - |
+| `GET` | `/api/status` | Get current session status |
+| `GET` | `/api/sessionInfo` | Read current SessionInfo payload |
+| `GET` | `/api/recording/file?kind=low-res&v=<ReplayMediaToken>` | Stream the low-res replay MP4 |
+
+These endpoints do not allow recording control, clip marking, replay editing, configuration changes, diagnostics, or restart.
+
+### Operator-Only Endpoints
+
+All other app pages and API endpoints are local-only. They must be called from the ElementReview computer. API endpoints also require:
+
+```http
+Authorization: Bearer <operator-session-token>
+```
+
+The local operator UI obtains the token from:
+
+```text
+GET /api/operator/session
+```
+
+`/api/operator/session` is loopback-only and returns the current in-memory token. The token changes every time the ElementReview server restarts.
 
 ## Canonical JSON Shapes
 
@@ -108,36 +152,58 @@ Common status codes:
 
 ## Endpoint Summary
 
-| Method | Path | Purpose |
-| - | - | - |
-| `GET` | `/api/liveUrl` | Get the live-view URL for the operator UI |
-| `GET` | `/api/status` | Get current session status |
-| `GET` | `/api/appconfig` | Read app configuration |
-| `POST` | `/api/appconfig` | Save app configuration |
-| `GET` | `/api/appinfo` | Get app version info |
-| `GET` | `/api/sessionInfo` | Read current SessionInfo payload |
-| `GET` | `/api/demoVideo` | Stream the demo video |
-| `GET` | `/demo-live` | Demo-video player page |
-| `GET` | `/rtsp-live` | RTSP live player page |
-| `POST` | `/api/record/start` | Start recording |
-| `POST` | `/api/record/stop` | Stop recording |
-| `POST` | `/api/record/clipToggle` | Start or stop the current clip |
-| `POST` | `/api/record/undo` | Undo the last record-mode clip action |
-| `POST` | `/api/record/redo` | Redo the last undone record-mode clip action |
-| `POST` | `/api/session/clear` | Clear the session / next competitor |
-| `GET` | `/api/recording/file` | Stream the replay MP4 |
-| `POST` | `/api/replay/delete` | Delete a replay clip |
-| `POST` | `/api/record/delete` | Delete a clip while still recording |
-| `POST` | `/api/replay/split` | Split a replay clip |
-| `POST` | `/api/replay/insert` | Insert a replay clip |
-| `POST` | `/api/replay/trimIn` | Trim a clip start |
-| `POST` | `/api/replay/trimOut` | Trim a clip end |
-| `POST` | `/api/app/restart` | Restart the native shell app |
-| `GET` | `/api/hostping` | Ping a host for settings diagnostics |
+| Method | Path | Access | Purpose |
+| - | - | - | - |
+| `GET` | `/api/status` | LAN read-only | Get current session status |
+| `GET` | `/api/sessionInfo` | LAN read-only | Read current SessionInfo payload |
+| `GET` | `/api/recording/file?kind=low-res&v=...` | LAN read-only | Stream the low-res replay MP4 |
+| `GET` | `/api/operator/session` | Loopback only | Get the disposable operator bearer token for the local UI |
+| `GET` | `/api/liveUrl` | Operator-only | Get the live-view URL for the operator UI |
+| `GET` | `/api/appconfig` | Operator-only | Read app configuration |
+| `POST` | `/api/appconfig` | Operator-only | Save app configuration |
+| `GET` | `/api/appinfo` | Operator-only | Get app version info |
+| `GET` | `/api/demoVideo` | Operator-only | Stream the demo video |
+| `GET` | `/demo-live` | Operator-only | Demo-video player page |
+| `GET` | `/rtsp-live` | Operator-only | RTSP live player page |
+| `POST` | `/api/record/start` | Operator-only | Start recording |
+| `POST` | `/api/record/stop` | Operator-only | Stop recording |
+| `POST` | `/api/record/clipToggle` | Operator-only | Start or stop the current clip |
+| `POST` | `/api/record/undo` | Operator-only | Undo the last record-mode clip action |
+| `POST` | `/api/record/redo` | Operator-only | Redo the last undone record-mode clip action |
+| `POST` | `/api/session/clear` | Operator-only | Clear the session / next competitor |
+| `GET` | `/api/recording/file?kind=high-res` | Operator-only | Stream the high-res operator replay MP4 |
+| `POST` | `/api/replay/delete` | Operator-only | Delete a replay clip |
+| `POST` | `/api/record/delete` | Operator-only | Delete a clip while still recording |
+| `POST` | `/api/replay/split` | Operator-only | Split a replay clip |
+| `POST` | `/api/replay/insert` | Operator-only | Insert a replay clip |
+| `POST` | `/api/replay/trimIn` | Operator-only | Trim a clip start |
+| `POST` | `/api/replay/trimOut` | Operator-only | Trim a clip end |
+| `POST` | `/api/app/restart` | Operator-only | Restart the native shell app |
+| `GET` | `/api/hostping` | Operator-only | Ping a host for settings diagnostics |
+
+## Operator Session
+
+### GET `/api/operator/session`
+
+Access: loopback only. This endpoint is intended for the local ElementReview operator UI.
+
+Returns the disposable in-memory bearer token used by operator-only API requests.
+
+Example:
+
+```json
+{
+  "token": "generated-session-token"
+}
+```
+
+The response is sent with `Cache-Control: no-store`. The token changes when the ElementReview server restarts.
 
 ## Live Video
 
 ### GET `/api/liveUrl`
+
+Access: operator-only.
 
 Returns the URL the operator UI should load for live viewing.
 
@@ -145,7 +211,7 @@ RTSP mode example:
 
 ```json
 {
-  "url": "http://127.0.0.1:8889/mystream?controls=false&muted=true&autoplay=true",
+  "url": "/rtsp-live?ts=1712260000000",
   "mode": "rtsp"
 }
 ```
@@ -161,13 +227,19 @@ Demo mode example:
 
 ### GET `/demo-live`
 
+Access: operator-only.
+
 Returns an HTML page that plays the active demo video.
 
 ### GET `/rtsp-live`
 
+Access: operator-only.
+
 Returns an HTML page that attaches a WHEP/WebRTC player to the MediaMTX relay.
 
 ### GET `/api/demoVideo`
+
+Access: operator-only.
 
 Returns the active demo MP4 with range support.
 
@@ -180,13 +252,19 @@ Resolution order:
 
 ### GET `/api/status`
 
+Access: LAN read-only.
+
 Returns the current session status.
 
 ### GET `/api/appconfig`
 
+Access: operator-only.
+
 Returns the current `AppConfig` object in PascalCase.
 
 ### POST `/api/appconfig`
+
+Access: operator-only.
 
 Saves the supplied `AppConfig` and returns the normalized result.
 
@@ -200,17 +278,21 @@ Notes:
 
 ### GET `/api/appinfo`
 
+Access: operator-only.
+
 Returns the app version:
 
 ```json
 {
-  "version": "v0.5.2"
+  "version": "v0.5.3"
 }
 ```
 
 ## SessionInfo
 
 ### GET `/api/sessionInfo`
+
+Access: LAN read-only.
 
 Returns the current `SessionInfo.json` contents.
 
@@ -228,6 +310,8 @@ The endpoint also updates backend review history so replay clips can stay marked
 
 ### POST `/api/record/start`
 
+Access: operator-only.
+
 Starts recording.
 
 Request body:
@@ -243,6 +327,8 @@ Request body:
 Returns the current status object.
 
 ### POST `/api/record/stop`
+
+Access: operator-only.
 
 Stops recording and finalizes replay assets.
 
@@ -261,6 +347,8 @@ Returns the current status object.
 
 ### POST `/api/record/clipToggle`
 
+Access: operator-only.
+
 Starts or stops the current clip marker.
 
 Request body:
@@ -275,17 +363,23 @@ Returns the current status object.
 
 ### POST `/api/record/undo`
 
+Access: operator-only.
+
 Undoes the last record-mode clip action.
 
 Returns the current status object.
 
 ### POST `/api/record/redo`
 
+Access: operator-only.
+
 Redoes the last undone record-mode clip action.
 
 Returns the current status object.
 
 ### POST `/api/record/delete`
+
+Access: operator-only.
 
 Deletes a completed clip while still in record mode.
 
@@ -301,6 +395,8 @@ Returns the current status object.
 
 ### POST `/api/session/clear`
 
+Access: operator-only.
+
 Stops any running recorder, deletes the current replay files, resets session state, and returns the cleared status.
 
 ## Replay File Delivery
@@ -311,21 +407,23 @@ Streams the current replay MP4 with range support.
 
 Query options:
 
-- no query string or `?kind=high-res`: high-res operator replay file
-- `?kind=low-res`: low-res Judge Video Replay and saved-video replay file
+- no query string or `?kind=high-res`: high-res operator replay file, operator-only
+- `?kind=low-res`: low-res Judge Video Replay and saved-video replay file, LAN read-only when paired with a current replay token
 - `v=<ReplayMediaToken>`: required for low-res replay requests
 
 Low-res requests should include the current replay media token as `v=<ReplayMediaToken>`. If the token is stale, the server returns `404 Not Found`.
 
-Operator high-res replay requests are served directly. PRC low-res requests are demand-driven and enter the PRC transfer path. The backend does not preload, throttle, or cap concurrent PRC transfers.
+Operator high-res replay requests are served directly and are available only on the ElementReview computer. Judge Video Replay low-res requests are demand-driven and enter the Judge Video Replay transfer path. The backend does not preload, throttle, or cap concurrent Judge Video Replay transfers.
 
-ElementReview records both files while the recording is in progress. `current-high-res.mp4` is encoded with the configured `highresVideoGop`, which is the high-res/operator replay GOP; `current-low-res.mp4` is encoded as 720p/30 fps with the configured `lowresVideoGop` and `lowresVideoBitrate` values. When `SaveVideos` is enabled, the low-res file also includes AAC audio from the source for saved copies; PRCs keep playback muted. When `UseHardwareEncodingWhenAvailable` is enabled and supported hardware is available, both files use the same hardware encoder. Otherwise both use software encoding.
+ElementReview records both files while the recording is in progress. `current-high-res.mp4` is encoded with the configured `highresVideoGop`, which is the high-res/operator replay GOP; `current-low-res.mp4` is encoded as 720p/30 fps with the configured `lowresVideoGop` and `lowresVideoBitrate` values. When `SaveVideos` is enabled, the low-res file also includes AAC audio from the source for saved copies; Judge Video Replay clients keep playback muted. When `UseHardwareEncodingWhenAvailable` is enabled and supported hardware is available, both files use the same hardware encoder. Otherwise both use software encoding.
 
 ## Judge Video Replay App
 
 The remote Judge Video Replay UI is packaged in the separate Judge Video Replay app under `JudgeVideoReplay/wwwroot`. It loads locally inside `JudgeVideoReplay.exe` and uses the ElementReview backend API endpoints `/api/status`, `/api/sessionInfo`, and `/api/recording/file`.
 
 Run `JudgeVideoReplay.exe` on each judge or referee computer. In the app settings, set the Server IP address to the computer running ElementReview.
+
+Judge Video Replay is read-only over the LAN. It cannot call operator-only recording, clip marking, replay editing, settings, diagnostics, or restart endpoints.
 
 Query options:
 
@@ -339,7 +437,7 @@ Judge Video Replay behavior:
 - element rail buttons are clickable immediately
 - clicking an element clip autoplays that clipped region on a loop
 - the video icon button beneath the element rail appears when replay media is available and opens the full-video timeline with blue numbered clip markers
-- PRCs cache chunks on demand as playback or seeking requests them
+- Judge Video Replay clients cache chunks on demand as playback or seeking requests them
 - cached chunks are reused, so repeated playback of the same region does not download the same bytes again
 - full Judge Video Replay mode shows a session info bar when replay clips are available
 - the session info bar includes the category, discipline, flight, segment, competitor name, and a refresh button
@@ -351,6 +449,8 @@ Judge Video Replay behavior:
 
 ### POST `/api/replay/delete`
 
+Access: operator-only.
+
 Request body:
 
 ```json
@@ -360,6 +460,8 @@ Request body:
 ```
 
 ### POST `/api/replay/split`
+
+Access: operator-only.
 
 Request body:
 
@@ -372,6 +474,8 @@ Request body:
 
 ### POST `/api/replay/insert`
 
+Access: operator-only.
+
 Request body:
 
 ```json
@@ -383,6 +487,8 @@ Request body:
 
 ### POST `/api/replay/trimIn`
 
+Access: operator-only.
+
 Request body:
 
 ```json
@@ -393,6 +499,8 @@ Request body:
 ```
 
 ### POST `/api/replay/trimOut`
+
+Access: operator-only.
 
 Request body:
 
@@ -409,6 +517,8 @@ All replay-edit endpoints return the updated status object.
 
 ### POST `/api/app/restart`
 
+Access: operator-only.
+
 Requests a native-shell restart.
 
 Success response:
@@ -420,6 +530,8 @@ Success response:
 ```
 
 ### GET `/api/hostping?host=...`
+
+Access: operator-only.
 
 Pings a host for settings diagnostics.
 

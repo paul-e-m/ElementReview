@@ -8,7 +8,7 @@ ElementReview is a Windows desktop recording and replay tool for figure skating 
 - `ffmpeg` / `ffprobe` for recording
 - MediaMTX for live RTSP relay into the browser UI
 
-The current app version is `v0.5.2`.
+The current app version is `v0.5.3`.
 
 ## What It Does
 
@@ -48,6 +48,7 @@ Run `JudgeVideoReplay.exe` on each judge or referee computer. In the app setting
 - Cached chunks are reused, so repeated playback of the same region does not download the same bytes again.
 - Judge Video Replay shows a session info bar when replay clips are available.
 - The Judge Video Replay timer overlay appears above clip blocks and remains translucent so the clip underneath is still visible.
+- Judge Video Replay is read-only. It can read session status, session metadata, and low-res replay video, but it cannot start/stop recording, mark clips, clear sessions, edit replay clips, change settings, or restart ElementReview.
 
 Judge Video Replay client transfer behaviour is coordinated by the ElementReview backend:
 
@@ -89,12 +90,22 @@ The local server listens on:
 http://0.0.0.0:5050
 ```
 
-Typical local access:
+Operator access is local-only:
 
 ```text
 http://127.0.0.1:5050
 http://localhost:5050
 ```
+
+LAN clients can reach only the Judge Video Replay read-only API surface:
+
+- `GET /api/status`
+- `GET /api/sessionInfo`
+- `GET /api/recording/file?kind=low-res&v=<ReplayMediaToken>`
+
+Operator-only pages and API actions are restricted to the ElementReview computer. On startup, ElementReview generates a disposable per-session operator token and the local WebView operator UI attaches it automatically to protected API calls. Installers and operators do not need to configure passwords, QR codes, or shared secrets. The token is not stored in source code and changes when the ElementReview server restarts.
+
+Protected operator-only actions include configuration changes, recording start/stop, clip marking, undo/redo, session clearing, replay trim/split/insert/delete, diagnostics, restart, high-res replay access, demo/live operator pages, and the main operator UI.
 
 ## Runtime Requirements
 
