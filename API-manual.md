@@ -97,7 +97,7 @@ The local operator UI receives the token from the native WebView shell at page s
 
 ### SessionInfo
 
-`GET /api/sessionInfo` returns the raw SessionInfo payload. The app expects the current canonical shape:
+`GET /api/sessionInfo` returns the raw `SessionInfo.json` payload. The server does not map it into a fixed DTO, so unknown extra properties pass through unchanged. The current clients read the fields shown below:
 
 ```json
 {
@@ -111,11 +111,42 @@ The local operator UI receives the token from the native WebView shell at page s
   "competitorClub": "Example Club",
   "competitorSection": "ON",
   "elements": {
-    "1": { "code": "2A", "review": false },
-    "2": { "code": "LSp4", "review": true }
+    "1": {
+      "code": "2A",
+      "base_code": "2A",
+      "review": false
+    },
+    "2": {
+      "code": "LSp4",
+      "base_code": "LSp",
+      "review": true
+    }
   }
 }
 ```
+
+Known top-level fields:
+
+| Field | Used for |
+| - | - |
+| `categoryName` | Session banner, halfway/program timing eligibility, saved-video folder naming |
+| `categoryDiscipline` | Session banner, halfway/program timing eligibility, saved-video folder naming |
+| `categoryFlight` | Session banner and saved-video folder naming |
+| `segmentName` | Session banner, halfway/program timing eligibility, saved-video folder naming |
+| `segmentProgHalfTime` | Halfway/program timing marker; accepts seconds, `m:ss`, or `h:mm:ss` |
+| `competitorFirstName` | Session banner and saved-video file naming |
+| `competitorLastName` | Session banner and saved-video file naming |
+| `competitorClub` | Saved-video file naming |
+| `competitorSection` | Saved-video file naming |
+| `elements` | Numbered element metadata keyed by element number |
+
+Known `elements[n]` fields:
+
+| Field | Used for |
+| - | - |
+| `code` | Element label in the local ElementReview operator UI |
+| `base_code` | Element label in the Judge Video Replay client |
+| `review` | Review flag; review-marked clips are highlighted and remembered by the backend |
 
 ### Status
 
@@ -269,7 +300,7 @@ Returns the app version:
 
 Access: LAN read-only.
 
-Returns the current `SessionInfo.json` contents.
+Returns the current `SessionInfo.json` contents unchanged. See [SessionInfo](#sessioninfo) for the known fields currently read by ElementReview and Judge Video Replay.
 
 If CSS link mode is `None`, or if the file is missing, the server returns:
 
