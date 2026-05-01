@@ -8,7 +8,7 @@ ElementReview is a Windows desktop recording and replay tool for figure skating 
 - `ffmpeg` / `ffprobe` for recording
 - MediaMTX for live RTSP relay into the browser UI
 
-The current app version is `v0.5.1`.
+The current app version is `v0.5.2`.
 
 ## What It Does
 
@@ -218,7 +218,7 @@ The app uses `SessionInfo.json` data for:
 
 Halfway/program timing controls are shown only when all of these are true:
 
-- `categoryName` is `Senior`
+- `categoryName` is `Senior` or `Junior`
 - `categoryDiscipline` is `Women` or `Men`
 - `segmentName` is `Free Program` or `Short Program`
 - `segmentProgHalfTime` contains a valid positive time

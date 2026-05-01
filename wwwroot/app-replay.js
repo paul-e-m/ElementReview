@@ -29,6 +29,8 @@ export class ReplayController {
         this.playbackSpeeds = SPEED_BUTTON_DEFS.map((x) => x.def);
         this.activeSpeedIdx = null;
         this.elementLoop = null;
+        this.selectionRequestId = 0;
+        this.transportInputVersion = 0;
         this.autoLoopClip1 = false;
 
         this.manualLoopSeg = null;
@@ -86,6 +88,7 @@ export class ReplayController {
             const button = event.target.closest("button.speedBtn, button.seekJumpBtn");
             if (!button) return;
             if (!this.app.state || this.app.state.mode !== "replay") return;
+            this.transportInputVersion++;
 
             if (button.classList.contains("seekJumpBtn")) {
                 const deltaSeconds = Number(button.dataset.seekSeconds);
@@ -223,7 +226,7 @@ export class ReplayController {
             if (this.app.isSelectedClip(idx, start, end)) return;
 
             event.preventDefault();
-            this.selectClipAndAutoPlay(idx).catch(console.error);
+            this.selectClipAndPause(idx).catch(console.error);
         });
 
         refs.deleteBtn?.addEventListener("click", () => {
@@ -271,14 +274,31 @@ export class ReplayController {
 
             if (!this.isForwardPlaying()) return;
 
-            // Manual loop takes precedence over element-loop playback because
-            // it represents an explicit operator override.
-            const segment = this.manualLoop.phase === "set" && this.manualLoopSeg ? this.manualLoopSeg : this.elementLoop;
-            if (!segment || !Number.isFinite(segment.startSeconds) || !Number.isFinite(segment.endSeconds)) return;
+            // Manual loops are explicit operator loops. A selected element
+            // segment only bounds playback and pauses at its end.
+            const manualSegment = this.manualLoop.phase === "set" && this.manualLoopSeg ? this.manualLoopSeg : null;
+            const segment = manualSegment ?? this.elementLoop;
+            if (
+                !segment ||
+                !Number.isFinite(segment.startSeconds) ||
+                !Number.isFinite(segment.endSeconds) ||
+                segment.endSeconds <= segment.startSeconds
+            ) {
+                return;
+            }
 
             const eps = 0.002;
             if (refs.replayVideo.currentTime >= segment.endSeconds - eps) {
-                refs.replayVideo.currentTime = segment.startSeconds;
+                if (manualSegment) {
+                    refs.replayVideo.currentTime = segment.startSeconds;
+                    return;
+                }
+
+                refs.replayVideo.pause();
+                this.setActiveSpeedIdx(null);
+                this.syncScrubFromVideo();
+                this.app.timeline.draw();
+                this.updateReplayTimerAndSpeed();
             }
         });
 
@@ -913,9 +933,9 @@ export class ReplayController {
         await this.handleLoopClearPress();
     }
 
-    // Selecting a clip seeks to it, makes it the active selection, and starts
-    // playback using the default forward speed.
-    async selectClipAndAutoPlay(idx) {
+    // Selecting a clip seeks to its first frame and makes it the active
+    // element segment without starting playback.
+    async selectClipAndPause(idx) {
         const { replayVideo } = this.app.refs;
         if (!this.app.state || this.app.state.mode !== "replay") return;
 
@@ -926,11 +946,11 @@ export class ReplayController {
         const end = this.app.clipEnd(clip);
         if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
 
+        const requestId = ++this.selectionRequestId;
+        const transportInputVersion = this.transportInputVersion;
+
         this.stopReverse();
         replayVideo.pause();
-
-        await this.seekTo(start);
-        this.syncScrubFromVideo();
 
         // Keep both the clip number and the exact time segment. The exact
         // segment lets the selection survive edits even if indices move.
@@ -939,15 +959,22 @@ export class ReplayController {
         this.elementLoop = { startSeconds: start, endSeconds: end };
         this.app.renderClipList();
 
-        replayVideo.playbackRate = Number(this.playbackSpeeds[3] ?? 1);
-        const playPromise = replayVideo.play();
-        if (playPromise && typeof playPromise.catch === "function") {
-            playPromise.catch(() => { });
+        await this.seekTo(start);
+        if (requestId !== this.selectionRequestId) return;
+
+        if (transportInputVersion === this.transportInputVersion) {
+            replayVideo.pause();
+            this.setActiveSpeedIdx(null);
         }
 
-        this.setActiveSpeedIdx(3);
+        this.syncScrubFromVideo();
+        replayVideo.playbackRate = Number(this.playbackSpeeds[3] ?? 1);
         this.app.timeline.draw();
         this.updateReplayTimerAndSpeed();
+    }
+
+    async selectClipAndAutoPlay(idx) {
+        return this.selectClipAndPause(idx);
     }
 
     scrubSeconds() {

@@ -1,6 +1,6 @@
 import { el, BTN_SIZE, clamp, apiGet, apiPost } from "./app-utils.js";
 import { TimelineRenderer } from "./app-timeline.js?v=20260424-negativezero1";
-import { ReplayController } from "./app-replay.js?v=20260419-zoomexit1";
+import { ReplayController } from "./app-replay.js?v=20260430-selected-pause1";
 import { ShortcutKeysController } from "./app-shortcut-keys.js?v=20260424-rstart-ssetstart1";
 
 // ElementReviewApp coordinates the shared operator UI state in index.html.
@@ -130,7 +130,7 @@ export class ElementReviewApp {
 
         // Cache appconfig early so later interactions do not need an extra fetch.
         this.appConfig = null;
-        this.appVersion = "v0.5.0";
+        this.appVersion = "v0.5.2";
         this.currentLanguage = "en";
         this.i18n = window.INDEX_I18N || {};
         this.buttonAssetVersion = "20260424-rstart-ssetstart1";
@@ -275,7 +275,7 @@ export class ElementReviewApp {
         );
 
         return (
-            categoryName === "senior" &&
+            (categoryName === "senior" || categoryName === "junior") &&
             (categoryDiscipline === "women" || categoryDiscipline === "men") &&
             (segmentName === "free program" || segmentName === "short program")
         );
@@ -804,7 +804,7 @@ export class ElementReviewApp {
             const idx = parseInt(button.dataset.clipIndex, 10);
             if (!Number.isFinite(idx)) return;
 
-            await this.replay.selectClipAndAutoPlay(idx);
+            await this.replay.selectClipAndPause(idx);
         });
     }
 
@@ -2562,8 +2562,8 @@ export class ElementReviewApp {
             this.stopProgramTimer(previousRecordSeconds);
         }
 
-        // Entering replay arms the first clip for quick review and starts the
-        // separate review-duration timer shown in the replay UI.
+        // Entering replay selects the first clip for quick review and starts
+        // the separate review-duration timer shown in the replay UI.
         if (prevMode !== "replay" && this.state.mode === "replay") {
             this.replay.autoLoopClip1 = true;
             this.replay.reviewStartPerf = performance.now();
