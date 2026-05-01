@@ -4,9 +4,9 @@
 
 ElementReview exposes a local HTTP API used by:
 
-- the main operator UI in `index.html`
-- the settings window in `config.html`
-- the separate Judge Video Replay app in `JudgeVideoReplay/wwwroot/judge-video-replay.html`
+- the main operator (VRO) UI in `index.html`, used by the Element Review app
+- the settings window in `config.html`, used by the Element Review app
+- the separate standalone Judge Video Replay app in `JudgeVideoReplay/wwwroot/judge-video-replay.html`
 
 Base URL:
 
