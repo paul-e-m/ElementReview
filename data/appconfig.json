@@ -15,5 +15,6 @@
   "EventId": "",
   "CSSServerHost": "",
   "SaveVideos": false,
-  "SavedVideosFolder": "C:/Event_Videos"
+  "SavedVideosFolder": "C:/Event_Videos",
+  "AutoplaySelectedClip": false
 }

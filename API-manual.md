@@ -91,7 +91,8 @@ The local operator UI receives the token from the native WebView shell at page s
   "EventId": "",
   "CSSServerHost": "",
   "SaveVideos": false,
-  "SavedVideosFolder": "C:/Event_Videos"
+  "SavedVideosFolder": "C:/Event_Videos",
+  "AutoplaySelectedClip": false
 }
 ```
 
@@ -290,7 +291,7 @@ Returns the app version:
 
 ```json
 {
-  "version": "v0.5.3"
+  "version": "v0.5.4"
 }
 ```
 

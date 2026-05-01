@@ -304,7 +304,7 @@ export class ShortcutKeysController {
         this.replay.stopReverse();
         this.app.refs.replayVideo?.pause();
         this.replay.setActiveSpeedIdx(null);
-        this.replay.clearElementLoop();
+        this.replay.clearSelectedPlaybackBounds();
         this.replay.resetManualLoop();
         this.replay.seekTo(target)
             .then(() => {

@@ -279,7 +279,8 @@ public static class AppServer
                 var shouldWriteDefaults =
                     IsMissingOrBlankConfigProperty(json, "highresVideoGop") ||
                     IsMissingOrBlankConfigProperty(json, "lowresVideoBitrate") ||
-                    IsMissingOrBlankConfigProperty(json, "lowresVideoGop");
+                    IsMissingOrBlankConfigProperty(json, "lowresVideoGop") ||
+                    IsMissingOrBlankConfigProperty(json, "AutoplaySelectedClip");
                 var loadedConfig = JsonSerializer.Deserialize<AppConfig>(json, jsonOpts);
                 if (loadedConfig != null &&
                     IsMissingOrBlankConfigProperty(json, "highresVideoGop") &&

@@ -39,6 +39,9 @@ export class ElementReviewApp {
             replayElementsValue: el("replayElementsValue"),
             replayReviewsLabel: el("replayReviewsLabel"),
             replayReviewsValue: el("replayReviewsValue"),
+            autoplaySelectedClipRow: el("autoplaySelectedClipRow"),
+            autoplaySelectedClipLabel: el("autoplaySelectedClipLabel"),
+            autoplaySelectedClipToggle: el("autoplaySelectedClipToggle"),
             clipList: el("clipList"),
             clipToggleRailHost: el("clipToggleRailHost"),
             buttonCanvasContainer: el("buttonCanvasContainer"),
@@ -130,7 +133,7 @@ export class ElementReviewApp {
 
         // Cache appconfig early so later interactions do not need an extra fetch.
         this.appConfig = null;
-        this.appVersion = "v0.5.3";
+        this.appVersion = "v0.5.4";
         this.currentLanguage = "en";
         this.i18n = window.INDEX_I18N || {};
         this.buttonImageUrlCache = new Map();
@@ -140,6 +143,8 @@ export class ElementReviewApp {
         this.editModeEnabled = false;
         this.editToggleWrap = null;
         this.editToggleInput = null;
+        this.autoplaySelectedClipEnabled = false;
+        this.isSavingAutoplaySelectedClip = false;
 
         this.selectedClipIdx = null;
         this.selectedClipSeg = null;
@@ -181,6 +186,7 @@ export class ElementReviewApp {
         this.editModeEnabled = this.loadEditModeSetting();
         this.ensureEditToggle();
         if (this.editToggleInput) this.editToggleInput.checked = this.editModeEnabled;
+        this.syncAutoplaySelectedClipToggle();
 
         if (this.refs.recordTimerValue) this.refs.recordTimerValue.textContent = this.formatRecordingTimerDisplay(0);
         if (this.refs.clipTime) this.refs.clipTime.textContent = this.formatClipTimerDisplay(0);
@@ -241,6 +247,7 @@ export class ElementReviewApp {
         this.currentLanguage = this.normalizeLanguage(
             this.appConfig?.Language ?? this.currentLanguage
         );
+        this.syncAutoplaySelectedClipFromConfig();
         this.applyTranslations();
         this.syncHalfwayUi();
         this.preloadButtonImages();
@@ -589,6 +596,8 @@ export class ElementReviewApp {
             this.setText(this.editToggleWrap.querySelector(".editToggleLabel"), this.t("editToggleLabel"));
         }
         this.setAriaLabel(this.editToggleInput, this.t("editToggleAria"));
+        this.setText(this.refs.autoplaySelectedClipLabel, this.t("autoplaySelectedClipLabel"));
+        this.setAriaLabel(this.refs.autoplaySelectedClipToggle, this.t("autoplaySelectedClipAria"));
         this.setAriaLabel(this.refs.editButtons, this.t("editControlsAria"));
         this.setAriaLabel(this.refs.loopButtons, this.t("loopControlsAria"));
 
@@ -628,6 +637,7 @@ export class ElementReviewApp {
         this.replay.updateReviewTimer();
         this.replay.updateLoopButtonsUI();
         this.replay.updateZoomHint();
+        this.syncAutoplaySelectedClipToggle();
         this.shortcuts.refreshOverlay();
         this.updateClipCanvasSizing();
     }
@@ -788,7 +798,7 @@ export class ElementReviewApp {
 
             const empty = event.target.closest(".clipSlotEmpty");
             if (empty) {
-                this.replay.clearElementLoop();
+                this.replay.clearSelectedPlaybackBounds();
                 this.setSelectedClipIdx(null);
                 this.renderClipList();
                 this.timeline.draw();
@@ -802,7 +812,14 @@ export class ElementReviewApp {
             const idx = parseInt(button.dataset.clipIndex, 10);
             if (!Number.isFinite(idx)) return;
 
-            await this.replay.selectClipAndPause(idx);
+            await this.replay.selectClip(idx, { autoplay: this.autoplaySelectedClipEnabled });
+        });
+
+        this.refs.autoplaySelectedClipToggle?.addEventListener("change", () => {
+            this.setAutoplaySelectedClipEnabled(!!this.refs.autoplaySelectedClipToggle.checked)
+                .catch((err) => {
+                    alert(err?.message || "Unable to save autoplay setting.");
+                });
         });
     }
 
@@ -818,6 +835,47 @@ export class ElementReviewApp {
         try {
             localStorage.setItem(LS_EDIT_KEY, on ? "1" : "0");
         } catch {
+        }
+    }
+
+    readAutoplaySelectedClipFromConfig(config = this.appConfig) {
+        return !!config?.AutoplaySelectedClip;
+    }
+
+    syncAutoplaySelectedClipFromConfig(config = this.appConfig) {
+        if (this.isSavingAutoplaySelectedClip) return;
+        this.autoplaySelectedClipEnabled = this.readAutoplaySelectedClipFromConfig(config);
+        this.syncAutoplaySelectedClipToggle();
+    }
+
+    syncAutoplaySelectedClipToggle() {
+        if (this.refs.autoplaySelectedClipToggle) {
+            this.refs.autoplaySelectedClipToggle.checked = !!this.autoplaySelectedClipEnabled;
+            this.refs.autoplaySelectedClipToggle.disabled = !!this.isSavingAutoplaySelectedClip;
+        }
+    }
+
+    async setAutoplaySelectedClipEnabled(on) {
+        const next = !!on;
+        const previous = !!this.autoplaySelectedClipEnabled;
+        const baseConfig = this.appConfig ?? await apiGet(`/api/appconfig?ts=${Date.now()}`);
+
+        this.isSavingAutoplaySelectedClip = true;
+        this.autoplaySelectedClipEnabled = next;
+        this.appConfig = { ...baseConfig, AutoplaySelectedClip: next };
+        this.syncAutoplaySelectedClipToggle();
+
+        try {
+            const saved = await apiPost("/api/appconfig", this.appConfig);
+            this.appConfig = saved;
+            this.autoplaySelectedClipEnabled = this.readAutoplaySelectedClipFromConfig(saved);
+        } catch (err) {
+            this.appConfig = { ...baseConfig, AutoplaySelectedClip: previous };
+            this.autoplaySelectedClipEnabled = previous;
+            throw err;
+        } finally {
+            this.isSavingAutoplaySelectedClip = false;
+            this.syncAutoplaySelectedClipToggle();
         }
     }
 
@@ -1072,25 +1130,6 @@ export class ElementReviewApp {
         if (this.selectedClipIdx == null) return false;
         if (!Number.isFinite(idx) || idx !== this.selectedClipIdx) return false;
         return true;
-    }
-
-    isLoopingClip(idx, startSeconds, endSeconds) {
-        const loop = this.replay?.elementLoop;
-        if (
-            !loop ||
-            !Number.isFinite(loop.startSeconds) ||
-            !Number.isFinite(loop.endSeconds)
-        ) {
-            return false;
-        }
-
-        const eps = 0.02;
-        return (
-            Number.isFinite(idx) &&
-            idx === this.selectedClipIdx &&
-            Math.abs(Number(loop.startSeconds) - Number(startSeconds)) < eps &&
-            Math.abs(Number(loop.endSeconds) - Number(endSeconds)) < eps
-        );
     }
 
     findClipAtTime(timeSeconds) {
@@ -1741,6 +1780,7 @@ export class ElementReviewApp {
             const config = await apiGet(`/api/appconfig?ts=${Date.now()}`);
             this.appConfig = config;
             this.syncLanguageFromConfig(config);
+            this.syncAutoplaySelectedClipFromConfig(config);
             this.syncHalfwayUi();
 
             if (config?.DemoMode) {
@@ -2201,14 +2241,13 @@ export class ElementReviewApp {
         }
         const halfwayMarkerAnchorIndex = this.getHalfwayMarkerAnchorIndex();
         const openClipPlaceholderIndex = this.getOpenClipPlaceholderIndex();
-        const loopingClipIdx = this.getLoopingClipIndex();
         const selectedStartMs = Number.isFinite(this.selectedClipSeg?.startSeconds)
             ? Math.round(this.selectedClipSeg.startSeconds * 1000)
             : "none";
         const selectedEndMs = Number.isFinite(this.selectedClipSeg?.endSeconds)
             ? Math.round(this.selectedClipSeg.endSeconds * 1000)
             : "none";
-        key += `|meta:${this.elementMetaVersion}|halfway:${halfwayMarkerAnchorIndex ?? "none"}|open:${openClipPlaceholderIndex ?? "none"}|loop:${loopingClipIdx ?? "none"}|selected:${this.selectedClipIdx ?? "none"}:${selectedStartMs}-${selectedEndMs}|hint:${this.t("shortcutRailHint")}`;
+        key += `|meta:${this.elementMetaVersion}|halfway:${halfwayMarkerAnchorIndex ?? "none"}|open:${openClipPlaceholderIndex ?? "none"}|selected:${this.selectedClipIdx ?? "none"}:${selectedStartMs}-${selectedEndMs}|hint:${this.t("shortcutRailHint")}`;
 
         if (clipList.dataset.key === key) return;
         clipList.dataset.key = key;
@@ -2237,7 +2276,6 @@ export class ElementReviewApp {
             const start = this.clipStart(clip);
             const end = this.clipEnd(clip);
             const isSelected = this.isSelectedClip(index, start, end);
-            const isLooping = this.isLoopingClip(index, start, end);
             const canDelete =
                 this.state?.mode === "record" &&
                 !!this.state?.isRecording &&
@@ -2251,7 +2289,7 @@ export class ElementReviewApp {
                 container.setAttribute("aria-pressed", isSelected ? "true" : "false");
             }
 
-            container.className = `clipBtn${review ? " isReview" : ""}${isLooping ? " isLooping" : ""}${isSelected ? " isSelectedReplay" : ""}${canDelete ? " clipBtnDeletable" : ""}`;
+            container.className = `clipBtn${review ? " isReview" : ""}${isSelected ? " isSelectedReplay" : ""}${canDelete ? " clipBtnDeletable" : ""}`;
             container.dataset.clipIndex = String(index);
             this.addHalfwayMarkerClasses(container, index, halfwayMarkerAnchorIndex);
             this.appendClipListEntryContent(
@@ -2276,20 +2314,6 @@ export class ElementReviewApp {
             slot.appendChild(hint);
         }
         return slot;
-    }
-
-    getLoopingClipIndex() {
-        const loop = this.replay?.elementLoop;
-        if (
-            !loop ||
-            !Number.isFinite(loop.startSeconds) ||
-            !Number.isFinite(loop.endSeconds)
-        ) {
-            return null;
-        }
-
-        const clip = this.findClipBySegment(loop, 0.02);
-        return clip ? this.clipIdx(clip) : null;
     }
 
     formatClipListTimecode(seconds) {
@@ -2443,7 +2467,7 @@ export class ElementReviewApp {
 
         const inRecord = uiMode === "record";
         const recording = !!this.state.isRecording;
-        const showProgramTimer = inRecord;
+        const showProgramTimer = inRecord && this.hasHalfwayTimeAvailable();
         const programTimerCol = this.refs.programTimerCard?.parentElement ?? null;
 
         if (this.refs.replayProgramTimeIndicator) {
@@ -2563,7 +2587,7 @@ export class ElementReviewApp {
         // Entering replay selects the first clip for quick review and starts
         // the separate review-duration timer shown in the replay UI.
         if (prevMode !== "replay" && this.state.mode === "replay") {
-            this.replay.autoLoopClip1 = true;
+            this.replay.autoSelectClip1 = true;
             this.replay.reviewStartPerf = performance.now();
             this.replay.updateReviewTimer();
         }
@@ -2572,7 +2596,7 @@ export class ElementReviewApp {
             this.replay.stopReverse();
             this.refs.replayVideo?.pause();
             this.replay.setActiveSpeedIdx(null);
-            this.replay.clearElementLoop();
+            this.replay.clearSelectedPlaybackBounds();
             this.replay.resetManualLoop();
             this.replay.resetZoom();
             this.replay.reviewStartPerf = null;
@@ -2680,17 +2704,18 @@ export class ElementReviewApp {
 
             this.localRecStartPerf = null;
             this.replay.stopReverse();
-            this.replay.clearElementLoop();
+            this.replay.clearSelectedPlaybackBounds();
             this.replay.resetManualLoop();
             this.replay.setActiveSpeedIdx(null);
             this.setSelectedClipIdx(null);
 
             this.applyStatusUpdate(nextState);
 
-            // Re-arm the replay startup loop for the final replay-file load
-            // triggered here. Entering replay mode already arms this once, but
-            // that earlier load can complete before this fresh `ts=` reload.
-            this.replay.autoLoopClip1 = true;
+            // Re-arm the replay startup selection for the final replay-file
+            // load triggered here. Entering replay mode already arms this
+            // once, but that earlier load can complete before this fresh
+            // `ts=` reload.
+            this.replay.autoSelectClip1 = true;
             this.refs.replayVideo.src = `/api/recording/file?kind=high-res&ts=${Date.now()}`;
             this.refs.replayVideo.load();
 
@@ -2790,7 +2815,7 @@ export class ElementReviewApp {
         // local interaction state so the next recording starts cleanly.
         this.clearPendingRecordShortcut();
         this.replay.stopReverse();
-        this.replay.clearElementLoop();
+        this.replay.clearSelectedPlaybackBounds();
         this.replay.resetManualLoop();
         this.replay.setActiveSpeedIdx(null);
         this.setSelectedClipIdx(null);

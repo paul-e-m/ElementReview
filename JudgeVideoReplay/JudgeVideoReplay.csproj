@@ -4,8 +4,8 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>JudgeVideoReplay</AssemblyName>
-    <Version>0.5.3</Version>
-    <InformationalVersion>0.5.3</InformationalVersion>
+    <Version>0.5.4</Version>
+    <InformationalVersion>0.5.4</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <ApplicationIcon>$(MSBuildThisFileDirectory)JudgeVideoReplay.ico</ApplicationIcon>
     <Win32Icon>$(MSBuildThisFileDirectory)JudgeVideoReplay.ico</Win32Icon>

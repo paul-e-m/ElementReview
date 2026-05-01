@@ -28,10 +28,10 @@ export class ReplayController {
 
         this.playbackSpeeds = SPEED_BUTTON_DEFS.map((x) => x.def);
         this.activeSpeedIdx = null;
-        this.elementLoop = null;
+        this.selectedPlaybackBounds = null;
         this.selectionRequestId = 0;
         this.transportInputVersion = 0;
-        this.autoLoopClip1 = false;
+        this.autoSelectClip1 = false;
 
         this.manualLoopSeg = null;
         this.manualLoop = { phase: "idle", startSeconds: null };
@@ -152,7 +152,7 @@ export class ReplayController {
             this.stopReverse();
             refs.replayVideo.pause();
             this.setActiveSpeedIdx(null);
-            this.clearElementLoop();
+            this.clearSelectedPlaybackBounds();
 
             const duration = this.getReplayDurSeconds();
             const total = this.getReplayTotalSeconds();
@@ -189,7 +189,7 @@ export class ReplayController {
             this.stopReverse();
             refs.replayVideo.pause();
             this.setActiveSpeedIdx(null);
-            this.clearElementLoop();
+            this.clearSelectedPlaybackBounds();
 
             let time = fraction * total;
             time = clamp(time, 0, duration);
@@ -226,7 +226,7 @@ export class ReplayController {
             if (this.app.isSelectedClip(idx, start, end)) return;
 
             event.preventDefault();
-            this.selectClipAndPause(idx).catch(console.error);
+            this.selectClip(idx, { autoplay: false }).catch(console.error);
         });
 
         refs.deleteBtn?.addEventListener("click", () => {
@@ -259,8 +259,8 @@ export class ReplayController {
             this.app.scheduleLayout();
             this.applyZoom();
 
-            if (this.autoLoopClip1) {
-                this.autoLoopClip1 = false;
+            if (this.autoSelectClip1) {
+                this.autoSelectClip1 = false;
                 this.app.refs.clipList?.querySelector('button[data-clip-index="1"]')?.click();
             }
         });
@@ -274,32 +274,27 @@ export class ReplayController {
 
             if (!this.isForwardPlaying()) return;
 
-            // Manual loops are explicit operator loops. A selected element
-            // segment only bounds playback and pauses at its end.
-            const manualSegment = this.manualLoop.phase === "set" && this.manualLoopSeg ? this.manualLoopSeg : null;
-            const segment = manualSegment ?? this.elementLoop;
-            if (
-                !segment ||
-                !Number.isFinite(segment.startSeconds) ||
-                !Number.isFinite(segment.endSeconds) ||
-                segment.endSeconds <= segment.startSeconds
-            ) {
+            const manualSegment = this.getManualLoopSegment();
+            if (manualSegment) {
+                const eps = 0.002;
+                if (refs.replayVideo.currentTime >= manualSegment.endSeconds - eps) {
+                    refs.replayVideo.currentTime = manualSegment.startSeconds;
+                }
                 return;
             }
 
-            const eps = 0.002;
-            if (refs.replayVideo.currentTime >= segment.endSeconds - eps) {
-                if (manualSegment) {
-                    refs.replayVideo.currentTime = segment.startSeconds;
-                    return;
-                }
+            const bounds = this.getSelectedPlaybackBounds();
+            if (!bounds) return;
 
-                refs.replayVideo.pause();
-                this.setActiveSpeedIdx(null);
-                this.syncScrubFromVideo();
-                this.app.timeline.draw();
-                this.updateReplayTimerAndSpeed();
-            }
+            const eps = 0.002;
+            if (refs.replayVideo.currentTime < bounds.endSeconds - eps) return;
+
+            refs.replayVideo.pause();
+            this.setActiveSpeedIdx(null);
+            this.clearSelectedPlaybackBounds();
+            this.syncScrubFromVideo();
+            this.app.timeline.draw();
+            this.updateReplayTimerAndSpeed();
         });
 
         refs.replayVideo?.addEventListener("seeked", () => {
@@ -328,7 +323,7 @@ export class ReplayController {
                 this.stopReverse();
                 refs.replayVideo.pause();
                 this.setActiveSpeedIdx(null);
-                this.clearElementLoop();
+                this.clearSelectedPlaybackBounds();
 
                 const fps = this.app.getFps();
                 const step = 1 / fps;
@@ -655,10 +650,27 @@ export class ReplayController {
         }
     }
 
-    // Manual loop state is separate from element-loop playback so the operator
-    // can mark a custom in/out range without changing the selected clip.
-    clearElementLoop() {
-        this.elementLoop = null;
+    // Manual loops wrap. Selected clip bounds are one-shot playback limits.
+    getManualLoopSegment() {
+        if (this.manualLoop.phase !== "set" || !this.manualLoopSeg) return null;
+        const { startSeconds, endSeconds } = this.manualLoopSeg;
+        if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds)) return null;
+        if (endSeconds <= startSeconds + 0.0001) return null;
+        return this.manualLoopSeg;
+    }
+
+    getSelectedPlaybackBounds() {
+        const bounds = this.selectedPlaybackBounds;
+        if (!bounds) return null;
+        const { startSeconds, endSeconds } = bounds;
+        if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds)) return null;
+        if (endSeconds <= startSeconds + 0.0001) return null;
+        return bounds;
+    }
+
+    clearSelectedPlaybackBounds() {
+        if (!this.selectedPlaybackBounds) return;
+        this.selectedPlaybackBounds = null;
         this.app.renderClipList();
     }
 
@@ -795,8 +807,8 @@ export class ReplayController {
         let lastUpdate = 0;
 
         // HTML video has no native reverse playback here, so we simulate it by
-        // repeatedly seeking backward based on elapsed time and wrapping inside
-        // the active loop segment when one is set.
+        // repeatedly seeking backward based on elapsed time. Manual loops wrap,
+        // while selected-element playback pauses once at the element start.
         const tick = (now) => {
             if (!this.reversePlaying) return;
 
@@ -809,14 +821,9 @@ export class ReplayController {
             const elapsed = (now - startPerf) / 1000.0;
             let target = startVideo - elapsed * this.reverseSpeedAbs;
 
-            const segment = this.manualLoop.phase === "set" && this.manualLoopSeg ? this.manualLoopSeg : this.elementLoop;
-            if (
-                segment &&
-                Number.isFinite(segment.startSeconds) &&
-                Number.isFinite(segment.endSeconds) &&
-                segment.endSeconds > segment.startSeconds + 0.0001
-            ) {
-                const { startSeconds, endSeconds } = segment;
+            const manualSegment = this.getManualLoopSegment();
+            if (manualSegment) {
+                const { startSeconds, endSeconds } = manualSegment;
                 const length = endSeconds - startSeconds;
 
                 if (target < startSeconds) {
@@ -828,6 +835,20 @@ export class ReplayController {
                 }
             } else if (target < 0) {
                 target = 0;
+            }
+
+            const bounds = manualSegment ? null : this.getSelectedPlaybackBounds();
+            if (bounds && target <= bounds.startSeconds) {
+                target = bounds.startSeconds;
+                replayVideo.currentTime = target;
+                this.stopReverse();
+                this.setActiveSpeedIdx(null);
+                this.clearSelectedPlaybackBounds();
+
+                if (!this.isScrubbing) this.syncScrubFromVideo();
+                this.app.timeline.draw();
+                this.updateReplayTimerAndSpeed();
+                return;
             }
 
             replayVideo.currentTime = target;
@@ -858,7 +879,7 @@ export class ReplayController {
         const { replayVideo } = this.app.refs;
         if (!this.app.state || this.app.state.mode !== "replay") return;
 
-        this.clearElementLoop();
+        this.clearSelectedPlaybackBounds();
         this.manualLoopSeg = null;
 
         let start = Number(replayVideo.currentTime || 0);
@@ -933,9 +954,9 @@ export class ReplayController {
         await this.handleLoopClearPress();
     }
 
-    // Selecting a clip seeks to its first frame and makes it the active
-    // element segment without starting playback.
-    async selectClipAndPause(idx) {
+    // Selecting a clip seeks to its first frame, creates one-shot playback
+    // bounds, and optionally starts forward playback.
+    async selectClip(idx, { autoplay = false } = {}) {
         const { replayVideo } = this.app.refs;
         if (!this.app.state || this.app.state.mode !== "replay") return;
 
@@ -956,25 +977,29 @@ export class ReplayController {
         // segment lets the selection survive edits even if indices move.
         this.app.setSelectedClipIdx(idx);
         this.app.selectedClipSeg = { startSeconds: start, endSeconds: end };
-        this.elementLoop = { startSeconds: start, endSeconds: end };
+        this.selectedPlaybackBounds = { startSeconds: start, endSeconds: end };
         this.app.renderClipList();
 
         await this.seekTo(start);
         if (requestId !== this.selectionRequestId) return;
 
         if (transportInputVersion === this.transportInputVersion) {
-            replayVideo.pause();
-            this.setActiveSpeedIdx(null);
+            const playIdx = 3;
+            const speed = Number(this.playbackSpeeds[playIdx] ?? 1);
+            replayVideo.playbackRate = speed;
+
+            if (autoplay) {
+                this.playForward(speed);
+                this.setActiveSpeedIdx(playIdx);
+            } else {
+                replayVideo.pause();
+                this.setActiveSpeedIdx(null);
+            }
         }
 
         this.syncScrubFromVideo();
-        replayVideo.playbackRate = Number(this.playbackSpeeds[3] ?? 1);
         this.app.timeline.draw();
         this.updateReplayTimerAndSpeed();
-    }
-
-    async selectClipAndAutoPlay(idx) {
-        return this.selectClipAndPause(idx);
     }
 
     scrubSeconds() {
@@ -988,7 +1013,7 @@ export class ReplayController {
     }
 
     // Clip edit actions call the backend, then refresh state and repair the
-    // current replay selection/loop where needed.
+    // current replay selection/playback bounds where needed.
     async doDeleteSelectedClip() {
         const { replayVideo } = this.app.refs;
         if (!this.app.editModeEnabled) return;
@@ -1006,7 +1031,7 @@ export class ReplayController {
         this.stopReverse();
         replayVideo.pause();
         this.setActiveSpeedIdx(null);
-        this.clearElementLoop();
+        this.clearSelectedPlaybackBounds();
         this.resetManualLoop();
 
         await apiPost("/api/replay/delete", { index: this.app.selectedClipIdx });
@@ -1044,7 +1069,7 @@ export class ReplayController {
         this.stopReverse();
         replayVideo.pause();
         this.setActiveSpeedIdx(null);
-        this.clearElementLoop();
+        this.clearSelectedPlaybackBounds();
         this.resetManualLoop();
 
         const wantedSegment = { startSeconds: start, endSeconds: time };
@@ -1081,7 +1106,10 @@ export class ReplayController {
         // Preserve the old segment so selection can be reattached after backend edits.
         const oldSegment = { startSeconds: start, endSeconds: end };
         const newSegment = { startSeconds: newStart, endSeconds: end };
-        const hadLoop = !!(this.elementLoop && this.app.segEquals(this.elementLoop, start, end, 0.03));
+        const hadSelectedPlaybackBounds = !!(
+            this.selectedPlaybackBounds &&
+            this.app.segEquals(this.selectedPlaybackBounds, start, end, 0.03)
+        );
 
         this.app.selectedClipSeg = newSegment;
         await apiPost("/api/replay/trimIn", {
@@ -1098,8 +1126,8 @@ export class ReplayController {
             this.updateReplayTimerAndSpeed();
         }
 
-        if (hadLoop && this.app.selectedClipSeg) {
-            this.elementLoop = {
+        if (hadSelectedPlaybackBounds && this.app.selectedClipSeg) {
+            this.selectedPlaybackBounds = {
                 startSeconds: this.app.selectedClipSeg.startSeconds,
                 endSeconds: this.app.selectedClipSeg.endSeconds,
             };
@@ -1125,7 +1153,10 @@ export class ReplayController {
         // Preserve the old segment so selection can be reattached after backend edits.
         const oldSegment = { startSeconds: start, endSeconds: end };
         const newSegment = { startSeconds: start, endSeconds: newEnd };
-        const hadLoop = !!(this.elementLoop && this.app.segEquals(this.elementLoop, start, end, 0.03));
+        const hadSelectedPlaybackBounds = !!(
+            this.selectedPlaybackBounds &&
+            this.app.segEquals(this.selectedPlaybackBounds, start, end, 0.03)
+        );
 
         this.app.selectedClipSeg = newSegment;
         await apiPost("/api/replay/trimOut", {
@@ -1142,8 +1173,8 @@ export class ReplayController {
             this.updateReplayTimerAndSpeed();
         }
 
-        if (hadLoop && this.app.selectedClipSeg) {
-            this.elementLoop = {
+        if (hadSelectedPlaybackBounds && this.app.selectedClipSeg) {
+            this.selectedPlaybackBounds = {
                 startSeconds: this.app.selectedClipSeg.startSeconds,
                 endSeconds: this.app.selectedClipSeg.endSeconds,
             };
@@ -1176,7 +1207,7 @@ export class ReplayController {
         this.stopReverse();
         replayVideo.pause();
         this.setActiveSpeedIdx(null);
-        this.clearElementLoop();
+        this.clearSelectedPlaybackBounds();
         this.resetManualLoop();
 
         this.app.selectedClipSeg = { startSeconds: start, endSeconds: end };
@@ -1231,7 +1262,7 @@ export class ReplayController {
             this.stopReverse();
         }
 
-        this.clearElementLoop();
+        this.clearSelectedPlaybackBounds();
 
         let time = Number(replayVideo.currentTime || 0) + deltaSeconds;
         const duration = this.getReplayDurSeconds();
@@ -1260,7 +1291,7 @@ export class ReplayController {
         this.stopReverse();
         replayVideo.pause();
         this.setActiveSpeedIdx(null);
-        this.clearElementLoop();
+        this.clearSelectedPlaybackBounds();
 
         const fps = this.app.getFps();
         const step = 1 / fps;
@@ -1287,7 +1318,7 @@ export class ReplayController {
         this.stopReverse();
         replayVideo.pause();
         this.setActiveSpeedIdx(null);
-        this.clearElementLoop();
+        this.clearSelectedPlaybackBounds();
 
         // Held arrows act like a temporary shuttle mode at 0.5x in either
         // direction, separate from the normal speed-button transport.

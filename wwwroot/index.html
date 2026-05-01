@@ -25,6 +25,13 @@
               button; in record mode empty slots still preserve the layout.
             -->
             <div id="leftControls" class="leftControls">
+                <div id="autoplaySelectedClipRow" class="autoplaySelectedClipRow">
+                    <span id="autoplaySelectedClipLabel" class="editToggleLabel">Autoplay Selected Clip</span>
+                    <label class="editToggleSwitch">
+                        <input type="checkbox" id="autoplaySelectedClipToggle" aria-label="Autoplay Selected Clip" />
+                        <span class="editToggleSlider"></span>
+                    </label>
+                </div>
                 <div id="clipList" class="clipList" aria-label="Elements"></div>
                 <div id="clipToggleRailHost" class="clipToggleRailHost">
                     <div id="buttonCanvasContainer" class="buttonCanvasContainer">
@@ -318,7 +325,7 @@
             <div id="shortcutModeLabel" class="shortcutModeLabel">Recording Mode</div>
             <div id="shortcutList" class="shortcutList"></div>
             <div class="shortcutFooter">
-                <div id="shortcutVersion" class="shortcutVersion">v0.5.3</div>
+                <div id="shortcutVersion" class="shortcutVersion">v0.5.4</div>
             </div>
         </div>
     </div>

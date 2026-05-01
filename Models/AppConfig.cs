@@ -57,4 +57,7 @@ public class AppConfig
 
     [JsonPropertyOrder(16)]
     public string SavedVideosFolder { get; set; } = "C:/Event_Videos";
+
+    [JsonPropertyOrder(17)]
+    public bool AutoplaySelectedClip { get; set; } = false;
 }

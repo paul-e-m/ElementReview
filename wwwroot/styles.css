@@ -279,8 +279,26 @@ body.replayActive .container {
 }
 
 body.replayActive .leftControls {
+    display: grid;
+    grid-template-rows: var(--sessionInfoH) repeat(15, minmax(0, 1fr));
+}
+
+.autoplaySelectedClipRow {
+    width: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    display: none;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 3px 0 3px 5px;
+    background: #4b5158;
+    user-select: none;
+}
+
+body.replayActive .autoplaySelectedClipRow {
     display: flex;
-    flex-direction: column;
+    grid-row: 1;
 }
 
 .rightContent {
@@ -393,8 +411,8 @@ button {
 }
 
 body.replayActive .clipList {
-    flex: 1 1 auto;
-    grid-row: auto;
+    height: auto;
+    grid-row: 2 / span 15;
 }
 
 .clipToggleRailHost {
@@ -453,15 +471,6 @@ body.replayActive .clipList {
         box-shadow 120ms ease,
         background 120ms ease,
         border-color 120ms ease;
-}
-
-.clipBtn.isLooping {
-    background: #2d4d99;
-    border-color: rgba(255,255,255,0.14);
-    box-shadow:
-        inset 0 1px 1px rgba(0,0,0,0.16),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-    transform: translateY(2px);
 }
 
 body.replayActive .clipBtn.isSelectedReplay {

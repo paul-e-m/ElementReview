@@ -8,7 +8,7 @@ ElementReview is a Windows desktop recording and replay tool for figure skating 
 - `ffmpeg` / `ffprobe` for recording
 - MediaMTX for live RTSP relay into the browser UI
 
-The current app version is `v0.5.3`.
+The current app version is `v0.5.4`.
 
 ## What It Does
 
@@ -170,12 +170,14 @@ The app currently reads and writes these canonical `AppConfig` fields:
 - `CSSServerHost`
 - `SaveVideos`
 - `SavedVideosFolder`
+- `AutoplaySelectedClip`
 
 Notes:
 
 - `SaveVideos` is forced off when `DemoMode` is on.
 - `UiZoomPercent` is shared by the shell and settings window.
 - `Language` is switched live in the main operator UI.
+- `AutoplaySelectedClip` controls whether selecting a replay element immediately starts playback and defaults to `false`.
 - `highresVideoGop` controls the high-res/operator replay video GOP and defaults to `10`.
 - `lowresVideoGop` controls the low-res Judge Video Replay client/saved-video GOP and defaults to `60`.
 - `lowresVideoBitrate` is stored in kbps and defaults to `2500`.
