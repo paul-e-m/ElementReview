@@ -369,6 +369,10 @@
     function syncAutoplaySelectedClipToggle() {
         if (dom.judgeVideoReplayAutoplayToggle) {
             dom.judgeVideoReplayAutoplayToggle.checked = !!state.autoplaySelectedClipEnabled;
+            dom.judgeVideoReplayAutoplayToggle.setAttribute("aria-label", judgeVideoReplaySettingsText("autoplayClip"));
+        }
+        if (dom.judgeVideoReplayAutoplayLabel) {
+            dom.judgeVideoReplayAutoplayLabel.textContent = judgeVideoReplaySettingsText("autoplayClip");
         }
     }
 
@@ -606,9 +610,7 @@
     }
 
     function shouldAutoLoopCurrentClip() {
-        return !!state.clip &&
-            !isShowAllClip(state.clip) &&
-            (state.wantMenu ? state.autoplaySelectedClipEnabled : state.wantLoop);
+        return !state.wantMenu && !!state.clip && !isShowAllClip(state.clip) && state.wantLoop;
     }
 
     function firstAvailableClip() {
@@ -701,6 +703,11 @@
             const key = element.getAttribute("data-judge-video-replay-i18n");
             if (!key) return;
             element.textContent = judgeVideoReplaySettingsText(key);
+        });
+        document.querySelectorAll("[data-judge-video-replay-i18n-aria]").forEach(element => {
+            const key = element.getAttribute("data-judge-video-replay-i18n-aria");
+            if (!key) return;
+            element.setAttribute("aria-label", judgeVideoReplaySettingsText(key));
         });
         if (dom.judgeVideoReplaySettingsLanguage) {
             dom.judgeVideoReplaySettingsLanguage.value = judgeVideoReplaySettingsLanguage;
