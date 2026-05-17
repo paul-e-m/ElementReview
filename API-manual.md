@@ -17,7 +17,7 @@ http://localhost:5050
 Judge Video Replay clients use the ElementReview computer's LAN address, for example:
 
 ```text
-http://192.168.6.10:5050
+http://192.168.6.60:5050
 ```
 
 ElementReview listens on port `5050`, but access is split by purpose:
