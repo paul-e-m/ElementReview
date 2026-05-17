@@ -222,8 +222,20 @@ public static class AppServer
             cfg.Language = string.Equals(cfg.Language?.Trim(), "fr", StringComparison.OrdinalIgnoreCase)
                 ? "fr"
                 : "en";
+            cfg.Role = NormalizeJudgeVideoReplayRole(cfg.Role, cfg.TimerEnabled);
+            cfg.TimerEnabled = string.Equals(cfg.Role, "referee", StringComparison.OrdinalIgnoreCase);
             cfg.UiZoomPercent = Math.Clamp(cfg.UiZoomPercent, 50, 150);
             return cfg;
+        }
+
+        static string NormalizeJudgeVideoReplayRole(string? role, bool timerEnabled)
+        {
+            return role?.Trim().ToLowerInvariant() switch
+            {
+                "judge" => "judge",
+                "referee" => "referee",
+                _ => timerEnabled ? "referee" : "judge"
+            };
         }
 
         static string NormalizeRtspTransportProtocol(string? protocol)

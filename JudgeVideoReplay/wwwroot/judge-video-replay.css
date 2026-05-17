@@ -342,7 +342,8 @@ body {
 }
 
 .judgeVideoReplaySettingsField input[type="text"],
-.judgeVideoReplaySettingsField input[type="number"] {
+.judgeVideoReplaySettingsField input[type="number"],
+.judgeVideoReplaySettingsField select {
     width: 100%;
     min-height: 32px;
     padding: 6px 9px;
@@ -908,6 +909,70 @@ button:disabled {
     background: transparent;
 }
 
+.judgeVideoReplayAutoplayRow {
+    width: 100%;
+    min-height: 34px;
+    flex: 0 0 34px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 3px 0 3px 5px;
+    background: #4b5158;
+    color: #ffffff;
+    user-select: none;
+}
+
+.judgeVideoReplayAutoplayLabel {
+    font-weight: 600;
+    font-size: 11px;
+    line-height: 1.1;
+    letter-spacing: 0;
+}
+
+.judgeVideoReplayAutoplaySwitch {
+    position: relative;
+    width: 38px;
+    height: 20px;
+    display: inline-block;
+    flex: 0 0 auto;
+}
+
+.judgeVideoReplayAutoplaySwitch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.judgeVideoReplayAutoplaySlider {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+    background: #58606a;
+    border-radius: 999px;
+    transition: 0.15s;
+}
+
+.judgeVideoReplayAutoplaySlider::before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 2px;
+    top: 2px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: 0.15s;
+}
+
+.judgeVideoReplayAutoplaySwitch input:checked + .judgeVideoReplayAutoplaySlider {
+    background: #00e676;
+}
+
+.judgeVideoReplayAutoplaySwitch input:checked + .judgeVideoReplayAutoplaySlider::before {
+    transform: translateX(18px);
+}
 .elementRail {
     display: flex;
     flex-direction: column;

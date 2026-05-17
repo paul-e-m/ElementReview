@@ -19,6 +19,7 @@
         shell: document.getElementById("judgeVideoReplayShell"),
         topRow: document.getElementById("judgeVideoReplayTopRow"),
         elementRailColumn: document.getElementById("elementRailColumn"),
+        judgeVideoReplayAutoplayToggle: document.getElementById("judgeVideoReplayAutoplayToggle"),
         videoPane: document.getElementById("videoPane"),
         judgeVideoReplaySessionInfo: document.getElementById("judgeVideoReplaySessionInfo"),
         judgeVideoReplaySessionInfoText: document.getElementById("judgeVideoReplaySessionInfoText"),
@@ -29,9 +30,9 @@
         brandOverlay: document.getElementById("brandOverlay"),
         judgeVideoReplaySettingsOverlay: document.getElementById("judgeVideoReplaySettingsOverlay"),
         judgeVideoReplaySettingsLanguage: document.getElementById("judgeVideoReplaySettingsLanguage"),
+        judgeVideoReplaySettingsRole: document.getElementById("judgeVideoReplaySettingsRole"),
         judgeVideoReplaySettingsServerIp: document.getElementById("judgeVideoReplaySettingsServerIp"),
         judgeVideoReplaySettingsUiZoomPercent: document.getElementById("judgeVideoReplaySettingsUiZoomPercent"),
-        judgeVideoReplaySettingsTimerEnabled: document.getElementById("judgeVideoReplaySettingsTimerEnabled"),
         judgeVideoReplaySettingsStatus: document.getElementById("judgeVideoReplaySettingsStatus"),
         judgeVideoReplaySettingsSaveBtn: document.getElementById("judgeVideoReplaySettingsSaveBtn"),
         elementRail: document.getElementById("elementRail"),
@@ -76,10 +77,12 @@
         replayMediaToken: "",
         sessionHalfwaySeconds: null,
         sessionInfoText: "",
+        autoplaySelectedClipEnabled: false,
         wantAutoplay: false,
         wantLoop: false,
         wantMenu: false,
         showTimerControl: true,
+        isRefereeRole: true,
         loopArmed: false,
         uiRafId: null,
         holdPauseVisual: false,
@@ -363,6 +366,12 @@
         }
     }
 
+    function syncAutoplaySelectedClipToggle() {
+        if (dom.judgeVideoReplayAutoplayToggle) {
+            dom.judgeVideoReplayAutoplayToggle.checked = !!state.autoplaySelectedClipEnabled;
+        }
+    }
+
     function clearTimelineSurface() {
         if (dom.timelineTicks) dom.timelineTicks.innerHTML = "";
         if (dom.timelineLabels) dom.timelineLabels.innerHTML = "";
@@ -597,7 +606,9 @@
     }
 
     function shouldAutoLoopCurrentClip() {
-        return !!state.clip && !isShowAllClip(state.clip) && (state.wantMenu || state.wantLoop);
+        return !!state.clip &&
+            !isShowAllClip(state.clip) &&
+            (state.wantMenu ? state.autoplaySelectedClipEnabled : state.wantLoop);
     }
 
     function firstAvailableClip() {
@@ -665,6 +676,16 @@
         return value === "fr" ? "fr" : "en";
     }
 
+    function normalizeJudgeVideoReplayRole(value, timerEnabled = true) {
+        const normalized = String(value ?? "").trim().toLowerCase();
+        if (normalized === "judge" || normalized === "referee") return normalized;
+        return timerEnabled ? "referee" : "judge";
+    }
+
+    function isRefereeRole(value, timerEnabled = true) {
+        return normalizeJudgeVideoReplayRole(value, timerEnabled) === "referee";
+    }
+
     function judgeVideoReplaySettingsText(key) {
         return judgeVideoReplayTranslations[judgeVideoReplaySettingsLanguage]?.[key] ?? judgeVideoReplayTranslations.en?.[key] ?? key;
     }
@@ -693,8 +714,8 @@
         if (dom.judgeVideoReplaySettingsServerIp) {
             dom.judgeVideoReplaySettingsServerIp.value = String(config?.ServerIp ?? "127.0.0.1");
         }
-        if (dom.judgeVideoReplaySettingsTimerEnabled) {
-            dom.judgeVideoReplaySettingsTimerEnabled.checked = !!config?.TimerEnabled;
+        if (dom.judgeVideoReplaySettingsRole) {
+            dom.judgeVideoReplaySettingsRole.value = normalizeJudgeVideoReplayRole(config?.Role, config?.TimerEnabled);
         }
         if (dom.judgeVideoReplaySettingsUiZoomPercent) {
             dom.judgeVideoReplaySettingsUiZoomPercent.value = String(clamp(Number(config?.UiZoomPercent ?? 100), 50, 150));
@@ -704,10 +725,12 @@
 
     function readJudgeVideoReplaySettingsForm() {
         const zoomPercent = clamp(Math.round(Number(dom.judgeVideoReplaySettingsUiZoomPercent?.value || 100)), 50, 150);
+        const role = normalizeJudgeVideoReplayRole(dom.judgeVideoReplaySettingsRole?.value, judgeVideoReplaySettingsConfig?.TimerEnabled);
         return {
             ...judgeVideoReplaySettingsConfig,
             ServerIp: dom.judgeVideoReplaySettingsServerIp?.value.trim() || "127.0.0.1",
-            TimerEnabled: !!dom.judgeVideoReplaySettingsTimerEnabled?.checked,
+            Role: role,
+            TimerEnabled: role === "referee",
             UiZoomPercent: zoomPercent,
             Language: judgeVideoReplaySettingsLanguage
         };
@@ -753,7 +776,9 @@
     }
 
     function applySavedJudgeVideoReplaySettings(config) {
-        state.showTimerControl = !!config?.TimerEnabled;
+        state.isRefereeRole = isRefereeRole(config?.Role, config?.TimerEnabled);
+        state.showTimerControl = state.isRefereeRole;
+        syncAutoplaySelectedClipToggle();
         applyTimerControlVisibility();
     }
 
@@ -862,6 +887,10 @@
         const clamped = clampToRecordingBounds(targetTime);
         state.scrubPreviewTimeSeconds = clamped;
         state.stopAtClipEnd = clamped <= clip.endSeconds - END_EPS;
+
+        if (state.isRefereeRole && Math.abs(Number(dom.video.currentTime || 0) - clamped) > 0.03) {
+            dom.video.currentTime = clamped;
+        }
 
         syncVideoUI();
     }
@@ -1694,7 +1723,7 @@
         if (!clip) return;
 
         event.preventDefault();
-        void selectClipByIndex(elementIndex, { autoplay: true });
+        void selectClipByIndex(elementIndex, { autoplay: state.autoplaySelectedClipEnabled });
     }
 
     async function prepareVideo() {
@@ -1845,7 +1874,12 @@
         const index = Number(button.dataset.clipIndex);
         if (!Number.isInteger(index) || index <= 0) return;
 
-        void selectClipByIndex(index, { autoplay: true });
+        void selectClipByIndex(index, { autoplay: state.autoplaySelectedClipEnabled });
+    });
+
+    dom.judgeVideoReplayAutoplayToggle?.addEventListener("change", () => {
+        state.autoplaySelectedClipEnabled = !!dom.judgeVideoReplayAutoplayToggle.checked;
+        state.loopArmed = shouldAutoLoopCurrentClip();
     });
 
     dom.fullRecordingBtn?.addEventListener("click", () => {
@@ -1903,10 +1937,12 @@
         state.wantAutoplay = state.wantMenu ? false : options.autoplay;
         state.wantLoop = state.wantMenu ? false : options.loop;
         state.showTimerControl = options.timer;
+        state.isRefereeRole = options.timer;
         state.loopArmed = state.wantLoop;
         state.showAllMode = false;
         state.selectedClipIndex = null;
         state.requestedClipIndex = state.wantMenu ? 0 : options.clipIndex;
+        syncAutoplaySelectedClipToggle();
         applyTimerControlVisibility();
         renderRail();
 

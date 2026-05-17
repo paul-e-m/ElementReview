@@ -44,6 +44,7 @@ public sealed class JudgeVideoReplayMainForm : Form
 
     private static string BuildJudgeVideoReplayUrl(JudgeVideoReplayConfig config)
     {
+        config = JudgeVideoReplayConfigStore.Normalize(config);
         var url = $"https://{SettingsVirtualHost}/judge-video-replay.html?0&judgeVideoReplay=true";
         return config.TimerEnabled ? url + "&timer=true" : url + "&timer=false";
     }

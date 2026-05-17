@@ -8,7 +8,7 @@ ElementReview is a Windows desktop recording and replay tool for figure skating 
 - `ffmpeg` / `ffprobe` for recording
 - MediaMTX for live RTSP relay into the browser UI
 
-The current app version is `v0.5.4`.
+The current app version is `v0.5.5`.
 
 ## What It Does
 
@@ -38,7 +38,7 @@ Current operator features include:
 
 `JudgeVideoReplay.exe` is the remote replay client for judges and the referee. It packages its own static UI under `JudgeVideoReplay/wwwroot` and connects to the ElementReview backend API over the LAN.
 
-The same executable can be used by both judges and the referee. Referee timing functionality is available. The `Enable timer controls` setting can be turned off for judge stations that only need video replay.
+The same executable can be used by both judges and the referee. Referee timing functionality is available when the app settings role is `Referee`; the `Judge` role hides those timing controls.
 
 Run `JudgeVideoReplay.exe` on each judge or referee computer. In the app settings, set the Server IP address to the computer running ElementReview (i.e., the VRO computer).
 

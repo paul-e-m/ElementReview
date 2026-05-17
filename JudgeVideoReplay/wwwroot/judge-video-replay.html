@@ -4,12 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Judge Video Replay</title>
-    <link rel="stylesheet" href="judge-video-replay.css" />
+    <link rel="stylesheet" href="judge-video-replay.css?v6" />
 </head>
 <body>
     <div class="judgeVideoReplayShell" id="judgeVideoReplayShell">
         <div class="judgeVideoReplayLayout" id="judgeVideoReplayTopRow">
             <aside id="elementRailColumn" class="elementRailColumn hidden" aria-label="Elements">
+                <div id="judgeVideoReplayAutoplayRow" class="judgeVideoReplayAutoplayRow">
+                    <span id="judgeVideoReplayAutoplayLabel" class="judgeVideoReplayAutoplayLabel">Autoplay Clip</span>
+                    <label class="judgeVideoReplayAutoplaySwitch">
+                        <input type="checkbox" id="judgeVideoReplayAutoplayToggle" aria-label="Autoplay Clip" />
+                        <span class="judgeVideoReplayAutoplaySlider"></span>
+                    </label>
+                </div>
                 <div id="elementRail" class="elementRail"></div>
             </aside>
 
@@ -115,6 +122,13 @@
             <div class="judgeVideoReplaySettingsBody">
                 <section class="judgeVideoReplaySettingsSection">
                     <h3 data-judge-video-replay-i18n="general">General</h3>
+                    <label class="judgeVideoReplaySettingsField" for="judgeVideoReplaySettingsRole">
+                        <span data-judge-video-replay-i18n="role">Role</span>
+                        <select id="judgeVideoReplaySettingsRole">
+                            <option value="judge" data-judge-video-replay-i18n="roleJudge">Judge</option>
+                            <option value="referee" data-judge-video-replay-i18n="roleReferee">Referee</option>
+                        </select>
+                    </label>
                     <label class="judgeVideoReplaySettingsField" for="judgeVideoReplaySettingsUiZoomPercent">
                         <span>
                             <strong data-judge-video-replay-i18n="uiZoom">UI Zoom (%)</strong>
@@ -130,13 +144,6 @@
                         <span data-judge-video-replay-i18n="serverIp">Server IP address (VRO laptop)</span>
                         <input id="judgeVideoReplaySettingsServerIp" type="text" spellcheck="false" />
                     </label>
-                    <label class="judgeVideoReplaySettingsToggle" for="judgeVideoReplaySettingsTimerEnabled">
-                        <span>
-                            <strong data-judge-video-replay-i18n="timerEnabled">Enable timer controls</strong>
-                            <small data-judge-video-replay-i18n="timerEnabledHelp">Open Judge Video Replay with timer controls visible.</small>
-                        </span>
-                        <input id="judgeVideoReplaySettingsTimerEnabled" type="checkbox" />
-                    </label>
                 </section>
             </div>
 
@@ -148,6 +155,6 @@
     </div>
 
     <script src="judge-video-replay-i18n.js"></script>
-    <script src="judge-video-replay.js"></script>
+    <script src="judge-video-replay.js?v6"></script>
 </body>
 </html>

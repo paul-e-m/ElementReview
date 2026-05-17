@@ -66,8 +66,9 @@ JudgeVideoReplay does not need `tools\ffmpeg.exe`, `tools\ffprobe.exe`, or `tool
 3. Start `JudgeVideoReplay.exe`.
 4. Open JudgeVideoReplay settings.
 5. Enter the VRO laptop IP address in `Server IP address`.
-6. Save and close settings.
-7. Confirm the app can reach ElementReview when the VRO laptop is running.
+6. Set the role to `Judge` or `Referee` for that laptop.
+7. Save and close settings.
+8. Confirm the app can reach ElementReview when the VRO laptop is running.
 
 ## Network Requirements
 
@@ -102,4 +103,3 @@ Important files and folders:
 - `WebView2\`
 
 The `media\` folder is a local cache for replay chunks downloaded from the VRO laptop.
-

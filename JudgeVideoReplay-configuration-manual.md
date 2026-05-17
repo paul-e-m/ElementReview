@@ -27,17 +27,23 @@ Example:
 ```json
 {
   "ServerIp": "192.168.6.25",
+  "Role": "referee",
   "TimerEnabled": true,
   "Language": "en",
   "UiZoomPercent": 100
 }
 ```
 
+`Role`
+
+- Supported values are `judge` and `referee`.
+- The `judge` role hides the timer controls.
+- The `referee` role shows the timer controls.
+
 `TimerEnabled`
 
-- Shows or hides the timer controls when JudgeVideoReplay opens.
-- Referee laptops normally use timer controls.
-- Judge-only laptops may have timer controls disabled if the event does not want them visible.
+- Compatibility value derived from `Role`.
+- `true` when `Role` is `referee`; `false` when `Role` is `judge`.
 
 `Language`
 
@@ -55,7 +61,7 @@ Example:
 1. Start `JudgeVideoReplay.exe`.
 2. Click the settings button.
 3. Set `Server IP address` to the VRO laptop IP address.
-4. Choose whether timer controls should be enabled.
+4. Choose `Judge` or `Referee` in the role selector.
 5. Set `UI Zoom (%)` if the replay UI should appear larger or smaller.
 6. Choose the language.
 7. Click `Save and Close`.

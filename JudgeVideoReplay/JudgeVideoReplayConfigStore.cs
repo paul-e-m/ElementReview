@@ -4,6 +4,8 @@ namespace JudgeVideoReplay;
 
 internal static class JudgeVideoReplayConfigStore
 {
+    public const string JudgeRole = "judge";
+    public const string RefereeRole = "referee";
     public const int DefaultUiZoomPercent = 100;
     public const int MinUiZoomPercent = 50;
     public const int MaxUiZoomPercent = 150;
@@ -59,7 +61,20 @@ internal static class JudgeVideoReplayConfigStore
         config.Language = string.Equals(config.Language?.Trim(), "fr", StringComparison.OrdinalIgnoreCase)
             ? "fr"
             : "en";
+        config.Role = NormalizeRole(config.Role, config.TimerEnabled);
+        config.TimerEnabled = string.Equals(config.Role, RefereeRole, StringComparison.OrdinalIgnoreCase);
         config.UiZoomPercent = Math.Clamp(config.UiZoomPercent, MinUiZoomPercent, MaxUiZoomPercent);
         return config;
+    }
+
+    private static string NormalizeRole(string? role, bool timerEnabled)
+    {
+        var normalized = role?.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            JudgeRole => JudgeRole,
+            RefereeRole => RefereeRole,
+            _ => timerEnabled ? RefereeRole : JudgeRole
+        };
     }
 }
