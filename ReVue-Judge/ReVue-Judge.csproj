@@ -6,8 +6,8 @@
     <AssemblyName>ReVue-Judge</AssemblyName>
     <AssemblyTitle>ReVue Judge</AssemblyTitle>
     <Product>ReVue Judge</Product>
-    <Version>1.0.2</Version>
-    <InformationalVersion>1.0.2</InformationalVersion>
+    <Version>1.0.3</Version>
+    <InformationalVersion>1.0.3</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <ApplicationIcon>$(MSBuildThisFileDirectory)ReVue-Judge.ico</ApplicationIcon>
     <Win32Icon>$(MSBuildThisFileDirectory)ReVue-Judge.ico</Win32Icon>

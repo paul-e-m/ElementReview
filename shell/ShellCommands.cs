@@ -3,6 +3,7 @@ namespace ReVueVRO.Shell;
 public static class ShellCommands
 {
     public static event Action? RestartRequested;
+    public static bool RestartPending { get; private set; }
 
     public static bool RequestRestart()
     {
@@ -11,5 +12,10 @@ public static class ShellCommands
 
         handler();
         return true;
+    }
+
+    public static void MarkRestartPending()
+    {
+        RestartPending = true;
     }
 }
