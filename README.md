@@ -8,7 +8,7 @@ ReVue VRO is a Windows desktop recording and replay tool for figure skating comp
 - `ffmpeg` / `ffprobe` for recording
 - MediaMTX for live RTSP relay into the browser UI
 
-The current app version is `v1.0.2`.
+The current app version is `v1.0.3`.
 
 ## What It Does
 
@@ -288,13 +288,13 @@ Published output is created under:
 bin\Release\net10.0-windows\win-x64\publish\
 ```
 
-To sign the published app binaries and the VRO installer in `dist\`, run:
+To sign the published app binaries and the setup installers in `dist\`, run:
 
 ```powershell
 .\sign-artifacts.ps1
 ```
 
-That script signs and verifies `ReVue-VRO.exe`, `ReVue-Judge.exe`, and `dist\ReVue-VRO-Setup-<version>.exe` when the installer is present.
+That script signs and verifies `ReVue-VRO.exe`, `ReVue-Judge.exe`, `dist\ReVue-VRO-Setup-<version>.exe`, and `dist\ReVue-Judge-Setup-<version>.exe` when the installers are present.
 
 ## Repository Layout
 

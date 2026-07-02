@@ -146,7 +146,7 @@ export class ReVueVROApp {
 
         // Cache appconfig early so later interactions do not need an extra fetch.
         this.appConfig = null;
-        this.appVersion = "v1.0.2";
+        this.appVersion = "v1.0.3";
         this.currentLanguage = "en";
         this.i18n = window.INDEX_I18N || {};
         this.buttonImageUrlCache = new Map();

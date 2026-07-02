@@ -273,29 +273,7 @@ public sealed class MainForm : Form
             return;
 
         _restarting = true;
-
-        try
-        {
-            var exePath = Application.ExecutablePath;
-
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = exePath,
-                WorkingDirectory = AppContext.BaseDirectory,
-                UseShellExecute = true
-            });
-        }
-        catch (Exception ex)
-        {
-            _restarting = false;
-            MessageBox.Show(
-                this,
-                "ReVue VRO could not restart itself.\r\n\r\n" + ex.Message,
-                AppTitle,
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
-            return;
-        }
+        ShellCommands.MarkRestartPending();
 
         Close();
     }
